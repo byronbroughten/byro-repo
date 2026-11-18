@@ -96,12 +96,11 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |
 | `outlineEdits.ts` | | A Research Halt's Outline edits: their schema, ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
-| `outcomeBackfill.ts` | `outcomeBackfill` | A one-off chore's core: fills written outcome rows' `unrecorded` transcript cells from a run state's sessions. |
 | `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, and a written row's cells by column and its transcript cells. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
-| `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks spec sections of the outcome log and reports their costs, outliers, transcripts and Model fit for `/mine-outcomes`. |
-| `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections. |
-| `outcomeSummary/summarySections.ts` | | Reads the outcome log's spec sections from row files and picks the batch. |
+| `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks and filters the outcome log's rows and reports their costs, outliers, transcripts and Model fit by spec section. |
+| `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections, judging each row by the outlier rules. |
+| `outcomeSummary/summarySections.ts` | | Reads the outcome log's rows from row files, filters and picks the batch, and groups it into spec sections. |
 | `PidLock.ts` | | The pid lock file `LandingLock`, `RunLock`, `AccountLease` and `CheckSlot` extend, and the wait `LandingLock` and `CheckSlot` poll through. |
 | `PiecePull.ts` | `PiecePull` | `npm run piece:pull`'s core: pulls a drafting ticket's Agent draft into its own issue workspace and prints what an interactive session needs next. |
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |

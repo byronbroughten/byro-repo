@@ -139,51 +139,6 @@ function cellsOfLine(line: string): string[] {
   return line.slice(2, -2).split(/ (?<!\\)\| /);
 }
 
-// A written row file with each `unrecorded` cell filled from the transcript fact `facts` defines; every other cell is
-// kept as written.
-export function withUnrecordedTranscriptCells(
-  file: string,
-  facts: OutcomeFacts,
-): string {
-  const fresh = transcriptCellsOf(facts);
-  const lines = file.split("\n");
-  const headerIndex = lines.findIndex((line) => line.startsWith("| "));
-  const header = cellsOfLine(lines[headerIndex] ?? "").map(writtenColumnOf);
-  const rowIndex = lines.findLastIndex((line) => line.startsWith("| "));
-  const cells = cellsOfLine(lines[rowIndex] ?? "").map((cell, index) => {
-    if (cell !== unrecorded) return cell;
-    const column = header[index];
-    const value = column === undefined ? undefined : fresh[column];
-    return value ?? cell;
-  });
-  lines[rowIndex] = `| ${cells.join(" | ")} |`;
-  return lines.join("\n");
-}
-
-function transcriptCellsOf(
-  facts: OutcomeFacts,
-): Partial<Record<WrittenColumn, string>> {
-  const cells: Partial<Record<WrittenColumn, string>> = {};
-  if (facts.pair !== undefined) cells.Pair = facts.pair;
-  if (facts.account !== undefined) cells.Account = facts.account;
-  if (facts.peakContext !== undefined) {
-    cells["Peak context"] = peakContextOf(facts);
-  }
-  if (facts.durationMinutes !== undefined) {
-    cells.Duration = `${facts.durationMinutes} min`;
-  }
-  if (facts.costUsd !== undefined) {
-    cells["Cost (API-equivalent)"] = dollarsOf(facts.costUsd);
-  }
-  if (facts.reviewCostUsd !== undefined) {
-    cells["Review cost"] = dollarsOf(facts.reviewCostUsd);
-  }
-  if (facts.sessionIds !== undefined) {
-    cells["Session ids"] = facts.sessionIds.join(", ");
-  }
-  return cells;
-}
-
 function cellsOf({
   issue,
   workflow,

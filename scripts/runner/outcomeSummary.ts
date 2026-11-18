@@ -1,4 +1,4 @@
-// `npm run outcome:summary -- <spec section | --recent <N> | --all>`: the report `/mine-outcomes` reads in place of the outcome rows.
+// `npm run outcome:summary`: the outcome log's rows a planning session asks for, by spec section, with their outliers.
 // The core is runner/src/outcomeSummary.ts; this gathers the row files from the primary root's outcome folder, the transcripts on disk and each ticket's Model fit.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { messageOf } from "@byronbroughten/spec-runner/failureText";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
 import {
+  defaultRowCount,
   type OutcomeRowFile,
   outcomeSummaryOf,
   type SectionSelection,
@@ -19,8 +20,14 @@ import {
 import { issueReader } from "./issueReader.ts";
 import { outcomeFolder, runKnobs } from "./runnerConfig.ts";
 
-const usage =
-  "Usage: npm run outcome:summary -- <spec section, such as byro-repo-480> | --recent <N> | --all";
+const usage = `Usage: npm run outcome:summary -- [<spec section, such as byro-repo-480> | --recent <N> | --all] [--workflow <code | piece>] [--pair <pair, such as "Opus medium">] [--repo <ticket repo>] [--spec <spec section>] [--since <date>] [--outliers]; with no section, --recent or --all, the last ${defaultRowCount} rows by landing date`;
+
+const filterKeyByFlag: Record<string, "workflow" | "pair" | "repo" | "spec"> = {
+  "--workflow": "workflow",
+  "--pair": "pair",
+  "--repo": "repo",
+  "--spec": "spec",
+};
 
 const selection = selectionOf(process.argv.slice(2));
 if (selection === undefined) {
@@ -41,18 +48,56 @@ if (selection === undefined) {
   );
 }
 
+// Undefined for arguments the usage line doesn't allow, a flag given twice or two scopes among them.
 function selectionOf(args: string[]): SectionSelection | undefined {
-  const [first, second, ...rest] = args;
-  if (first === undefined || rest.length > 0) return undefined;
-  if (first === "--all") {
-    return second === undefined ? { all: true } : undefined;
+  const selection: SectionSelection = {};
+  const rest = [...args];
+  for (let arg = rest.shift(); arg !== undefined; arg = rest.shift()) {
+    const isSet = withArgument(selection, arg, rest);
+    if (!isSet) return undefined;
   }
-  if (first === "--recent") {
-    const count = Number(second);
-    return Number.isInteger(count) && count > 0 ? { recent: count } : undefined;
+  return selection;
+}
+
+// Sets one argument, and the value a flag takes from `rest`, on the selection; false when it can't.
+function withArgument(
+  selection: SectionSelection,
+  arg: string,
+  rest: string[],
+): boolean {
+  if (arg === "--outliers") {
+    if (selection.limitsToOutliers === true) return false;
+    selection.limitsToOutliers = true;
+    return true;
   }
-  if (first.startsWith("-") || second !== undefined) return undefined;
-  return { section: first };
+  if (arg === "--all" || !arg.startsWith("-")) {
+    if (selection.scope !== undefined) return false;
+    selection.scope = arg === "--all" ? { all: true } : { section: arg };
+    return true;
+  }
+  const value = rest.shift();
+  if (value === undefined || value.startsWith("-")) return false;
+  const filterKey = filterKeyByFlag[arg];
+  if (filterKey !== undefined) {
+    if (selection[filterKey] !== undefined) return false;
+    selection[filterKey] = value;
+    return true;
+  }
+  if (arg === "--recent") {
+    const count = Number(value);
+    if (selection.scope !== undefined) return false;
+    if (!Number.isInteger(count) || count <= 0) return false;
+    selection.scope = { recent: count };
+    return true;
+  }
+  if (arg === "--since") {
+    const since = new Date(value);
+    if (selection.since !== undefined) return false;
+    if (Number.isNaN(since.getTime())) return false;
+    selection.since = since;
+    return true;
+  }
+  return false;
 }
 
 // A primary root no landing has written a row in yet has no outcome folder.

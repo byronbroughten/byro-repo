@@ -59,7 +59,6 @@
     "./contextNudge": "./src/contextNudge.ts",
     "./limitGuard": "./src/limitGuard.ts",
     "./outlineApply": "./src/outlineApply.ts",
-    "./outcomeBackfill": "./src/outcomeBackfill.ts",
     "./outcomeLog": "./src/outcomeLog.ts",
     "./outcomeRowWriter": "./src/outcomeRowWriter.ts",
     "./outcomeSummary": "./src/outcomeSummary.ts",

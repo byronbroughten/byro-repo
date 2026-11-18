@@ -29,6 +29,7 @@ const currentHeader = [
 interface RowCells {
   issue: number;
   workflow?: string;
+  pair?: string;
   files?: string;
   estimate?: string;
   peak?: string;
@@ -45,7 +46,7 @@ function currentCellsOf(row: RowCells): string[] {
   return [
     `#${row.issue}`,
     row.workflow ?? "code",
-    "Opus medium",
+    row.pair ?? "Opus medium",
     "1",
     row.files ?? "4",
     row.estimate ?? "",
@@ -111,7 +112,7 @@ function tableTextOf(header: string[], cells: string[]): string {
 
 function summaryOf(
   rowFiles: OutcomeRowFile[],
-  selection: SectionSelection = { all: true },
+  selection: SectionSelection = { scope: { all: true } },
   hasTranscript: (sessionId: string) => boolean = () => true,
 ): Promise<string> {
   return outcomeSummaryOf({
@@ -358,7 +359,7 @@ describe("outliers", () => {
         }),
         rowFileOf("byro-repo-5", "byro-repo", { issue: 7 }),
       ],
-      { all: true },
+      { scope: { all: true } },
       (sessionId) => sessionId !== "b",
     );
 
@@ -419,7 +420,7 @@ describe("transcripts", () => {
         }),
         rowFileOf("byro-repo-1", "byro-repo", { issue: 5, sessions: "e" }),
       ],
-      { all: true },
+      { scope: { all: true } },
       (sessionId) => ["c", "e"].includes(sessionId),
     );
 
@@ -451,24 +452,10 @@ describe("which sections", () => {
     rowFileOf("byro-repo-1", "byro-repo", { issue: 3 }, "2026-09-01T00:00:00Z"),
     rowFileOf("byro-repo-5", "byro-repo", { issue: 6 }, "2026-10-03T00:00:00Z"),
     rowFileOf("writing-9", "writing", { issue: 10 }, "2026-10-04T00:00:00Z"),
-    {
-      path: "legacy.md",
-      text: tableTextOf(
-        ["Issue", "Pair", "Files changed", "Peak context", "Result"],
-        ["#194", "Opus medium", "14", "121K", "Pass"],
-      ),
-    },
   ];
 
-  function specsOf(summary: string): string[] {
-    return summary
-      .split("\n")
-      .filter((line) => line.startsWith("## Spec "))
-      .map((line) => line.slice("## Spec ".length));
-  }
-
   it("takes the N sections whose newest row landed most recently", async () => {
-    const summary = await summaryOf(rowFiles, { recent: 2 });
+    const summary = await summaryOf(rowFiles, { scope: { recent: 2 } });
 
     expect(specsOf(summary)).toEqual(["byro-repo#1", "writing#9"]);
   });
@@ -484,29 +471,228 @@ describe("which sections", () => {
     );
   });
 
-  it("takes every section with --all, leaving the legacy log out", async () => {
-    const summary = await summaryOf(rowFiles, { all: true });
+  it("refuses a row file outside a spec section's folder", async () => {
+    const strayFile = {
+      path: "byro-repo-11.md",
+      text: tableTextOf(currentHeader, currentCellsOf({ issue: 11 })),
+    };
+
+    await expect(summaryOf([...rowFiles, strayFile])).rejects.toThrow(
+      "byro-repo-11.md is not a row file",
+    );
+  });
+
+  it("takes every section with --all, newest first", async () => {
+    const summary = await summaryOf(rowFiles, { scope: { all: true } });
 
     expect(specsOf(summary)).toEqual([
       "byro-repo#1",
       "writing#9",
       "byro-repo#5",
     ]);
-    expect(summary).not.toContain("#194");
   });
 
   it("takes one section by its folder or spec name", async () => {
     expect(
-      specsOf(await summaryOf(rowFiles, { section: "byro-repo-5" })),
+      specsOf(await summaryOf(rowFiles, { scope: { section: "byro-repo-5" } })),
     ).toEqual(["byro-repo#5"]);
     expect(
-      specsOf(await summaryOf(rowFiles, { section: "writing#9" })),
+      specsOf(await summaryOf(rowFiles, { scope: { section: "writing#9" } })),
     ).toEqual(["writing#9"]);
   });
 
   it("refuses a section with no folder", async () => {
     await expect(
-      summaryOf(rowFiles, { section: "byro-repo-99" }),
+      summaryOf(rowFiles, { scope: { section: "byro-repo-99" } }),
     ).rejects.toThrow("No outcome section named byro-repo-99");
   });
 });
+
+describe("which rows", () => {
+  const rowFiles = [
+    rowFileOf(
+      "byro-repo-1",
+      "byro-repo",
+      { issue: 2, pair: "Sonnet high" },
+      "2026-10-05T00:00:00Z",
+    ),
+    rowFileOf(
+      "byro-repo-1",
+      "personal",
+      { issue: 3, workflow: "piece" },
+      "2026-09-01T00:00:00Z",
+    ),
+    rowFileOf(
+      "byro-repo-5",
+      "byro-repo",
+      { issue: 6, workflow: "piece" },
+      "2026-10-03T00:00:00Z",
+    ),
+    rowFileOf("writing-9", "writing", { issue: 10 }, "2026-10-04T00:00:00Z"),
+  ];
+
+  it("narrows to one Workflow", async () => {
+    const summary = await summaryOf(rowFiles, {
+      scope: { all: true },
+      workflow: "piece",
+    });
+
+    expect(issuesOf(summary)).toEqual(["byro-repo#6", "personal#3"]);
+  });
+
+  it("refuses a name that is no Workflow", async () => {
+    await expect(
+      summaryOf(rowFiles, { scope: { all: true }, workflow: "poem" }),
+    ).rejects.toThrow("No Workflow named poem");
+  });
+
+  it("narrows to one pair, in any case", async () => {
+    const summary = await summaryOf(rowFiles, {
+      scope: { all: true },
+      pair: "sonnet high",
+    });
+
+    expect(issuesOf(summary)).toEqual(["byro-repo#2"]);
+  });
+
+  it("narrows to one ticket repo", async () => {
+    const summary = await summaryOf(rowFiles, {
+      scope: { all: true },
+      repo: "byro-repo",
+    });
+
+    expect(issuesOf(summary)).toEqual(["byro-repo#2", "byro-repo#6"]);
+  });
+
+  it("narrows to one spec by its folder or spec name", async () => {
+    for (const spec of ["byro-repo-1", "byro-repo#1"]) {
+      const summary = await summaryOf(rowFiles, {
+        scope: { all: true },
+        spec,
+      });
+
+      expect(issuesOf(summary)).toEqual(["byro-repo#2", "personal#3"]);
+    }
+  });
+
+  it("narrows to the rows landed since a date", async () => {
+    const summary = await summaryOf(rowFiles, {
+      scope: { all: true },
+      since: new Date("2026-10-04T00:00:00Z"),
+    });
+
+    expect(issuesOf(summary)).toEqual(["byro-repo#2", "writing#10"]);
+  });
+
+  it("combines filters with each other", async () => {
+    const summary = await summaryOf(rowFiles, {
+      scope: { all: true },
+      workflow: "piece",
+      repo: "byro-repo",
+      since: new Date("2026-10-01T00:00:00Z"),
+    });
+
+    expect(issuesOf(summary)).toEqual(["byro-repo#6"]);
+  });
+
+  it("filters within one named section", async () => {
+    const summary = await summaryOf(rowFiles, {
+      scope: { section: "byro-repo-1" },
+      workflow: "piece",
+    });
+
+    expect(issuesOf(summary)).toEqual(["personal#3"]);
+  });
+
+  it("takes the N most recent sections among the filtered rows", async () => {
+    const summary = await summaryOf(rowFiles, {
+      scope: { recent: 1 },
+      workflow: "piece",
+    });
+
+    expect(issuesOf(summary)).toEqual(["byro-repo#6"]);
+  });
+
+  describe("with no scope", () => {
+    const manyRows = Array.from({ length: 201 }, (_, index) =>
+      rowFileOf(
+        "byro-repo-1",
+        "byro-repo",
+        { issue: 1000 + index, workflow: index % 2 === 0 ? "code" : "piece" },
+        new Date(Date.UTC(2026, 0, 1) + index * 3_600_000).toISOString(),
+      ),
+    );
+
+    it("takes the last 200 rows by landing date", async () => {
+      const summary = await summaryOf(manyRows, {});
+
+      expect(issuesOf(summary)).toHaveLength(200);
+      expect(issuesOf(summary)).not.toContain("byro-repo#1000");
+    });
+
+    it("takes the last 200 rows among the filtered ones", async () => {
+      const summary = await summaryOf(manyRows, { workflow: "piece" });
+
+      expect(issuesOf(summary)).toHaveLength(100);
+    });
+
+    it("takes every row with --all", async () => {
+      const summary = await summaryOf(manyRows, { scope: { all: true } });
+
+      expect(issuesOf(summary)).toHaveLength(201);
+    });
+  });
+});
+
+describe("outliers only", () => {
+  it("reports only the outliers landed since a date, naming the rules they trip", async () => {
+    const summary = await summaryOf(
+      [
+        rowFileOf(
+          "byro-repo-1",
+          "byro-repo",
+          { issue: 2, result: "Fix (resumed implementer)" },
+          "2026-10-05T00:00:00Z",
+        ),
+        rowFileOf(
+          "byro-repo-1",
+          "byro-repo",
+          { issue: 3, retries: "2" },
+          "2026-09-01T00:00:00Z",
+        ),
+        rowFileOf(
+          "byro-repo-5",
+          "byro-repo",
+          { issue: 6 },
+          "2026-10-06T00:00:00Z",
+        ),
+      ],
+      {
+        scope: { all: true },
+        since: new Date("2026-10-01T00:00:00Z"),
+        limitsToOutliers: true,
+      },
+    );
+
+    expect(issuesOf(summary)).toEqual(["byro-repo#2"]);
+    expect(specsOf(summary)).toEqual(["byro-repo#1"]);
+    expect(lineOf(summary, "- byro-repo#2:")).toBe(
+      "- byro-repo#2: Result Fix (resumed implementer). Sessions: s2.",
+    );
+  });
+});
+
+function specsOf(summary: string): string[] {
+  return summary
+    .split("\n")
+    .filter((line) => line.startsWith("## Spec "))
+    .map((line) => line.slice("## Spec ".length));
+}
+
+// The issues of the rows the report's tables list, in order.
+function issuesOf(summary: string): string[] {
+  return summary.split("\n").flatMap((line) => {
+    const issue = /^\| ([\w-]+#\d+) \|/.exec(line)?.[1];
+    return issue === undefined ? [] : [issue];
+  });
+}
