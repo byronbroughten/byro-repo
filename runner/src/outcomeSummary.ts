@@ -1,5 +1,5 @@
 // The outcome summary behind `npm run outcome:summary`: picks spec sections of the outcome log and reports what `/mine-outcomes` reads in place of the rows.
-// Row files come in as text with each one's landing date, and Model fit and transcripts as lookups; scripts/runner/outcomeSummary.ts gathers them.
+// Row files come in as text, each dated by its own Landed cell, and Model fit and transcripts as lookups; scripts/runner/outcomeSummary.ts gathers them.
 // outcomeSummary/summarySections.ts reads the sections and outcomeSummary/OutcomeReport.ts words them; the row format is outcomeLog.ts's.
 // The outlier rules are runner/skills/mine-outcomes/SKILL.md's.
 
@@ -11,8 +11,6 @@ export interface OutcomeRowFile {
   // Relative to the outcome folder: `<spec repo>-<spec n>/<repo>-<n>.md`, or the legacy log's own name, which has no folder.
   path: string;
   text: string;
-  // The adding commit's date, read only for a row written before the Landed column.
-  addedAt: Date;
 }
 
 export type SectionSelection =
@@ -21,7 +19,7 @@ export type SectionSelection =
 export interface OutcomeSummaryInput {
   rowFiles: OutcomeRowFile[];
   selection: SectionSelection;
-  // Relative to the repo root, as the report names each section's folder.
+  // The folder the report names each section's rows under.
   outcomeFolder: string;
   ticketBudget: number;
   // The ticket's Model fit pair line and reason, or why they can't be read.

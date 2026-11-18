@@ -10,12 +10,12 @@ disable-model-invocation: true
 
 ## 1. Read the summary
 
-The batch is the spec sections the invocation names; a section is the folder `docs/agents/outcomes/<spec repo>-<spec n>/`, one row file per landed ticket ([`docs/agents/model-fit.md#outcome-log`](../../../docs/agents/model-fit.md#outcome-log)). Run the summary for it:
+The batch is the spec sections the invocation names; a section is the folder `.runner/outcomes/<spec repo>-<spec n>/` in the primary root, one uncommitted row file per landed ticket ([`docs/agents/model-fit.md#outcome-log`](../../../docs/agents/model-fit.md#outcome-log)). Run the summary for it:
 
 | Invocation | Command | Batch |
 | --- | --- | --- |
 | `/mine-outcomes <repo> <spec>` | `npm run outcome:summary -- <repo>-<spec>` | that one section |
-| `/mine-outcomes --recent <N>` | `npm run outcome:summary -- --recent <N>` | the N sections whose newest row landed most recently, by that row's Landed date, or its adding commit's for a row older than that column |
+| `/mine-outcomes --recent <N>` | `npm run outcome:summary -- --recent <N>` | the N sections whose newest row landed most recently, by that row's Landed date |
 | `/mine-outcomes --all` | `npm run outcome:summary -- --all` | every section; the legacy log is never mined |
 
 When it names no section, say so and stop. The summary is what you read in place of the row files and each ticket's `issue:read`. It already reads older rows under today's names, leaves `unrecorded` out of every sum and median with the rows each figure rests on, and sums each row's peaks (`150K → 90K` is a handoff, its peak sum 240K). It gives:
@@ -38,7 +38,7 @@ The summary flags a row an outlier on each of these rules, naming every one it t
 
 A row is **expired** when none of its Session ids has a transcript under `~/.claude/projects/*/` or `~/.claude-swap-backup/sessions/*/projects/*/`, and **partly expired** when some are missing; one whose Session ids is `unrecorded` never had any. They still count in every figure; only `/retro` needs a transcript.
 
-For each outlier, and each row a pattern below rests on, read its What review caught from its row file, `docs/agents/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`. A `piece` row's cell holds only each finding's axis and rule, with no prose, since the log is public.
+For each outlier, and each row a pattern below rests on, read its What review caught from its row file, `.runner/outcomes/<spec repo>-<spec n>/<repo>-<n>.md` in the primary root. A `piece` row's cell holds only each finding's axis and rule, with no prose, since the log is public.
 
 ## 3. Proposals
 
@@ -63,10 +63,6 @@ End it with a round in the format of `/grilling` ([`.claude/skills/grilling/SKIL
 
 ## 5. Clear the batch
 
-Only once the developer has answered step 4's round, ask whether to clear every section in the batch, as one question in a later round of the same format. A `/retro` they want goes ahead of that round. Git history keeps the files after that. On a yes:
-
-1. Open one session workspace ([`docs/agents/git-workflow.md#a-skills-session-workspace`](../../../docs/agents/git-workflow.md#a-skills-session-workspace)) named `mine-outcomes-<spec repo>-<spec n>`, `mine-outcomes-recent-<N>` or `mine-outcomes-all`, after the invocation.
-2. `git rm -r` each mined section's folder, then make one commit: `Clear the <spec repo>#<spec n>, … outcome rows after mining.`, listing every spec.
-3. Land it.
+Only once the developer has answered step 4's round, ask whether to clear every section in the batch, as one question in a later round of the same format. A `/retro` they want goes ahead of that round. The rows are uncommitted, so nothing keeps them after that. On a yes, `rm -r` each mined section's folder in the primary root's `.runner/outcomes/`.
 
 On a no, leave the folders; a later run mines them again.

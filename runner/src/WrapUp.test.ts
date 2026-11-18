@@ -1,4 +1,10 @@
-import { cpSync, existsSync, readFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+} from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +16,9 @@ import { trackedIssues } from "./specRunHarness/trackedIssues.ts";
 import type { RecordedSession, StepAgent } from "./transcriptFacts.ts";
 import {
   commitIn,
+  failureOf,
   github,
+  outcomeFolder,
   outcomePath,
   primaryOf,
   primaryRoot,
@@ -36,15 +44,14 @@ describe("run", () => {
     vi.useRealTimers();
   });
 
-  it("merges the branch, commits the log row and lands both on the pushed master", async () => {
+  it("merges the branch, lands it on the pushed master and leaves the log row uncommitted in the outcome folder", async () => {
     const workspace = await workspaceWith();
     commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
     writeFacts();
 
     await wrapUp().run(ticket);
 
-    expect(subjectsOf("byro-repo").slice(0, 3)).toEqual([
-      "Record the #218 outcome: Opus medium, 1 files, 150K → 90K, first-try pass.",
+    expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
       "Merge issue-218-wrap-up-script into master (#218)",
       "Add script.ts",
     ]);
@@ -52,6 +59,26 @@ describe("run", () => {
       git(primaryOf("byro-repo"), "rev-parse", "master"),
     );
     expect(existsSync(join(primaryRoot, "script.ts"))).toBe(true);
+    expect(existsSync(join(outcomeFolder, outcomePath))).toBe(true);
+    expect(
+      git(primaryRoot, "ls-tree", "-r", "master", "--name-only"),
+    ).not.toContain("outcomes");
+  });
+
+  it("writes the row once when a rerun finishes a landing whose push failed", async () => {
+    const workspace = await workspaceWith();
+    commitIn(workspace, "byro-repo", "script.ts", "export {};\n");
+    writeFacts();
+    const remote = remoteOf("byro-repo");
+    renameSync(remote, `${remote}.gone`);
+    expect(await failureOf(wrapUp().run(ticket))).toBe("network");
+
+    renameSync(`${remote}.gone`, remote);
+    await wrapUp().run(ticket);
+
+    expect(readdirSync(join(outcomeFolder, "byro-repo-213"))).toEqual([
+      "byro-repo-218.md",
+    ]);
   });
 
   it("writes the outcome row in the spec's folder with every column", async () => {
@@ -62,7 +89,7 @@ describe("run", () => {
     landAt(landing);
     await wrapUp().run(ticket);
 
-    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toBe(
+    expect(readFileSync(join(outcomeFolder, outcomePath), "utf8")).toBe(
       [
         "# byro-repo#218 outcome",
         "",
@@ -87,7 +114,7 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+    expect(readFileSync(join(outcomeFolder, outcomePath), "utf8")).toContain(
       "| #218 | code | Opus medium | unrecorded | 1 | ~120K | 150K → 90K |",
     );
   });
@@ -103,7 +130,7 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+    expect(readFileSync(join(outcomeFolder, outcomePath), "utf8")).toContain(
       "| #218 | piece | Opus medium |",
     );
   });
@@ -123,7 +150,7 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+    expect(readFileSync(join(outcomeFolder, outcomePath), "utf8")).toContain(
       "| #218 | piece | Opus medium |",
     );
   });
@@ -142,7 +169,7 @@ describe("run", () => {
     }).run(ticket);
 
     expect(hasTicketCode).toEqual([true]);
-    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+    expect(readFileSync(join(outcomeFolder, outcomePath), "utf8")).toContain(
       "| #218 | code | Opus medium |",
     );
   });
@@ -154,7 +181,7 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    expect(readFileSync(join(primaryRoot, outcomePath), "utf8")).toContain(
+    expect(readFileSync(join(outcomeFolder, outcomePath), "utf8")).toContain(
       "| #218 | code | Opus medium | unrecorded | 1 |  | 150K → 90K | Pass | 2 |",
     );
   });
@@ -190,7 +217,7 @@ describe("run", () => {
     await wrapUp().run(ticket);
 
     expect(
-      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+      readFileSync(join(outcomeFolder, outcomePath), "utf8").split("\n")[6],
     ).toBe(
       `| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 27 min | $1.45 | $0.11 | — | session-implement-1, session-implement-2, session-review, session-triage, session-fix | ${landing} |`,
     );
@@ -222,7 +249,7 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    const row = readFileSync(join(primaryRoot, outcomePath), "utf8").split(
+    const row = readFileSync(join(outcomeFolder, outcomePath), "utf8").split(
       "\n",
     )[6];
     expect(row).toContain("| Fix (fresh resolver) |");
@@ -254,7 +281,7 @@ describe("run", () => {
     await wrapUp().run(ticket);
 
     expect(
-      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+      readFileSync(join(outcomeFolder, outcomePath), "utf8").split("\n")[6],
     ).toBe(
       `| #218 | code | Opus medium | 2 | 1 |  | 150K → 90K | Pass | 0 | 1 | 0 | 0 | 15 min | $1.45 | unrecorded | — | session-implement-1, session-implement-2 | ${landing} |`,
     );
@@ -281,7 +308,7 @@ describe("run", () => {
     await wrapUp().run(ticket);
 
     expect(
-      readFileSync(join(primaryRoot, outcomePath), "utf8").split("\n")[6],
+      readFileSync(join(outcomeFolder, outcomePath), "utf8").split("\n")[6],
     ).toContain("| $0.02 | — | session-implement-2, session-review |");
   });
 
@@ -293,8 +320,8 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    const ownFolder = "docs/agents/outcomes/byro-repo-218/byro-repo-218.md";
-    expect(existsSync(join(primaryRoot, ownFolder))).toBe(true);
+    const ownFolder = join(outcomeFolder, "byro-repo-218/byro-repo-218.md");
+    expect(existsSync(ownFolder)).toBe(true);
   });
 
   // No agent session ran, so its row would be nearly all unrecorded and only add noise to /mine-outcomes.
@@ -319,7 +346,7 @@ describe("run", () => {
       "Merge issue-218-wrap-up-script into master (#218)",
       "Add script.ts",
     ]);
-    expect(existsSync(join(primaryRoot, outcomePath))).toBe(false);
+    expect(existsSync(join(outcomeFolder, outcomePath))).toBe(false);
     expect(github.closed.map(({ issue }) => issue)).toEqual([ticket]);
   });
 
@@ -346,7 +373,6 @@ describe("run", () => {
       "--format=%s",
     );
     expect(firstParents.split("\n")).toEqual([
-      "Record the #218 outcome: Opus medium, 1 files, 150K → 90K, first-try pass.",
       "Merge issue-218-wrap-up-script into master (#218)",
       "Meanwhile on master",
       "Initial commit",

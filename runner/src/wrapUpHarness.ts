@@ -23,6 +23,7 @@ import {
   type IssueWorkspacesConfig,
   type Workspace,
 } from "./IssueWorkspaces.ts";
+import { writeOutcomeRow } from "./outcomeRowWriter.ts";
 import { type Command } from "./runKnobs.ts";
 import { WrapUp, type WrapUpConfig } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
@@ -37,10 +38,11 @@ const redCheck: Command = ["sh", "-c", "test ! -f RED"];
 
 export const ticket: IssueRef = { repo: "byro-repo", number: 218 };
 export const spec: IssueRef = { repo: "byro-repo", number: 213 };
-export const outcomePath =
-  "docs/agents/outcomes/byro-repo-213/byro-repo-218.md";
+// Relative to outcomeFolder.
+export const outcomePath = "byro-repo-213/byro-repo-218.md";
 
 export let temp: string;
+export let outcomeFolder: string;
 export let primaryRoot: string;
 export let github: FakeGitHub;
 export let sleeps: number[];
@@ -66,6 +68,7 @@ export function useWrapUpHarness(clones: ClonePaths = clonePaths): void {
   beforeEach(() => {
     temp = realpathSync(mkdtempSync(join(tmpdir(), "wrap-up-")));
     primaryRoot = join(temp, "byro-repo");
+    outcomeFolder = join(temp, "state", "outcomes");
     github = FakeGitHub.init();
     github.parents.set(ticket.number, {
       issue: spec,
@@ -102,7 +105,7 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
     githubOwner: "byronbroughten",
     developer: "byronbroughten",
     mergeChecks: [redCheck],
-    outcomeFolder: "docs/agents/outcomes",
+    outcomeFolder,
     stateFolder: join(temp, "state"),
     knobs: { backoffMs: 100, lockPollMs: 1 },
     async sleep(ms) {
@@ -110,6 +113,17 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
     },
     ...overrides,
   });
+}
+
+// Fails every GitHub call once the row is written, so a no-code landing, which pushes nothing, stops at its close.
+export function cutGitHubAfterTheRow(): Partial<WrapUpConfig> {
+  return {
+    async writeOutcomeRow(root, request) {
+      const written = writeOutcomeRow(root, request);
+      github.failuresLeft = Number.POSITIVE_INFINITY;
+      return written;
+    },
+  };
 }
 
 export const session = "glossary-term";

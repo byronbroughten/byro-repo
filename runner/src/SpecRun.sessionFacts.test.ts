@@ -1,16 +1,15 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { beforeEach, describe, expect, it } from "vitest";
 
 import type { StepRequest, StepResult } from "./AgentStep.ts";
 import { FakeAgentStep } from "./FakeAgentStep.ts";
-import { git } from "./GitFixture.ts";
 import {
   addSpec,
   eventOf,
   implemented,
-  primaryOf,
+  outcomeFolder,
   progressLines,
   reviewed,
   spec,
@@ -76,10 +75,9 @@ describe("a landed ticket's session facts", () => {
   }
 
   function outcomeRow(): string {
-    return git(
-      primaryOf("byro-repo"),
-      "show",
-      "master:docs/agents/outcomes/byro-repo-213/byro-repo-1.md",
+    return readFileSync(
+      join(outcomeFolder(), "byro-repo-213", "byro-repo-1.md"),
+      "utf8",
     );
   }
 

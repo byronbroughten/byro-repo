@@ -1,4 +1,4 @@
-import { existsSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -6,12 +6,14 @@ import { describe, expect, it } from "vitest";
 import { git } from "./GitFixture.ts";
 import {
   commitRed,
+  cutGitHubAfterTheRow,
   failureOf,
   github,
+  outcomeFolder,
+  outcomePath,
   primaryOf,
   primaryRoot,
   remoteOf,
-  subjectsOf,
   ticket,
   useWrapUpHarness,
   workspaceWith,
@@ -46,20 +48,16 @@ describe("run", () => {
       });
     }
 
-    it("lands only the log row, skipping the merges and checks, and closes the issue with the write list", async () => {
+    it("writes only the log row, moving no master and skipping the merges and checks, and closes the issue with the write list", async () => {
       const workspace = await workspaceWith();
       commitRed(primaryRoot);
       writeAppliedFacts();
+      const masterBefore = git(primaryRoot, "rev-parse", "master");
 
       const result = await wrapUp().run(ticket);
 
-      expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
-        "Record the #218 outcome: Opus medium, 0 files, 150K → 90K, review skipped (no code).",
-        "Turn master red",
-      ]);
-      expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(
-        git(primaryOf("byro-repo"), "rev-parse", "master"),
-      );
+      expect(existsSync(join(outcomeFolder, outcomePath))).toBe(true);
+      expect(git(primaryRoot, "rev-parse", "master")).toBe(masterBefore);
       expect(result.completed).toEqual([
         "clean-check",
         "files-changed",
@@ -133,19 +131,21 @@ describe("run", () => {
       expect(await failureOf(wrapUp().run(ticket))).toBe("dirty-tree");
     });
 
-    it("resumes after a failed push and records the row once", async () => {
+    it("resumes after a failed close and writes the row once", async () => {
       await workspaceWith();
       writeAppliedFacts();
-      const remote = remoteOf("byro-repo");
-      renameSync(remote, `${remote}.gone`);
+      const masterBefore = git(primaryRoot, "rev-parse", "master");
 
-      expect(await failureOf(wrapUp().run(ticket))).toBe("network");
-      const landed = git(primaryRoot, "rev-parse", "master");
-
-      renameSync(`${remote}.gone`, remote);
+      expect(await failureOf(wrapUp(cutGitHubAfterTheRow()).run(ticket))).toBe(
+        "network",
+      );
+      github.failuresLeft = 0;
       await wrapUp().run(ticket);
 
-      expect(git(remote, "rev-parse", "master")).toBe(landed);
+      expect(git(primaryRoot, "rev-parse", "master")).toBe(masterBefore);
+      expect(readdirSync(join(outcomeFolder, "byro-repo-213"))).toEqual([
+        "byro-repo-218.md",
+      ]);
       expect(github.closed).toHaveLength(1);
     });
   });

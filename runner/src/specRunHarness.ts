@@ -216,6 +216,10 @@ export function stateFolder(): string {
   return join(temp, "state");
 }
 
+export function outcomeFolder(): string {
+  return join(stateFolder(), "outcomes");
+}
+
 // The repo's own sheets, which the piece review cell reads rule names from.
 const rulesRoot = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -298,7 +302,7 @@ export function specRun(
     promoteCommandOf: () => "npm run issue:promote -- byro-repo 1",
     removeCommand: "npm run issue:remove",
     mergeChecks: [greenUnlessRed],
-    outcomeFolder: "docs/agents/outcomes",
+    outcomeFolder: outcomeFolder(),
     stateFolder: stateFolder(),
     configFolder: "/config/account-1",
     wrapUpKnobs: { backoffMs: 1, lockPollMs: 1 },

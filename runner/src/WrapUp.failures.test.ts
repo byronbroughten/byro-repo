@@ -250,8 +250,7 @@ describe("run", () => {
       git(workspace.path, "commit", "-m", "Fix the checks");
       await wrapUp().run(ticket);
 
-      expect(subjectsOf("byro-repo").slice(0, 3)).toEqual([
-        "Record the #218 outcome: Opus medium, 1 files, 150K → 90K, first-try pass.",
+      expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
         "Merge issue-218-wrap-up-script into master (#218)",
         "Fix the checks",
       ]);

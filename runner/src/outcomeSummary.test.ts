@@ -67,42 +67,46 @@ function rowFileOf(
   section: string,
   repo: string,
   row: RowCells,
-  addedAt = "2026-10-01T00:00:00Z",
+  landed = "2026-10-01T00:00:00.000Z",
 ): OutcomeRowFile {
   return tableFileOf({
     path: `${section}/${repo}-${row.issue}.md`,
     header: currentHeader,
     cells: currentCellsOf(row),
-    addedAt,
+    landed,
   });
 }
 
+// Every row file the summary reads carries its Landed cell, so the table gets one after the columns given.
 function tableFileOf({
   path,
   header,
   cells,
-  addedAt = "2026-10-01T00:00:00Z",
+  landed = "2026-10-01T00:00:00.000Z",
 }: {
   path: string;
   header: string[];
   cells: string[];
-  addedAt?: string;
+  landed?: string;
 }): OutcomeRowFile {
-  const line = (values: string[]) => `| ${values.join(" | ")} |`;
   return {
     path,
-    text: [
-      "# outcome",
-      "",
-      "Spec: [x](https://example.com)",
-      "",
-      line(header),
-      line(header.map(() => "---")),
-      line(cells),
-      "",
-    ].join("\n"),
-    addedAt: new Date(addedAt),
+    text: tableTextOf([...header, "Landed"], [...cells, landed]),
   };
+}
+
+function tableTextOf(header: string[], cells: string[]): string {
+  const line = (values: string[]) => `| ${values.join(" | ")} |`;
+  return [
+    "# outcome",
+    "",
+    "Spec: [x](https://example.com)",
+    "",
+    line(header),
+    line(header.map(() => "---")),
+    line(cells),
+    "",
+  ].join("\n");
 }
 
 function summaryOf(
@@ -447,12 +451,13 @@ describe("which sections", () => {
     rowFileOf("byro-repo-1", "byro-repo", { issue: 3 }, "2026-09-01T00:00:00Z"),
     rowFileOf("byro-repo-5", "byro-repo", { issue: 6 }, "2026-10-03T00:00:00Z"),
     rowFileOf("writing-9", "writing", { issue: 10 }, "2026-10-04T00:00:00Z"),
-    tableFileOf({
+    {
       path: "legacy.md",
-      header: ["Issue", "Pair", "Files changed", "Peak context", "Result"],
-      cells: ["#194", "Opus medium", "14", "121K", "Pass"],
-      addedAt: "2026-10-30T00:00:00Z",
-    }),
+      text: tableTextOf(
+        ["Issue", "Pair", "Files changed", "Peak context", "Result"],
+        ["#194", "Opus medium", "14", "121K", "Pass"],
+      ),
+    },
   ];
 
   function specsOf(summary: string): string[] {
@@ -468,16 +473,15 @@ describe("which sections", () => {
     expect(specsOf(summary)).toEqual(["byro-repo#1", "writing#9"]);
   });
 
-  it("dates a row by its own Landed cell over its adding commit's date", async () => {
-    const landedRow = tableFileOf({
+  it("refuses a row with no Landed cell, as nothing else dates it", async () => {
+    const undatedRow = {
       path: "byro-repo-5/byro-repo-7.md",
-      header: [...currentHeader, "Landed"],
-      cells: [...currentCellsOf({ issue: 7 }), "2026-11-01T00:00:00.000Z"],
-      addedAt: "2026-08-01T00:00:00Z",
-    });
-    const summary = await summaryOf([...rowFiles, landedRow], { recent: 1 });
+      text: tableTextOf(currentHeader, currentCellsOf({ issue: 7 })),
+    };
 
-    expect(specsOf(summary)).toEqual(["byro-repo#5"]);
+    await expect(summaryOf([...rowFiles, undatedRow])).rejects.toThrow(
+      "byro-repo#7's row has no Landed cell",
+    );
   });
 
   it("takes every section with --all, leaving the legacy log out", async () => {
