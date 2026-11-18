@@ -53,7 +53,9 @@ export interface HookSession {
 }
 
 export type SkillCall =
-  { status: "ran" | "unanswered" } | { status: "denied"; error: string };
+  | { status: "ran" }
+  | { status: "unanswered" }
+  | { status: "denied"; error: string };
 
 export interface InjectionOutcome {
   skill: string;
