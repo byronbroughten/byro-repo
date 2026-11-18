@@ -1,6 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { docsInjectedBy } from "./docSectionsInjections.ts";
+import { docSectionsArgsOf, docsInjectedBy } from "./docSectionsInjections.ts";
+
+describe("docSectionsArgsOf", () => {
+  it("splits each injection's arguments, unquoting double- and single-quoted ones", () => {
+    const skillText = [
+      "!`npm run doc:sections -- docs/prose-style.md`",
+      "Run `npm run doc:sections -- docs/agents/tickets.md` yourself.",
+      `!\`npm run doc:sections -- config/docs/code-style.md Naming "Class shape" 'Type modeling'\``,
+    ].join("\n");
+    expect(docSectionsArgsOf(skillText)).toEqual([
+      ["docs/prose-style.md"],
+      ["config/docs/code-style.md", "Naming", "Class shape", "Type modeling"],
+    ]);
+  });
+
+  it("skips an injection naming no doc", () => {
+    expect(docSectionsArgsOf("!`npm run doc:sections -- `")).toEqual([]);
+  });
+});
 
 describe("docsInjectedBy", () => {
   it("names each injected doc, bare, quoted or dotted, whatever sections follow", () => {

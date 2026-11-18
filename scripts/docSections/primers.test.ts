@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import {
-  docSectionsCommand,
+  docSectionsArgsOf,
   docsInjectedBy,
 } from "../../.claude/hooks/lib/docSectionsInjections.ts";
 import {
@@ -16,8 +16,6 @@ import { ruleDocs } from "./ruleDocs.ts";
 
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 const primerNames = ["file-issue", "code-style", "prose-style", "writing"];
-const injection = new RegExp(`!\`${docSectionsCommand} -- ([^\`]*)\``, "g");
-const injectionArg = /"([^"]*)"|(\S+)/g;
 
 function skillTextOf(name: string): string {
   return readFileSync(
@@ -26,17 +24,9 @@ function skillTextOf(name: string): string {
   );
 }
 
-function injectionArgsOf(skillText: string): string[][] {
-  return [...skillText.matchAll(injection)].map(([, args = ""]) =>
-    [...args.matchAll(injectionArg)].map(
-      ([arg, quoted, bare]) => quoted ?? bare ?? arg,
-    ),
-  );
-}
-
 describe("the Primers", () => {
   it.each(primerNames)("%s prints every section it names", (name) => {
-    const injections = injectionArgsOf(skillTextOf(name));
+    const injections = docSectionsArgsOf(skillTextOf(name));
     expect(injections).not.toHaveLength(0);
     for (const args of injections) {
       expect(() =>
