@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -18,6 +18,7 @@ import {
   implemented,
   masterSubjects,
   noticeKinds,
+  outcomeRowPath,
   primaryRoot,
   refOf,
   reviewed,
@@ -109,7 +110,7 @@ describe("run", () => {
     ]);
   });
 
-  it("lands an applied ticket without review or checks: one agent request, a row commit, the ticket closed with its write list", async () => {
+  it("lands an applied ticket without review or checks: one agent request, its row written with no commit, the ticket closed with its write list", async () => {
     addSpec([1]);
     const agentStep = FakeAgentStep.init(applied);
     const subjectsBefore = masterSubjects();
@@ -125,8 +126,8 @@ describe("run", () => {
       "utf8",
     );
     expect(progress).not.toContain("checking");
-    expect(masterSubjects()).toHaveLength(subjectsBefore.length + 1);
-    expect(masterSubjects()[0]).toContain("#1");
+    expect(masterSubjects()).toEqual(subjectsBefore);
+    expect(existsSync(outcomeRowPath(1))).toBe(true);
     expect(github.issues.get(1)?.isOpen).toBe(false);
     const closing = github.closed.find(
       ({ issue }) => issue.number === 1,

@@ -62,7 +62,7 @@ export class BranchLander extends WrapUpBase {
     landing: Landing,
     { workspace, unswitchedDirtiness }: CleanCheckTarget,
   ): Promise<void> {
-    for (const repo of this._landedRepos(landing)) {
+    for (const repo of listedReposOf(landing)) {
       await this._assertOnMaster(repo);
     }
     for (const repo of landing.kind.cleanRepos(landing)) {
@@ -76,11 +76,6 @@ export class BranchLander extends WrapUpBase {
         );
       }
     }
-  }
-
-  // The listed repos in landing order, then the root repo, which takes the log row.
-  private _landedRepos(landing: Landing): string[] {
-    return [...new Set([...listedReposOf(landing), this._rootRepo])];
   }
 
   private async _filesChanged(landing: Landing): Promise<number> {

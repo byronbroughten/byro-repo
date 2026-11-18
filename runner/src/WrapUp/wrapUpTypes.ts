@@ -129,11 +129,11 @@ export interface WrapUpConfig {
   developer: string;
   // Each a command and its args, run from the workspace's root after the merges.
   mergeChecks: Command[];
-  // Relative to the root repo.
+  // The primary root's gitignored folder each outcome row is written to, uncommitted.
   outcomeFolder: string;
   // Holds each ticket's facts and progress files; gitignored.
   stateFolder: string;
-  // Writes the row file into the merged root checkout with that checkout's code; unset, with the code already loaded.
+  // Writes the row file with the merged root checkout's code; unset, with the code already loaded.
   writeOutcomeRow?(
     root: string,
     request: OutcomeRowRequest,

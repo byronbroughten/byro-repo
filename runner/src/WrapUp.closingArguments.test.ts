@@ -1,4 +1,4 @@
-import { existsSync, renameSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -6,12 +6,13 @@ import { describe, expect, it } from "vitest";
 import { git } from "./GitFixture.ts";
 import {
   commitIn,
+  cutGitHubAfterTheRow,
   failureOf,
   github,
+  outcomeFolder,
   outcomePath,
   primaryOf,
   primaryRoot,
-  remoteOf,
   subjectsOf,
   ticket,
   useWrapUpHarness,
@@ -34,7 +35,7 @@ describe("run", () => {
         },
       });
 
-      expect(subjectsOf("byro-repo")[1]).toBe(
+      expect(subjectsOf("byro-repo")[0]).toBe(
         "Merge issue-218-wrap-up-script into master (#218)",
       );
       expect(github.closed).toEqual([
@@ -60,16 +61,17 @@ describe("run", () => {
   });
 
   describe("--no-code", () => {
-    it("closes the issue and logs its row with no branches and no GitHub writes", async () => {
+    it("closes the issue and logs its row with no branches, no commit and no GitHub writes", async () => {
       const workspace = await workspaceWith();
+      const masterBefore = git(primaryRoot, "rev-parse", "master");
 
       await wrapUp().run(ticket, {
         closing: { closingComment: "Edited the shared doc." },
         hasNoCode: true,
       });
 
-      expect(existsSync(join(primaryRoot, outcomePath))).toBe(true);
-      expect(subjectsOf("byro-repo")[0]).toMatch(/^Record the #218 outcome/);
+      expect(existsSync(join(outcomeFolder, outcomePath))).toBe(true);
+      expect(git(primaryRoot, "rev-parse", "master")).toBe(masterBefore);
       expect(existsSync(workspace.path)).toBe(false);
       expect(
         git(primaryOf("byro-repo"), "branch", "--list", "issue-218-*"),
@@ -81,18 +83,16 @@ describe("run", () => {
 
     it("resumes past its fast-forward on a rerun with no arguments", async () => {
       await workspaceWith();
-      const remote = remoteOf("byro-repo");
-      renameSync(remote, `${remote}.gone`);
 
       expect(
         await failureOf(
-          wrapUp().run(ticket, {
+          wrapUp(cutGitHubAfterTheRow()).run(ticket, {
             closing: { closingComment: "Edited the shared doc." },
             hasNoCode: true,
           }),
         ),
       ).toBe("network");
-      renameSync(`${remote}.gone`, remote);
+      github.failuresLeft = 0;
       await wrapUp().run(ticket);
 
       expect(github.closed).toEqual([

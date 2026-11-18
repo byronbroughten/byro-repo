@@ -36,7 +36,7 @@ export class BranchMerger extends WrapUpBase {
     });
   }
 
-  // With nothing to merge, the row goes on master, and a repo off the issue branch lets the wrap-up delete it.
+  // With nothing to merge, the row is written with master's code, and a repo off the issue branch lets the wrap-up delete it.
   async _switchToMaster(workspace: Workspace): Promise<void> {
     for (const repo of new Set([this._rootRepo, ...workspace.branchedRepos])) {
       await git(

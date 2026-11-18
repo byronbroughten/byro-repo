@@ -139,7 +139,8 @@ const stepPermissionHook: HookEntry = {
 };
 
 export const stateFolder = join(primaryRoot, ".runner");
-export const outcomeFolder = "docs/agents/outcomes";
+// Gitignored with the state folder, so a landing writes its row without a commit.
+export const outcomeFolder = join(stateFolder, "outcomes");
 // Wrap-up's check on the merged workspace, for every landing, code or piece.
 const mergeChecks: WrapUpConfig["mergeChecks"] = [["npm", "run", "check"]];
 

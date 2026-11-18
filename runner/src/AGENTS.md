@@ -228,7 +228,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `WrapUp/LandingBranchFinder.ts` | | Finds the branches a landing merges, the repos whose workspace branch is ahead of master, and the branches its workspace made. |
 | `WrapUp/LandingKindPicker.ts` | | Picks what differs between a ticket that lands branches, one with no code and a session. |
 | `WrapUp/LandingPusher.ts` | | Scans a landing's added lines for token shapes, then pushes each master. |
-| `WrapUp/LogRowCommitter.ts` | | Writes a ticket's outcome row into the merged root checkout and commits it. |
+| `WrapUp/LogRowWriter.ts` | | Writes a ticket's outcome row, uncommitted, to the primary root's outcome folder. |
 | `WrapUp/MasterFastForwarder.ts` | | Fast-forwards each primary's master under the landing locks, installs changed dependencies, then runs the after hook and pushes. |
 | `WrapUp/packageDependencies.ts` | | Reads a `package.json`'s dependency names and version ranges, compares them between commits and finds the names a branch adds. |
 | `WrapUp/ResearchPusher.ts` | | `npm run research:push`: pushes a Workspace checkout's `research/*` branch behind the secret scan. |

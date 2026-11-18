@@ -1,9 +1,9 @@
-// Writes a ticket's outcome row file into a checkout from its facts file and transcripts. WrapUp/LogRowCommitter.ts runs
+// Writes a ticket's outcome row file to the outcome folder from its facts file and transcripts. WrapUp/LogRowWriter.ts runs
 // it with the merged workspace's own code, through scripts/runner/outcomeRow.ts, so a ticket that changes the row lands
-// its own row in the new format; it also gathers what needs GitHub and commits the file. The format is outcomeLog.ts.
+// its own row in the new format; it also gathers what needs GitHub. The format is outcomeLog.ts.
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { FactsFile, type WrapUpFacts } from "./FactsFile.ts";
 import type { IssueRef } from "./IssueWorkspaces.ts";
@@ -32,13 +32,14 @@ export interface OutcomeRowRequest {
   handoffSessionIds: string[];
   silenceTimeoutMs: number;
   stateFolder: string;
-  // Relative to the checkout's root.
+  // Absolute; a relative one, from a wrap-up older than the uncommitted row, is under the checkout's root.
   outcomeFolder: string;
 }
 
 export interface WrittenOutcomeRow {
-  // Relative to the checkout's root.
+  // Absolute.
   path: string;
+  // Read only by a wrap-up older than the uncommitted row, which commits the row it lands with.
   commitMessage: string;
 }
 
@@ -64,9 +65,9 @@ export function writeOutcomeRow(
       estimate,
     },
   };
-  const path = outcomePathOf(outcomeFolder, row);
-  mkdirSync(dirname(join(root, path)), { recursive: true });
-  writeFileSync(join(root, path), outcomeFileOf(row));
+  const path = resolve(root, outcomePathOf(outcomeFolder, row));
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, outcomeFileOf(row));
   return { path, commitMessage: outcomeCommitMessage(row) };
 }
 

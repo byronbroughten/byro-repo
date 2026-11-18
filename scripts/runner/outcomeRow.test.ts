@@ -1,6 +1,6 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -29,11 +29,11 @@ describe("wrap-up's outcome row writer", () => {
       handoffSessionIds: [],
       silenceTimeoutMs: 600_000,
       stateFolder,
-      outcomeFolder: relative(root, outcomes),
+      outcomeFolder: outcomes,
     });
 
-    expect(written?.commitMessage).toMatch(/^Record the #2 outcome: /);
-    const row = readFileSync(join(root, written?.path ?? ""), "utf8");
+    expect(written?.path).toBe(join(outcomes, "byro-repo-1", "byro-repo-2.md"));
+    const row = readFileSync(written?.path ?? "", "utf8");
     expect(row).toContain("| Review cost |");
     expect(row).toContain("| #2 | code | Opus medium |");
   });

@@ -1,5 +1,5 @@
-// Writes a ticket's outcome row file into the current directory's checkout with that checkout's code, for wrap-up to
-// commit. Wrap-up runs it in the merged workspace (runnerConfig.ts); takes the request as JSON, prints the written row's.
+// Writes a ticket's outcome row file, uncommitted, to the request's outcome folder with the current directory's code.
+// Wrap-up runs it in the merged workspace (runnerConfig.ts); takes the request as JSON, prints the written row's.
 import {
   type OutcomeRowRequest,
   writeOutcomeRow,

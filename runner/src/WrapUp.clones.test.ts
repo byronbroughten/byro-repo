@@ -8,6 +8,8 @@ import { IssueWorkspaces } from "./IssueWorkspaces.ts";
 import {
   clonePaths,
   commitIn,
+  outcomeFolder,
+  outcomePath,
   primaryOf,
   primaryRoot,
   remoteOf,
@@ -36,7 +38,7 @@ describe("run", () => {
       "Merge issue-218-wrap-up-script into master (#218)",
       "Add core.ts",
     ]);
-    expect(subjectsOf("byro-repo").slice(1, 3)).toEqual([
+    expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
       "Merge issue-218-wrap-up-script into master (#218)",
       "Add script.ts",
     ]);
@@ -66,7 +68,7 @@ describe("run", () => {
     expect(existsSync(workspace.path)).toBe(false);
   });
 
-  it("commits the row to the root even when only a clone's branch lands", async () => {
+  it("writes the row and leaves the root's master alone when only a clone's branch lands", async () => {
     const workspace = await workspaceWith([], {
       repo: "byro-repo",
       number: 218,
@@ -77,18 +79,19 @@ describe("run", () => {
     );
     commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
     writeFacts();
+    const rootBefore = git(primaryRoot, "rev-parse", "master");
 
     await wrapUp().run(ticket);
 
-    expect(subjectsOf("byro-repo")[0]).toBe(
-      "Record the #218 outcome: Opus medium, 1 files, 150K → 90K, first-try pass.",
+    expect(existsSync(join(outcomeFolder, outcomePath))).toBe(true);
+    expect(git(primaryRoot, "rev-parse", "master")).toBe(rootBefore);
+    expect(subjectsOf("sheets-framework")[0]).toBe(
+      "Merge issue-218-wrap-up-script into master (#218)",
     );
-    expect(git(remoteOf("byro-repo"), "rev-parse", "master")).toBe(
-      git(primaryOf("byro-repo"), "rev-parse", "master"),
-    );
+    expect(existsSync(workspace.path)).toBe(false);
   });
 
-  it("commits the row on the root's current master when only a clone's branch lands after the root's master moved", async () => {
+  it("lands only a clone's branch after the root's master moved, leaving the root's master where it moved to", async () => {
     const workspace = await workspaceWith(["sheets-framework"]);
     commitIn(workspace, "sheets-framework", "core.ts", "export {};\n");
     writeFacts();
@@ -103,9 +106,7 @@ describe("run", () => {
 
     await wrapUp().run(ticket);
 
-    expect(subjectsOf("byro-repo").slice(0, 2)).toEqual([
-      "Record the #218 outcome: Opus medium, 1 files, 150K → 90K, first-try pass.",
-      "Meanwhile on master",
-    ]);
+    expect(subjectsOf("byro-repo")[0]).toBe("Meanwhile on master");
+    expect(existsSync(join(outcomeFolder, outcomePath))).toBe(true);
   });
 });

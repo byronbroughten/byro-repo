@@ -1,10 +1,8 @@
 // `npm run outcome:summary -- <spec section | --recent <N> | --all>`: the report `/mine-outcomes` reads in place of the outcome rows.
-// The core is runner/src/outcomeSummary.ts; this gathers the row files, the commit each landed in, the transcripts on disk and each ticket's Model fit.
-import { execFileSync } from "node:child_process";
+// The core is runner/src/outcomeSummary.ts; this gathers the row files from the primary root's outcome folder, the transcripts on disk and each ticket's Model fit.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { messageOf } from "@byronbroughten/spec-runner/failureText";
 import type { IssueRef } from "@byronbroughten/spec-runner/IssueWorkspaces";
@@ -23,7 +21,6 @@ import { outcomeFolder, runKnobs } from "./runnerConfig.ts";
 
 const usage =
   "Usage: npm run outcome:summary -- <spec section, such as byro-repo-480> | --recent <N> | --all";
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 const selection = selectionOf(process.argv.slice(2));
 if (selection === undefined) {
@@ -58,52 +55,22 @@ function selectionOf(args: string[]): SectionSelection | undefined {
   return { section: first };
 }
 
-// A file not yet committed counts as landing now.
+// A primary root no landing has written a row in yet has no outcome folder.
 function rowFiles(): OutcomeRowFile[] {
-  const landings = landingDates();
-  const folder = join(repoRoot, outcomeFolder);
-  return readdirSync(folder, { withFileTypes: true })
+  if (!existsSync(outcomeFolder)) return [];
+  return readdirSync(outcomeFolder, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .flatMap((section) =>
-      readdirSync(join(folder, section.name))
+      readdirSync(join(outcomeFolder, section.name))
         .filter((name) => name.endsWith(".md"))
         .map((name) => {
           const path = `${section.name}/${name}`;
           return {
             path,
-            text: readFileSync(join(folder, path), "utf8"),
-            addedAt: landings.get(path) ?? new Date(),
+            text: readFileSync(join(outcomeFolder, path), "utf8"),
           };
         }),
     );
-}
-
-// Each row file's adding commit date, keyed by its path under the outcome folder; a later rewrite such as a backfill doesn't move it.
-// Only a row written before the Landed column is dated by it.
-function landingDates(): Map<string, Date> {
-  const log = execFileSync(
-    "git",
-    [
-      "log",
-      "--diff-filter=A",
-      "--format=%x00%cI",
-      "--name-only",
-      "--",
-      outcomeFolder,
-    ],
-    { cwd: repoRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
-  );
-  const prefix = `${outcomeFolder}/`;
-  const landings = new Map<string, Date>();
-  let landedAt = new Date();
-  log.split("\n").forEach((line) => {
-    if (line.startsWith("\0")) landedAt = new Date(line.slice(1));
-    else if (line.startsWith(prefix)) {
-      const path = line.slice(prefix.length);
-      if (!landings.has(path)) landings.set(path, landedAt);
-    }
-  });
-  return landings;
 }
 
 // The config folders a transcript may be under: the live one and each cswap account's backup.

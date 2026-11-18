@@ -34,6 +34,8 @@ import {
   implemented,
   masterSubjects,
   noticeSummaries,
+  outcomeFolder,
+  outcomeRowPath,
   primaryOf,
   progressLines,
   refOf,
@@ -1651,9 +1653,7 @@ describe("run on a piece spec", () => {
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(commentsOn(1, "The ferry ran.")).toHaveLength(1);
-    expect(masterSubjects()).toContainEqual(
-      expect.stringMatching(/^Record the #1 outcome/),
-    );
+    expect(existsSync(outcomeRowPath(1))).toBe(true);
     const closing = github.closed.find(({ issue }) => issue.number === 1);
     expect(closing?.comment).toContain(outlineTexts.proposed);
     expect(ticketState()["byro-repo #1"]?.step).toBe("landed");
@@ -2111,11 +2111,10 @@ describe("the Research Halt", () => {
 
   it("posts nothing until a wrap-up that stopped lands, then the Halt", async () => {
     addResearchedSpec();
-    const primary = primaryOf("byro-repo");
-    const origin = git(primary, "remote", "get-url", "origin");
     const record = readyRecordOf(scratchFolder());
+    // A file where the outcome folder goes stops the wrap-up at its row, now that a research ticket pushes nothing.
     const agentStep = FakeAgentStep.init(async () => {
-      git(primary, "remote", "set-url", "origin", "/gone");
+      writeFileSync(outcomeFolder(), "");
       return resultOf({ record });
     });
 
@@ -2123,7 +2122,7 @@ describe("the Research Halt", () => {
 
     expect(stopped.kind).toBe("stopped");
     expect(haltComments()).toEqual([]);
-    git(primary, "remote", "set-url", "origin", origin);
+    rmSync(outcomeFolder());
 
     const result = await specRun(FakeAgentStep.init()).run(spec);
 

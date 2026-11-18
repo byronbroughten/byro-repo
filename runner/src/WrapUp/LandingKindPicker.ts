@@ -1,12 +1,12 @@
 // Picks what differs between a ticket that lands branches, one with no code and a session: how each builds, which repos
-// must be clean, which branches it deletes and how it merges. It builds BranchMerger, LogRowCommitter and LandingBranchFinder.
+// must be clean, which branches it deletes and how it merges. It builds BranchMerger, LogRowWriter and LandingBranchFinder.
 
 import { type WrapUpFacts } from "../FactsFile.ts";
 import { type IssueRef } from "../IssueWorkspaces.ts";
 import { newDependenciesOf } from "../ticketNewDependencies.ts";
 import { BranchMerger } from "./BranchMerger.ts";
 import { LandingBranchFinder } from "./LandingBranchFinder.ts";
-import { LogRowCommitter } from "./LogRowCommitter.ts";
+import { LogRowWriter } from "./LogRowWriter.ts";
 import { listedReposOf, WrapUpBase } from "./WrapUpBase.ts";
 import { type LandingBranch, type LandingKind } from "./wrapUpTypes.ts";
 
@@ -20,8 +20,8 @@ export class LandingKindPicker extends WrapUpBase {
     return new BranchMerger(this.config);
   }
 
-  private get logRowCommitter(): LogRowCommitter {
-    return new LogRowCommitter(this.config);
+  private get logRowWriter(): LogRowWriter {
+    return new LogRowWriter(this.config);
   }
 
   private get branchFinder(): LandingBranchFinder {
@@ -60,7 +60,7 @@ export class LandingKindPicker extends WrapUpBase {
         } else {
           await this.merger._switchToMaster(workspace);
         }
-        await this.logRowCommitter._logRow({
+        await this.logRowWriter._logRow({
           issue,
           facts,
           landing,

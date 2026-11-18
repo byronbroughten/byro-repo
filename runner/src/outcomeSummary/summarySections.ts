@@ -67,7 +67,7 @@ function sectionsOf(rowFiles: OutcomeRowFile[]): Section[] {
     const spec = refOf(folder);
     const issue = refOf(name.replace(/\.md$/, ""));
     if (spec === undefined || issue === undefined) return sections;
-    const landedAt = landedAtOf(file);
+    const landedAt = landedAtOf(file.text, issue);
     const section = sections.get(folder) ?? {
       spec,
       folder,
@@ -82,10 +82,13 @@ function sectionsOf(rowFiles: OutcomeRowFile[]): Section[] {
   return [...byFolder.values()];
 }
 
-// A row written before the Landed column falls back to its adding commit's date.
-function landedAtOf({ text, addedAt }: OutcomeRowFile): Date {
+// The outcome folder is gitignored, so a row's own Landed cell is the only date it has.
+function landedAtOf(text: string, issue: IssueRef): Date {
   const landed = writtenCellsOf(text).get("Landed");
-  return landed === undefined ? addedAt : new Date(landed);
+  if (landed === undefined) {
+    throw new Error(`${labelOf(issue, "#")}'s row has no Landed cell`);
+  }
+  return new Date(landed);
 }
 
 // A `<repo>-<n>` name; undefined for one that isn't, such as the legacy log.

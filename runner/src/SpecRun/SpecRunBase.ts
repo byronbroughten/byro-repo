@@ -92,7 +92,7 @@ export interface SpecRunConfig {
   removeCommand: string;
   // Wrap-up's checks on the merged workspace, apart from each Workflow's checks.
   mergeChecks: Command[];
-  // Relative to the root repo.
+  // The primary root's gitignored folder wrap-up writes each outcome row to, uncommitted.
   outcomeFolder: string;
   // Holds the run state, progress log and step logs, and the wrap-up's facts and progress files; gitignored.
   stateFolder: string;
