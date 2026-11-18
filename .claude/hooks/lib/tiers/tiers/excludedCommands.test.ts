@@ -4,7 +4,12 @@ import { sandboxOffWords } from "../../sandboxState.ts";
 import { gateDecision } from "../tiers.ts";
 
 const entries = [
-  "npm run issue*",
+  "npm run issue:list",
+  "npm run issue:list *",
+  "npm run issue:start *",
+  "npm run issue:promote *",
+  "npm run issue:release *",
+  "npm run issue:remove *",
   "npm run app*",
   "npm run dev*",
   "npm run runner*",
@@ -53,6 +58,10 @@ describe("an excluded command the call keeps in the box", () => {
     ["npm --prefix packages/framework run dev:probe", "can't reach Google"],
     ["cd . && npm run runner -- status", "can't launch `claude`"],
     ["cd . && npm run issue:list", "can't run `ps`"],
+    ["cd . && npm run issue:start -- byro-repo 5", "can't run `ps`"],
+    ["cd . && npm run issue:promote -- byro-repo 5 utils", "can't run `ps`"],
+    ["cd . && npm run issue:release -- byro-repo 5", "can't run `ps`"],
+    ["cd . && npm run issue:remove -- byro-repo 5", "can't run `ps`"],
     ["cd . && npm run wrap-up -- byro-repo 5", "can't run `ps`"],
     [
       "cd . && npm run ws:rm -- .claude/hooks/old.ts",
@@ -198,6 +207,8 @@ describe("a call the box lets out, or holding no excluded command", () => {
     "npm test -- runner/src/Checks.test.ts",
     "npm run issue:read -- byro-repo 535 --body --hide-others",
     "npm run map:next -- byro-repo 804 | head",
+    "cd . && npm run issue:read -- byro-repo 535 --body --hide-others",
+    "npm run issue:read -- byro-repo 535 --comments --hide-others | head -50",
     "npm run lint",
   ])("keeps today's verdict on `%s`", (command) => {
     expect(decisionOf(command)).toEqual(

@@ -14,5 +14,5 @@ Source: ByronBroughten/byro-repo#537
 - Boxed code can rewrite local refs and reflogs. Pushed history is unaffected.
 - Data integrity is unaffected: Google stays outside the box.
 - The later mitigation is a fine-grained token for the box, with no Administration permission, left to ByronBroughten/byro-repo#520 with ADR 0023's scoped token.
-- `npm run issue*` and `npm run wrap-up *` stay excluded, since without `ps` their lease check reads a live lease as abandoned. `npm run jev*` stays excluded until its client sends requests through the sandbox's proxy.
+- `npm run wrap-up *` and the issue scripts whose workspace lookup reaches a lease, `issue:list`, `issue:start`, `issue:promote`, `issue:release` and `issue:remove`, stay excluded (narrowed from `npm run issue*` by #851), since without `ps` their lease check reads a live lease as abandoned. `npm run jev*` stays excluded until its client sends requests through the sandbox's proxy.
 - A new package clone needs its own `allowWrite` entry for its `.git` folder ([why](../claude-code-guardrails.md#the-bash-sandbox)).
