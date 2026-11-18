@@ -32,6 +32,11 @@ export interface ContentBlock {
   content?: unknown;
 }
 
+export interface ToolResult {
+  isError: boolean;
+  text: string;
+}
+
 // Each probe's session needs no recall afterwards and no more model than following one prompt.
 const headlessArgs = ["--model", "haiku", "--no-session-persistence"] as const;
 
@@ -102,4 +107,25 @@ export const streamJson = {
       (block) => block.type === type,
     );
   },
+
+  // Each tool call's result, by the id of the tool_use block it answers.
+  toolResults(events: unknown[]): Map<string, ToolResult> {
+    return events
+      .flatMap((event) => streamJson.contentBlocks(event, "tool_result"))
+      .reduce((results, block) => {
+        results.set(String(block.tool_use_id), {
+          isError: block.is_error === true,
+          text: resultText(block.content),
+        });
+        return results;
+      }, new Map<string, ToolResult>());
+  },
 };
+
+function resultText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return (content as { text?: unknown }[])
+    .map((part) => (typeof part.text === "string" ? part.text : ""))
+    .join("\n");
+}
