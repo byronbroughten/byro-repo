@@ -122,6 +122,24 @@ describe("open", () => {
 
     expect(result.isLive).toBe(false);
     expect(result.text).toContain(unknown.text);
+    expect(result.text).not.toContain("launched it");
+  });
+
+  it("says to rerun when tmux.sh refuses a launch between a Restart's processes", async () => {
+    addSpec([1]);
+    const refused: LaunchReport = {
+      text: "tmux session runner-byro-repo-213 is still running its run; attach with: tmux attach -t runner-byro-repo-213",
+      isStarted: false,
+    };
+
+    const result = await open(new ScriptedLauncher(refused), spec);
+
+    expect(result.isLive).toBe(false);
+    expect(result.text).toContain(
+      "No run lock is held for byro-repo #213, but the launch started no run.",
+    );
+    expect(result.text).toContain("run `runner open` again in a few seconds");
+    expect(result.text).toContain(refused.text);
   });
 
   it("rejoins a live run as it is, launching nothing", async () => {

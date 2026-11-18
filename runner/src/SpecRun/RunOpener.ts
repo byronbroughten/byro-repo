@@ -52,9 +52,7 @@ export class RunOpener extends SpecRunBase {
     if (live === undefined) {
       const report = await launcher.launch(named);
       isLive = report.isStarted;
-      blocks.push(
-        `No run is live for ${membersLabelOf(named)}; launched it.\n\n${report.text}`,
-      );
+      blocks.push(`${launchLeadOf(named, isLive)}\n\n${report.text}`);
     } else {
       blocks.push(
         `The ${subjectOf(live)} of ${membersLabelOf(live)} is live; rejoined it as it is and launched nothing.`,
@@ -94,6 +92,13 @@ export class RunOpener extends SpecRunBase {
 
 export function handoffBlockOf(handoff: string): string {
   return `${handoffHeading}\n\n${handoff}`;
+}
+
+// No run lock is also the moment between a Restart's two run.ts processes, when tmux.sh refuses a launch.
+function launchLeadOf(named: MemberList, isStarted: boolean): string {
+  const label = membersLabelOf(named);
+  if (isStarted) return `No run is live for ${label}; launched it.`;
+  return `No run lock is held for ${label}, but the launch started no run. If tmux.sh says a run is still running, it was between processes: run \`runner open\` again in a few seconds.`;
 }
 
 function subjectOf(members: MemberList): string {
