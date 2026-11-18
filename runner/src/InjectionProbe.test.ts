@@ -181,12 +181,12 @@ describe("InjectionProbe", () => {
     if (last === undefined) throw new Error("The report holds no outcome");
 
     expect(last.skillCall).toEqual({
-      status: "denied",
+      status: "error",
       error: "Permission to use Skill has been denied.",
     });
     expect(last.brief).toBeUndefined();
     expect(injectionOutcomeText(last)).toContain(
-      "inject-npm-space (allowed-tools: Bash(npm run brief *)) by Skill tool with no Skill allow rule: Skill call denied (Permission to use Skill has been denied.); not run",
+      "inject-npm-space (allowed-tools: Bash(npm run brief *)) by Skill tool with no Skill allow rule: Skill call failed (Permission to use Skill has been denied.); not run",
     );
     expect(report.outcomes[3]?.skillCall).toEqual({ status: "ran" });
     expect(injectionOutcomeText(firstOutcome(report))).not.toContain(

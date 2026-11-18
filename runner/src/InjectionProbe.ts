@@ -45,9 +45,11 @@ export interface HookCall {
   command: string | undefined;
 }
 
+export type HookEvent = "SessionStart" | "PreToolUse";
+
 // What a hook saw of its own session: the first PreToolUse call's, else SessionStart's.
 export interface HookSession {
-  event: string;
+  event: HookEvent;
   tmpdir: string;
   sessionId: string | undefined;
 }
@@ -55,7 +57,7 @@ export interface HookSession {
 export type SkillCall =
   | { status: "ran" }
   | { status: "unanswered" }
-  | { status: "denied"; error: string };
+  | { status: "error"; error: string };
 
 export interface InjectionOutcome {
   skill: string;
@@ -73,38 +75,44 @@ export interface InjectionOutcome {
 
 export interface InjectionReport {
   sandbox: Record<string, unknown>;
-  permissions: typeof permissions;
+  permissions: Record<InvokedBy, Permissions>;
   outcomes: InjectionOutcome[];
 }
 
-interface HookLine extends HookCall {
-  event: string;
-  tmpdir: string;
-  sessionId: string | undefined;
+interface Permissions {
+  allow: readonly string[];
 }
 
-// A skill with allowed-tools asks before the Skill tool runs it, and nobody answers; allowing Skill frees no Bash call. The last run takes the rule out to see that denial again.
-const permissions: Record<InvokedBy, { allow: string[] }> = {
-  "slash command": { allow: ["Skill"] },
-  "Skill tool": { allow: ["Skill"] },
-  "Skill tool with no Skill allow rule": { allow: [] },
-};
+interface HookLine extends HookCall, HookSession {}
 
-const injectionSkills: InjectionSkill[] = [
-  { name: "inject-plain", allowedTools: undefined },
-  { name: "inject-npm-space", allowedTools: "Bash(npm run brief *)" },
-  { name: "inject-npm-colon", allowedTools: "Bash(npm run brief:*)" },
-  { name: "inject-bash", allowedTools: "Bash" },
-];
+interface ProbeSettingsInput {
+  folder: string;
+  sandbox: Record<string, unknown>;
+  permissions: Permissions;
+}
+
+const injectionSkills = {
+  plain: { name: "inject-plain", allowedTools: undefined },
+  npmSpace: { name: "inject-npm-space", allowedTools: "Bash(npm run brief *)" },
+  npmColon: { name: "inject-npm-colon", allowedTools: "Bash(npm run brief:*)" },
+  bash: { name: "inject-bash", allowedTools: "Bash" },
+} as const satisfies Record<string, InjectionSkill>;
 
 // Every skill by both routes with Skill allowed, then one skill with allowed-tools through the Skill tool without.
+// A skill with allowed-tools asks before the Skill tool runs it, and nobody answers; allowing Skill frees no Bash call. The last run takes the rule out to see that denial again.
 const runs = {
+  permissions: {
+    "slash command": { allow: ["Skill"] },
+    "Skill tool": { allow: ["Skill"] },
+    "Skill tool with no Skill allow rule": { allow: [] },
+  },
   allowed: ["slash command", "Skill tool"],
   denied: {
-    skill: { name: "inject-npm-space", allowedTools: "Bash(npm run brief *)" },
+    skill: injectionSkills.npmSpace,
     invokedBy: "Skill tool with no Skill allow rule",
   },
 } as const satisfies {
+  permissions: Record<InvokedBy, Permissions>;
   allowed: InvokedBy[];
   denied: { skill: InjectionSkill; invokedBy: InvokedBy };
 };
@@ -192,7 +200,7 @@ export class InjectionProbe {
     try {
       writeProject(folder);
       const outcomes: InjectionOutcome[] = [];
-      for (const skill of injectionSkills) {
+      for (const skill of Object.values(injectionSkills)) {
         for (const invokedBy of runs.allowed) {
           outcomes.push(
             await this._probe({ folder, sandbox, skill, invokedBy }),
@@ -200,7 +208,7 @@ export class InjectionProbe {
         }
       }
       outcomes.push(await this._probe({ folder, sandbox, ...runs.denied }));
-      return { sandbox, permissions, outcomes };
+      return { sandbox, permissions: runs.permissions, outcomes };
     } finally {
       rmSync(folder, { recursive: true, force: true });
     }
@@ -219,7 +227,7 @@ export class InjectionProbe {
     const settings = probeSettings({
       folder,
       sandbox,
-      permissions: permissions[invokedBy],
+      permissions: runs.permissions[invokedBy],
     });
     const { exitCode, stderr, events } = await runStreaming({
       claudePath: this.claudePath,
@@ -276,7 +284,7 @@ function skillCallText(skillCall: SkillCall | undefined): string {
   if (skillCall === undefined) return "no Skill call";
   if (skillCall.status === "ran") return "Skill call ran";
   if (skillCall.status === "unanswered") return "Skill call had no result";
-  return `Skill call denied (${skillCall.error})`;
+  return `Skill call failed (${skillCall.error})`;
 }
 
 function briefText({ brief, hook }: InjectionOutcome): string {
@@ -315,14 +323,14 @@ function writeProject(folder: string): void {
   );
   writeFileSync(join(folder, "brief.mjs"), folderScripts.brief);
   writeFileSync(join(folder, "hook.mjs"), folderScripts.hook);
-  for (const skill of injectionSkills) {
+  for (const skill of Object.values(injectionSkills)) {
     const skillFolder = join(folder, ".claude", "skills", skill.name);
     mkdirSync(skillFolder, { recursive: true });
     writeFileSync(join(skillFolder, "SKILL.md"), skillText(skill));
   }
 }
 
-// `${CLAUDE_SESSION_ID}` is Claude Code's skill substitution, so the brief's second argument shows whether the injection gets it.
+// `${CLAUDE_SESSION_ID}` is Claude Code's skill substitution; unsubstituted, the shell expands it from the environment, so the brief's second argument shows the injection got the ID by one of the two, and its env entries say whether the environment holds it.
 function skillText({ name, allowedTools }: InjectionSkill): string {
   const frontMatter = [
     "---",
@@ -347,17 +355,13 @@ function skillText({ name, allowedTools }: InjectionSkill): string {
 function probeSettings({
   folder,
   sandbox,
-  permissions: runPermissions,
-}: {
-  folder: string;
-  sandbox: Record<string, unknown>;
-  permissions: { allow: string[] };
-}): string {
+  permissions,
+}: ProbeSettingsInput): string {
   const command = `node ${JSON.stringify(join(folder, "hook.mjs"))} ${JSON.stringify(join(folder, "hook.jsonl"))}`;
   const hooks = [{ type: "command", command }];
   return JSON.stringify({
     sandbox,
-    permissions: runPermissions,
+    permissions,
     hooks: {
       SessionStart: [{ hooks }],
       PreToolUse: [{ matcher: "*", hooks }],
@@ -416,7 +420,7 @@ function hookSessionOf(lines: HookLine[]): HookSession | undefined {
   return { event: line.event, tmpdir: line.tmpdir, sessionId: line.sessionId };
 }
 
-// The session's first Skill call and its result: an error result is a denial, as nobody answers a prompt.
+// The session's first Skill call and its result; a failed call's text says whether it was a permission denial.
 function skillCallOf(events: unknown[]): SkillCall | undefined {
   const call = events
     .flatMap((event) => streamJson.contentBlocks(event, "tool_use"))
@@ -425,7 +429,7 @@ function skillCallOf(events: unknown[]): SkillCall | undefined {
   const result = streamJson.toolResults(events).get(String(call.id));
   if (result === undefined) return { status: "unanswered" };
   if (!result.isError) return { status: "ran" };
-  return { status: "denied", error: result.text.trim() };
+  return { status: "error", error: result.text.trim() };
 }
 
 function modelToolsOf(events: unknown[]): string[] {
