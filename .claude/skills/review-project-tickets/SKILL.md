@@ -12,7 +12,7 @@ The review reports and never edits. Inside [`/project-tickets`](../project-ticke
 
 The input is one of:
 
-- **Drafts**: the scratchpad folder of ticket files `/project-tickets` hands over, one per ticket in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts), its `blockers` the edges, with the spec's repo and number and each draft's estimate breakdown.
+- **Drafts**: the scratchpad folder of ticket files `/project-tickets` hands over, one per ticket in [`issue:file`'s draft format](../../../docs/agents/issue-tracker.md#file-tickets-from-drafts), its `blockers` the edges, with the spec's repo and number, each draft's estimate breakdown and the drafter's findings file, `repo-explorer`'s report by [`specs.md`'s Exploring](../../../docs/agents/specs.md#exploring).
 - **A published spec**: `/review-project-tickets <repo> <n>`. Read the spec with `npm run issue:read -- <repo> <n> --body --comments`, which also lists its sub-issues; read each sub-issue with `npm run issue:read -- <its repo> <m> --body --comments`. Read the edges, and what has landed or started, from `npm run runner -- status <owner/repo> <n>`: its `Landed`, `Current` and `Waiting` lines.
 
 A ticket that has landed or is current is **report-only**: its risks are reported, and no fix is offered for it.
@@ -26,7 +26,7 @@ Done when the spec body, every ticket body and every blocking edge are in hand, 
 One reviewer takes up to 10 tickets. Past 10, split them into parts of up to 10, in ticket order, one reviewer per part.
 
 - **This session reviews** when it wrote none of the tickets and there are 10 or fewer. Follow the brief below as your own, from what step 1 gathered.
-- **Fresh sub-agents review** otherwise, one per part, and when this session wrote the tickets, as it always has inside `/project-tickets`. Each runs on the session's model with no `model` override, in the foreground. Each prompt gives the spec body, the ticket bodies, the edges, any estimate breakdowns, each ticket's Workflow and the brief below, and nothing of how the tickets were written.
+- **Fresh sub-agents review** otherwise, one per part, and when this session wrote the tickets, as it always has inside `/project-tickets`. Each runs on the session's model with no `model` override, in the foreground. Each prompt gives the spec body, the ticket bodies, the edges, any estimate breakdowns, the findings file verbatim when there is one, each ticket's Workflow and the brief below, and nothing of how the tickets were written: never the drafter's notes or reasoning.
 - **The order pass runs past 10 tickets**, when no reviewer saw them all. Each part also returns, for each ticket, the files it changes and any gate or tier row it adds; then the order causes, 4 and 9, are checked alone, for the code tickets and cause 9 for the piece drafting tickets, from those lists, every title and every edge, by this session when it wrote none of the tickets, else by one more fresh sub-agent.
 
 Before step 3, check each finding against the evidence it quotes, and correct or drop, saying so, any that doesn't hold.
@@ -46,6 +46,8 @@ You are reviewing a spec's tickets before the runner runs them; you are told eac
 - `docs/agents/tickets.md`, "Ticket size".
 
 Resolve every path a ticket names, or implies by naming a skill, doc or symbol, to the file it lands on, symlinks followed: the rule applies to where the write lands, not to the name. Grep the names each ticket changes to count its files.
+
+**The findings file, when you're given one, shows where the drafter looked, not all that is relevant**: wherever a ticket's claim has no entry in it, search for yourself.
 
 **The causes**, each with a Halt it once raised. A code ticket gets causes 1 to 9; a piece ticket gets causes 1, 2, 3 and 7 as written, and a piece drafting ticket cause 9 and the piece causes 10 to 13 as well.
 

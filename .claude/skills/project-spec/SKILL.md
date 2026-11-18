@@ -52,7 +52,7 @@ File nothing until the developer says yes to the proposal. A change they ask for
 
 ## 5. Write each spec
 
-A code spec uses the code template, a piece spec the piece template. **A mixed spec uses the code template, and carries its Piece's nine fields as the piece template's sections, `## Deliverable` to `## Final pass`, after `## Testing Decisions`.** Every spec after the first ends with a `## Phase gate` section, before `## Model fit` when it has one:
+A code spec uses the code template, a piece spec the piece template. **A mixed spec uses the code template, and carries its Piece's nine fields as the piece template's sections, `## Deliverable` to `## Final pass`, after `## Testing Decisions`.** Every spec after the first ends with a `## Phase gate` section, before `## Where` and `## Model fit` when it has them:
 
 <phase-gate-template>
 
@@ -120,6 +120,10 @@ A description of the things that are out of scope for this spec.
 
 Any further notes about the feature.
 
+## Where
+
+- The symbols it touches, and any landed ticket or file to copy as a pattern.
+
 ## Model fit
 
 <Model> <effort>
@@ -127,7 +131,7 @@ Any further notes about the feature.
 
 </code-template>
 
-`## Model fit` is the last section of a code spec that passes [the ticket split test](../../../docs/agents/tickets.md#the-ticket-split-test): a pair line naming one of the pairs in [`tickets.md`](../../../docs/agents/tickets.md#model-fit), then a one-line reason. A code spec that fails it is still filed, without the section.
+`## Model fit` is the last section of a code spec that passes [the ticket split test](../../../docs/agents/tickets.md#the-ticket-split-test): a pair line naming one of the pairs in [`tickets.md`](../../../docs/agents/tickets.md#model-fit), then a one-line reason. **Such a spec also carries `## Where` just before it, by [`tickets.md`'s Where](../../../docs/agents/tickets.md#where)**, since `issue:ready` checks it like a ticket. A code spec that fails the test is still filed, without either section.
 
 A piece or mixed spec has no `## Model fit`, since it always gets tickets; its tickets carry the pairs, a piece ticket's picked by [`model-fit.md`](../../../docs/agents/model-fit.md). Drive and Doc IDs belong in it: the implementer reads by them.
 
@@ -196,6 +200,6 @@ End with one line per spec:
 3. **Print the remaining specs**: from the held spec, follow `gh api repos/<owner>/<repo>/issues/<n>/dependencies/blocking` to each spec it blocks, and on down the chain, printing each spec's number, title and kind.
 4. **Put Go, Reshape or Drop to the developer** with your recommendation, weighing the Phase gate section's split reason, what to try first, the review lists, the notes and the drift step 2 found. When recommending Go, say whether the spec passes [the ticket split test](../../../docs/agents/tickets.md#the-ticket-split-test), so the developer knows whether it becomes tickets.
 
-- **Go**: relabel it with `gh issue edit -R <owner>/<repo> <n> --remove-label needs-triage --add-label ready-for-agent`, then recommend `/project-tickets <repo> <n>` when the spec fails the split test.
+- **Go**: relabel it with `npm run issue:ready -- <repo> <n> ready-for-agent`, which refuses a spec carrying `## Model fit` without a sound `## Where`, then recommend `/project-tickets <repo> <n>` when the spec fails the split test.
 - **Reshape**: edit the body as agreed with `gh issue edit -R <owner>/<repo> <n> --body-file <path>`. When a spec is added or dropped, fix the blocked-by edges so the chain stays one line, filing an added spec the held way of step 6. Then do as for Go.
 - **Drop**: close it with `gh issue close -R <owner>/<repo> <n> --reason "not planned" --comment "<why>"` and label it `wontfix`, then offer to drop each later spec in the chain the same way.
