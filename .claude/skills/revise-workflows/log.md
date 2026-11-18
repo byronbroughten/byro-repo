@@ -1,8 +1,8 @@
 # Log mode
 
-Log mode triages the open [Friction notes](../../../runner/GLOSSARY.md#language) in place of [`SKILL.md`](./SKILL.md)'s step 1; its causes go on to step 2. Both logs live in the primary root's gitignored `.runner/` folder, the primary root being the folder above the path `git rev-parse --path-format=absolute --git-common-dir` prints:
+Log mode triages the open [Friction notes](../../../runner/GLOSSARY.md#language) in place of [`SKILL.md`](./SKILL.md)'s step 1; its causes go on to step 2. Both logs live in the primary root's gitignored `.runner/` folder, the primary root found as [`/note-friction`](../note-friction/SKILL.md) finds it:
 
-- **The friction folder**, `.runner/friction/`: one `<id>.md` per note, its fields (`id`, `date`, `session`, `workflow`, `filed-by`, `source`, `status`) between `---` lines and the note below them, as [`runner/src/frictionNotes.ts`](../../../runner/src/frictionNotes.ts) writes them. A note is **open** when its `status:` line is blank.
+- **The friction folder**, `.runner/friction/`: one `<id>.md` per note, with [`/note-friction`'s fields](../note-friction/SKILL.md). A note is **open** when its `status:` line is blank.
 - **The outcome log**, `.runner/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`: one row file per landed ticket.
 
 **The last triage's date is the newest status change in the folder**: the newest modification time of a note whose status isn't blank. With none, no triage has run, and every note counts as since.

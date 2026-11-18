@@ -11,7 +11,6 @@ Add these kinds to step 1's:
 - **Stated rule**: a preference or rule the developer articulated that no doc holds. Scan their turns for "I prefer", "as a general rule", "always", or a correction of an approach the agent proposed.
 - **Style ruling**: a shape of code the developer objected to and had changed, stated as a rule or not. Read the session's diff as well as the conversation: each refactor the developer directed is a candidate. The rule is the generalization of the change ("named accessors, never inline lookups"), not the change itself. A ruling counts even when it cost the session nothing, and even when a style doc already gestures at it; a rule the docs hold but the agent or the codebase broke goes in as a sharpened line.
 - **Review miss**: a shape the developer had changed after `/code-review` passed it. Name the standard the reviewer lacked, or the line it had and skipped; the second goes in as a sharpened line.
-- **Wrong turn**: a confident claim the agent retracted.
 
 **A ruling on reader-facing prose ([`prose-files.md`](../../../docs/agents/prose-files.md#terms)) is `piece.md`'s**; read that branch too when one turns up.
 

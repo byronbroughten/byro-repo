@@ -46,8 +46,9 @@ Name every instance of these categories, which apply in either Workflow, and of 
 - **Tool economy**: an expensive tool call that could be streamlined, or custom tooling that spends tokens badly.
 - **No-ops**: a steering line that doesn't change the agent's behavior.
 - **Information access**: a crucial fact the agent couldn't reach: a server log, read-only access to a service.
+- **Wrong turn**: a confident claim the agent had to retract.
 
-**Weight wrong turns heavily.** A confident claim the agent had to retract is the strongest signal there is: something here invites that specific error, and a change can disarm it for everyone after.
+**Weight wrong turns heavily.** A wrong turn is the strongest signal there is: something here invites that specific error, and a change can disarm it for everyone after.
 
 In your own session you observed the friction. In another's you infer it from the signals each branch file lists. **Tag each item `observed`, `diffed` (pair mode) or `guess`**: a guess is a candidate inferred only from another agent's behavior, with no developer turn behind it. If a ruling sounds situational ("for this one", "here"), quote the developer's words and leave it ungeneralized.
 
