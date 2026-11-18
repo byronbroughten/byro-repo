@@ -19,10 +19,10 @@ try {
       `Usage: npm run issue:ready -- <repo> <n> <label>, with <repo> one of ${allowedRepos.join(", ")}.`,
     );
   }
-  const line = await TicketReadier.init(new GhCli(githubOwner)).ready({
-    issue: { repo, number: Number(number) },
+  const line = await TicketReadier.init(new GhCli(githubOwner)).ready(
+    { repo, number: Number(number) },
     label,
-  });
+  );
   console.log(line);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

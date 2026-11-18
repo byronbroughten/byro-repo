@@ -20,11 +20,6 @@ export interface ReadyingGitHub extends Pick<
   editLabels(issue: IssueRef, edit: LabelEdit): Promise<void>;
 }
 
-export interface ReadyRequest {
-  issue: IssueRef;
-  label: string;
-}
-
 const triageLabels = new Set([heldLabel, ...ticketReadiness.readyLabels]);
 
 export class TicketReadier {
@@ -39,7 +34,7 @@ export class TicketReadier {
   }
 
   // Throws, changing no label, on a label that isn't a `ready-*` one and on a body the check refuses; returns the line to print.
-  async ready({ issue, label }: ReadyRequest): Promise<string> {
+  async ready(issue: IssueRef, label: string): Promise<string> {
     if (!ticketReadiness.readyLabels.includes(label)) {
       throw new Error(
         `${label} isn't a ready label, which is one of ${ticketReadiness.readyLabels.join(", ")}.`,
@@ -47,13 +42,13 @@ export class TicketReadier {
     }
     const { body, labels } = await this.github.issueOf(issue);
     if (
-      ticketReadiness.isChecked(label) &&
+      ticketReadiness.needsCheck(label) &&
       !(await this._isSpecHeadedForTickets(issue, labels, body))
     ) {
       const gaps = ticketReadiness.gapsOf(body);
       if (gaps.length > 0) {
         throw new Error(
-          `Relabelling nothing: #${issue.number} ${gaps.join(", and ")}, by docs/agents/tickets.md.`,
+          `Relabelling nothing: a ${label} issue needs ${ticketReadiness.rule}, and #${issue.number} ${gaps.join(", and ")}.`,
         );
       }
     }

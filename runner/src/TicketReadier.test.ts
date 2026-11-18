@@ -32,7 +32,7 @@ function labelsOf(github: FakeGitHub): string[] | undefined {
 
 async function refusalOf(github: FakeGitHub, label: string): Promise<string> {
   const refusal = await TicketReadier.init(github)
-    .ready({ issue, label })
+    .ready(issue, label)
     .then(
       () => undefined,
       (error: unknown) => error,
@@ -44,7 +44,7 @@ async function refusalOf(github: FakeGitHub, label: string): Promise<string> {
 describe("TicketReadier", () => {
   it("swaps needs-triage for the label on a body that passes", async () => {
     const github = githubWith(readyBody, ["needs-triage", "runner"]);
-    await TicketReadier.init(github).ready({ issue, label: "ready-for-agent" });
+    await TicketReadier.init(github).ready(issue, "ready-for-agent");
 
     expect(labelsOf(github)).toEqual(["runner", "ready-for-agent"]);
   });
@@ -72,7 +72,7 @@ describe("TicketReadier", () => {
 
   it("relabels a ready-for-human ticket with no check", async () => {
     const github = githubWith("## What to build\n\nBy hand.", ["needs-triage"]);
-    await TicketReadier.init(github).ready({ issue, label: "ready-for-human" });
+    await TicketReadier.init(github).ready(issue, "ready-for-human");
 
     expect(labelsOf(github)).toEqual(["ready-for-human"]);
   });
@@ -83,10 +83,7 @@ describe("TicketReadier", () => {
         "needs-triage",
         "code",
       ]);
-      await TicketReadier.init(github).ready({
-        issue,
-        label: "ready-for-agent",
-      });
+      await TicketReadier.init(github).ready(issue, "ready-for-agent");
 
       expect(labelsOf(github)).toEqual(["code", "ready-for-agent"]);
     });
@@ -116,15 +113,9 @@ describe("TicketReadier", () => {
 
   it("replaces a different ready label, or adds the label to an issue with no triage label", async () => {
     const relabelled = githubWith(readyBody, ["ready-for-agent", "runner"]);
-    await TicketReadier.init(relabelled).ready({
-      issue,
-      label: "ready-for-interactive",
-    });
+    await TicketReadier.init(relabelled).ready(issue, "ready-for-interactive");
     const unlabelled = githubWith(readyBody, ["runner"]);
-    await TicketReadier.init(unlabelled).ready({
-      issue,
-      label: "ready-for-agent",
-    });
+    await TicketReadier.init(unlabelled).ready(issue, "ready-for-agent");
 
     expect(labelsOf(relabelled)).toEqual(["runner", "ready-for-interactive"]);
     expect(labelsOf(unlabelled)).toEqual(["runner", "ready-for-agent"]);

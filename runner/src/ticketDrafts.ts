@@ -45,13 +45,13 @@ export const ticketDrafts = {
     }
     const unready = drafts.flatMap(
       ({ fileName, labels: [triage = ""], body }) =>
-        ticketReadiness.isChecked(triage)
+        ticketReadiness.needsCheck(triage)
           ? ticketReadiness.gapsOf(body).map((gap) => `${fileName} ${gap}.`)
           : [],
     );
     if (unready.length > 0) {
       throw new Error(
-        `Filing nothing: each agent or interactive draft needs docs/agents/tickets.md's ## Where and a last ## Model fit.\n${unready.join("\n")}`,
+        `Filing nothing: each agent or interactive draft needs ${ticketReadiness.rule}.\n${unready.join("\n")}`,
       );
     }
     return drafts;

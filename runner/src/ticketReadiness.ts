@@ -1,7 +1,12 @@
 // The check `npm run issue:file` and `npm run issue:ready` share before a ticket holds an agent or interactive label:
 // docs/agents/tickets.md's `## Where` section and last `## Model fit` section, a pair line then a reason ending in `~NK`.
 
-import { estimateOf, pairOf } from "./modelFit.ts";
+import {
+  estimateOf,
+  isModelFitLast,
+  modelFitHeading,
+  pairOf,
+} from "./modelFit.ts";
 import {
   humanLabel,
   interactiveLabel,
@@ -10,13 +15,14 @@ import {
 import { ticketSectionOf } from "./ticketSections.ts";
 
 const whereHeading = "## Where";
-const modelFitHeading = "## Model fit";
 
 export const ticketReadiness = {
   // docs/agents/triage-labels.md's `ready-*` labels.
   readyLabels: [readyLabel, interactiveLabel, humanLabel] as readonly string[],
+  // What both refusals cite.
+  rule: `docs/agents/tickets.md's ${whereHeading} and a last ${modelFitHeading}`,
   // A `ready-for-human` ticket isn't checked.
-  isChecked(label: string): boolean {
+  needsCheck(label: string): boolean {
     return label === readyLabel || label === interactiveLabel;
   },
   hasModelFit(body: string): boolean {
@@ -37,24 +43,19 @@ function modelFitGapsOf(body: string): string[] {
   if (!ticketReadiness.hasModelFit(body)) {
     return [`has no ${modelFitHeading} section`];
   }
-  if (!isLastSection(body)) {
-    return [`has a ${modelFitHeading} section that isn't the last section`];
+  if (!isModelFitLast(body)) {
+    return [modelFitGap("that isn't the last section")];
   }
   const gaps: string[] = [];
   if (pairOf(body) === undefined) {
-    gaps.push(
-      `has a ${modelFitHeading} section whose first line names none of the six pairs`,
-    );
+    gaps.push(modelFitGap("whose first line names none of the six pairs"));
   }
   if (estimateOf(body) === undefined) {
-    gaps.push(
-      `has a ${modelFitHeading} section with no reason ending in its estimate as ~NK`,
-    );
+    gaps.push(modelFitGap("with no reason ending in its estimate as ~NK"));
   }
   return gaps;
 }
 
-function isLastSection(body: string): boolean {
-  const last = body.split(/^(?=## )/m).at(-1) ?? "";
-  return last.split("\n")[0]?.trim() === modelFitHeading;
+function modelFitGap(fault: string): string {
+  return `has a ${modelFitHeading} section ${fault}`;
 }

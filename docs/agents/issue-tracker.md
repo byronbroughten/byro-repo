@@ -26,6 +26,7 @@ Issues and specs live as GitHub issues, in the repo of the package they concern.
 - **List issues**: `gh issue list -R <repo> --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
 - **Comment on an issue**: `gh issue comment -R <repo> <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit -R <repo> <number> --add-label "..."` / `--remove-label "..."`
+- **Put a `ready-*` label on an issue**: `npm run issue:ready -- <repo> <n> <label>`, which swaps its triage label for `<label>` once its body passes `issue:file`'s check on an `agent` or `interactive` draft ([below](#file-tickets-from-drafts)).
 - **Close**: `gh issue close -R <repo> <number> --comment "..."`
 - **Backlink an ADR**: `npm run issue:backlink -- <repo> <number> <adr-path>`, with the issue's bare repo name and the ADR's path from the workspace root, which names the ADR's repo. It adds the `Design decision:` line below to the body's backlink block, and leaves a body whose block already holds it unchanged.
 
@@ -53,7 +54,7 @@ Triage labels are separate: [`triage-labels.md`](./triage-labels.md).
   ```
 
 - **`title` and `kind` are required; `labels` and `blockers` are comma lists and may be left out.** `kind` is `agent`, `interactive` or `human`, giving `ready-for-agent`, `ready-for-interactive` or `ready-for-human`; `blockers` holds other drafts' numbers.
-- **Nothing files when any draft fails**: a triage label among the `labels`, a key or kind it doesn't know, a missing title or body, two drafts of one number, a blocker number with no draft, a blocker cycle, or an `agent` or `interactive` draft with no `## Where` or no sound last `## Model fit` ([`tickets.md`](./tickets.md)), each such draft named in one pass. `npm run issue:ready -- <repo> <n> <label>` applies the same check before it swaps an issue's triage label for `<label>`, a `ready-*` one.
+- **Nothing files when any draft fails**: a triage label among the `labels`, a key or kind it doesn't know, a missing title or body, two drafts of one number, a blocker number with no draft, a blocker cycle, or an `agent` or `interactive` draft with no `## Where` or no sound last `## Model fit` ([`tickets.md`](./tickets.md)), each such draft named in one pass.
 
 ## When a skill says "publish to the issue tracker"
 
