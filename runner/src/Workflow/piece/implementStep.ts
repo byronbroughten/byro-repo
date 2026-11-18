@@ -11,6 +11,7 @@ import {
   commitMessageLine,
   type NumberOrPlaceholder,
   sectionOf,
+  stepOpeningOf,
   stepWriteLine,
   unattendedRunLine,
 } from "../../promptText.ts";
@@ -52,6 +53,9 @@ const sectionNameText =
 interface PassagesTicket extends Omit<IssueRef, "number"> {
   number: NumberOrPlaceholder;
 }
+
+// What each piece step's opening adds after its step's name.
+export const draftingTicketKind = " on a piece spec's drafting ticket";
 
 // Under the workspace root's `.runner/`, which byro-repo gitignores, so no passage reaches a commit.
 export function passagesFolderOf({ repo, number }: PassagesTicket): string {
@@ -134,7 +138,7 @@ export interface PieceImplementPromptInput extends ImplementPromptInput {
 export function pieceImplementPrompt(input: PieceImplementPromptInput): string {
   const { issue, title, body, latestHandoff } = input;
   return [
-    `You are the implement step of an unattended run on a piece spec's drafting ticket. Draft ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
+    `${stepOpeningOf("implement step", draftingTicketKind)} Draft ${issue.repo}#${issue.number}, "${title}". ${unattendedRunLine()}`,
     implementWorkspaceSection(input),
     draftingSection(input),
     `## GitHub\n\n- ${noGitHubWriteLine}\n- ${stepReadLine}`,

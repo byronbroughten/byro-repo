@@ -3,7 +3,7 @@
 
 import { stepReadLine } from "../IssueReader.ts";
 import { issueRef } from "../IssueWorkspaces.ts";
-import { sectionOf, unattendedRunLine } from "../promptText.ts";
+import { sectionOf, stepOpeningOf, unattendedRunLine } from "../promptText.ts";
 import type {
   GapCheckPromptInput,
   GapCheckSection,
@@ -24,7 +24,7 @@ export class GapCheckPrompt {
   get text(): string {
     const { spec, title, tickets, sections } = this.input;
     return [
-      `You are the gap check of an unattended run. ${unattendedRunLine()}
+      `${stepOpeningOf("gap check")} ${unattendedRunLine()}
 
 Every ticket of the spec ${spec.repo}#${spec.number}, "${title}", has landed or closed${this._heldOpenClause}. List what the spec asks for that its tickets' work doesn't give. Your working directory is the primary root, on master. ${stepReadLine}`,
       sectionOf("How you check", [

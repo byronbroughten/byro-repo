@@ -28,7 +28,7 @@ import type {
   SuppliedInput,
 } from "../../Workflow.ts";
 import { draftingScope } from "./draftingScope.ts";
-import { passagesFolderIn } from "./implementStep.ts";
+import { draftingTicketKind, passagesFolderIn } from "./implementStep.ts";
 
 const pieceAxes: Axis[] = ["spec", "standards", "reader"];
 
@@ -54,10 +54,7 @@ export function pieceReviewPrompt({
 }: PieceReviewPromptInput): string {
   const passagesFolder = passagesFolderIn(workspacePath, issue);
   const scope = draftingScope.sectionsOf(labels);
-  const framing = reviewFramingOf(
-    sessionSubmit,
-    " on a piece spec's drafting ticket",
-  );
+  const framing = reviewFramingOf(sessionSubmit, draftingTicketKind);
   const heldTicket = heldTicketLinesOf(isTicketHeld).map(
     (line) => `${line}\n\n`,
   );

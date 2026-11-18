@@ -4,6 +4,7 @@
 import { stepReadLine } from "../../IssueReader.ts";
 import {
   commitMessageLine,
+  stepOpeningOf,
   stepWriteLine,
   unattendedRunLine,
 } from "../../promptText.ts";
@@ -13,7 +14,7 @@ import type { ResolvePromptInput } from "../../Workflow.ts";
 
 export function resolvePrompt(input: ResolvePromptInput): string {
   const { branch, branchedRepos, findings } = input;
-  return `You are the resolve step of an unattended run. ${unattendedRunLine()}
+  return `${stepOpeningOf("resolve step")} ${unattendedRunLine()}
 
 ${resolveBody.findingsOf(input)} Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Change only those repos. Verify each finding against the code, the ticket and its spec before you judge it. ${stepReadLine}
 

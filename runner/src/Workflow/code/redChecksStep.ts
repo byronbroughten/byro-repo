@@ -2,7 +2,11 @@
 // summary it returns. codeWorkflow.ts supplies it, and SpecRun/TicketLander/TicketChecker.ts runs it once after red checks, resuming the implementer or starting its successor after a handoff; still red is a Failure Halt.
 
 import { stepReadLine } from "../../IssueReader.ts";
-import { commitMessageLine, unattendedRunLine } from "../../promptText.ts";
+import {
+  commitMessageLine,
+  stepOpeningOf,
+  unattendedRunLine,
+} from "../../promptText.ts";
 import { objectSchema, stringSchema } from "../../recordSchema.ts";
 import { doneLines } from "../../stepPrompts/doneLines.ts";
 import type { RedChecksPromptInput } from "../../Workflow.ts";
@@ -14,7 +18,7 @@ export function redChecksPrompt({
   branchedRepos,
   failures,
 }: RedChecksPromptInput): string {
-  return `You are the red-checks step of an unattended run. ${unattendedRunLine()}
+  return `${stepOpeningOf("red-checks step")} ${unattendedRunLine()}
 
 The runner's checks failed on ${issue.repo}#${issue.number}, "${title}", after its last commit. Turn them green. Your working directory is the ticket's issue workspace root; these repos are on the ticket's branch, \`${branch}\`: ${branchedRepos.join(", ")}. Change only those repos. ${stepReadLine}
 

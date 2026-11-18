@@ -18,6 +18,27 @@ export function unattendedRunLine(): string {
   return "Nobody is watching this session: never ask a question or wait for an answer.";
 }
 
+// A fresh step's prompt opens by naming its step, so `npm run delegation:measure` reads a session's kind back from it.
+export function stepOpeningOf(step: string, ticketKind = ""): string {
+  return `You are the ${step} of an unattended run${ticketKind}.`;
+}
+
+const runReviewStep = "review step";
+
+const openedStepPatterns = {
+  fresh: /^You are the (?<step>[a-z-]+ step|gap check) of an unattended run/,
+  review: new RegExp(
+    `you now run its (?<step>${runReviewStep}) in an unattended run`,
+  ),
+} as const;
+
+// The step a prompt's opening names, a run's resumed review included; undefined for any other prompt.
+export function openedStepOf(prompt: string): string | undefined {
+  return Object.values(openedStepPatterns)
+    .map((pattern) => prompt.match(pattern)?.groups?.step)
+    .find((step) => step !== undefined);
+}
+
 export function codeListOf(
   words: readonly string[],
   conjunction: "or" | "and" = "or",
@@ -82,7 +103,7 @@ export function reviewFramingOf(
 // A run's review resumes the implementer, so it reviews its own work and returns the record under `output`.
 function runReviewFramingOf(ticketKind: string): ReviewFraming {
   return {
-    opening: `You implemented this ticket, and you now run its review step in an unattended run${ticketKind}: you orchestrate the review of your own work, briefing the reviewer subagents, who start fresh, and returning their findings. ${unattendedRunLine()}`,
+    opening: `You implemented this ticket, and you now run its ${runReviewStep} in an unattended run${ticketKind}: you orchestrate the review of your own work, briefing the reviewer subagents, who start fresh, and returning their findings. ${unattendedRunLine()}`,
     returnLineOf(fields) {
       return `Change nothing: no edits, commits, comments or fixes. ${sessionReturnOf(fields)}, the review record:`;
     },

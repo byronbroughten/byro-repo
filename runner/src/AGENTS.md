@@ -86,6 +86,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `issueWorkspacesHarness.ts` | | The fixture `IssueWorkspaces` tests share. |
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
+| `largeReadTurns.ts` | `largeReadTurns` | `npm run delegation:measure`'s core: the turns after each large Read and their median by session kind, the runner step or interactive skill its prompts name. |
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
 | `logBackup.ts` | `logBackup` | `npm run logs`' core: syncs the friction and outcome folders to a Sheet, named by its ID, and restores their missing files from it, through the Sheets values port its entry passes. |
 | `logBackup/FakeSheetValues.ts` | | The in-memory Sheet log backup tests use. |
@@ -112,7 +113,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `processIdentity.ts` | `processIdentity` | A process named by its pid and start time, for leases, supervision records and a parked watch. |
 | `progressLines.ts` | | The progress-log lines, written and parsed in pairs. |
 | `ProgressLog.ts` | | A progress log's lines and what the Run board reads from them: the current ticket, the account, its step stream reading and the latest line. |
-| `promptText.ts` | | Wording helpers the step prompts and the runner's comments share. |
+| `promptText.ts` | | Wording helpers the step prompts and the runner's comments share, a step's opening and the step read back from one among them. |
 | `promptText/GapCheckPrompt.ts` | | The spec's gap-check prompt: the shared frame around each Workflow's section. |
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
@@ -199,7 +200,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ticketReadiness.ts` | | The check `issue:file` and `issue:ready` share on an agent or interactive ticket's `## Where` and last `## Model fit`, and the `ready-*` labels. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |
-| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is, and the subagents it started since a time. |
+| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; the config folders transcripts are under, where a session's transcript is, the main-session transcripts started in a date range, and the subagents a session started since a time. |
 | `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
