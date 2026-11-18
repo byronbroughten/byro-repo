@@ -244,6 +244,22 @@ export async function isMerging(worktree: string): Promise<boolean> {
   }
 }
 
+// `merge-tree --write-tree` merges in the object store alone, leaving the working tree and index as they were; it exits 1 on a conflict.
+export async function wouldConflict(
+  worktree: string,
+  ref: string,
+): Promise<boolean> {
+  try {
+    await git(worktree, "merge-tree", "--write-tree", "HEAD", ref);
+    return false;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === 1) {
+      return true;
+    }
+    throw error;
+  }
+}
+
 export async function isAncestor(
   worktree: string,
   ancestor: string,
