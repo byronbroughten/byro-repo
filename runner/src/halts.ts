@@ -131,7 +131,7 @@ export function splitHaltOf(
 ): HaltDraft {
   return {
     kind: "split",
-    question: `The implement step handed off with more than one ticket's work left, and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf(haltOptions.continue)}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
+    question: `The implement step handed off and proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n${splitTheTicketPhraseOf(haltOptions.continue)}: a fresh implement step picks up from the handoff on the ticket's body as it then reads.`,
     options: [haltOptions.continue],
     scope: downstream,
   };
@@ -226,7 +226,7 @@ export function handoffCapDetailOf({
     slices.length > 0
       ? ` The last handoff proposed splitting the rest into:\n\n${handoffText.proposedSplitOf(slices)}\n\n`
       : " ";
-  return `${issueRef.labelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}.`;
+  return `${issueRef.labelOf(ticket)} handed off ${count} times, past its cap of ${cap}.${split}${splitTheTicketPhraseOf(failureOptions.moreHandoffs)}, or ${failureOptions.guidedMoreHandoffs} to give the fresh implement step your words too.`;
 }
 
 function splitTheTicketPhraseOf(answer: string): string {
@@ -260,6 +260,7 @@ export const failureOptions = {
   retry: "`retry`",
   retryRecord: "`retry record`",
   moreHandoffs: "`continue +1 handoff`",
+  guidedMoreHandoffs: "`continue +1 handoff: <guidance>`",
   approve: "`approve`",
   skip: "`skip`",
 } as const;

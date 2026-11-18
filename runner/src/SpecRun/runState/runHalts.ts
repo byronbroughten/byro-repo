@@ -114,6 +114,7 @@ export const runHalts = {
       isOffered(latest, failureOptions.moreHandoffs)
     ) {
       state.extraHandoffs = (state.extraHandoffs ?? 0) + 1;
+      state.guidance = answer.guidance;
     }
     if (answer.kind === "rerun") state.pair = answer.pair;
     if (answer.kind === "guidance") state.guidance = answer.text;

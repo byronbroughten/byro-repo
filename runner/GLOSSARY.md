@@ -89,7 +89,7 @@ The verdict that blocks the tickets in its scope until it is answered: named lat
 _Avoid_: pause, block, question
 
 **Failure Halt**:
-A Halt raised because a step failed, not by a verdict: a second crash, a second schema failure or a missing structured output, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`; a ticket past its handoff cap gets one offering `continue +1 handoff` in place of `retry`.
+A Halt raised because a step failed, not by a verdict: a second crash, a second schema failure or a missing structured output, red checks on a green master, an implement step's turn cap. It offers `retry` and `stop spec`, and free text such as `rerun on <pair>` or `skip`; a ticket past its handoff cap gets one offering `continue +1 handoff` in place of `retry`, or `continue +1 handoff: <guidance>` to give the fresh implement step that guidance too.
 _Avoid_: error, crash
 
 **Split Halt**:
