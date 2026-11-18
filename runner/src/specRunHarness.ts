@@ -412,6 +412,7 @@ interface SavedTicket {
   resolveRecords?: ResolveRecord[];
   researchRecord?: ResearchRecord;
   pullBaseline?: PullBaseline;
+  handoffCount?: number;
   sessions: StepSession[];
 }
 
