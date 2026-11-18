@@ -468,11 +468,11 @@ export function rowWorkflowNameOf(specTicket: SpecTicket): WorkflowName {
 }
 
 // A spec's own Workflow, for a Friction note decide files: piece whenever its labels include piece.
-export function specWorkflowNameOf({ labels }: LabelledIssue): WorkflowName {
-  return labels.includes(workflowLabels.piece) ? "piece" : "code";
+export function specWorkflowNameOf(spec: LabelledIssue): WorkflowName {
+  return labelledNameOf(spec) ?? "code";
 }
 
-// Called only on an issue with at most one of the labels.
+// Called only on an issue with at most one of the labels, or, by specWorkflowNameOf, where piece wins over both.
 function labelledNameOf({ labels }: LabelledIssue): WorkflowName | undefined {
   if (labels.includes(workflowLabels.piece)) return "piece";
   if (labels.includes(workflowLabels.code)) return "code";

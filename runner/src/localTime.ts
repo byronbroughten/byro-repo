@@ -15,15 +15,20 @@ const timePatterns = {
 const hourMs = 3_600_000;
 
 export function localTimeOf(time: Date): string {
-  const date = [
-    time.getFullYear(),
-    twoDigitsOf(time.getMonth() + 1),
-    twoDigitsOf(time.getDate()),
-  ].join("-");
+  const date = localDateOf(time);
   const clock = [time.getHours(), time.getMinutes(), time.getSeconds()]
     .map(twoDigitsOf)
     .join(":");
   return `${date} ${clock} ${zoneOf(time)}`;
+}
+
+// `YYYY-MM-DD`, local.
+export function localDateOf(time: Date): string {
+  return [
+    time.getFullYear(),
+    twoDigitsOf(time.getMonth() + 1),
+    twoDigitsOf(time.getDate()),
+  ].join("-");
 }
 
 // A line opening with localTimeOf's stamp, split into its time and text; undefined for a line with none.

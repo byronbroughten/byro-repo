@@ -4,12 +4,9 @@
 // The edit itself is ../reviewList.ts's; SpecRun.ts delegates here.
 
 import { messageOf } from "../failureText.ts";
-import {
-  frictionFolderOf,
-  noteDateOf,
-  writeFrictionNote,
-} from "../frictionNotes.ts";
+import { frictionFolderOf, writeFrictionNote } from "../frictionNotes.ts";
 import { type IssueRef, issueRef } from "../IssueWorkspaces.ts";
+import { localDateOf } from "../localTime.ts";
 import {
   decidedListOf,
   decisionLabels,
@@ -64,7 +61,7 @@ export class ReviewItemDecider extends SpecRunBase {
   }: DecidedProposal): Promise<void> {
     const labels = await this.config.github.labelsOf(spec);
     writeFrictionNote(frictionFolderOf(this.config.stateFolder), {
-      date: noteDateOf(this.config.clock.now()),
+      date: localDateOf(this.config.clock.now()),
       session: this.config.sessionId ?? "",
       workflow: specWorkflowNameOf({ labels }),
       filedBy: "judge-findings",

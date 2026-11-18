@@ -10,16 +10,22 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { FakeAgentStep } from "./FakeAgentStep.ts";
+import { frictionFolderOf } from "./frictionNotes.ts";
+import { localDateOf } from "./localTime.ts";
 import {
   addIssue,
   github,
   spec,
   specRun,
+  startTime,
   stateFolder,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
 
 useSpecRunHarness();
+
+// The harness clock's date wherever the test runs, as a note takes the local date.
+const today = localDateOf(startTime);
 
 const listBody = [
   "<!-- spec-runner -->",
@@ -138,7 +144,7 @@ const mixedBody = [
 const deferBody = listBody.replace("Propose `decision`", "Defer `decision`");
 
 function frictionFolder(): string {
-  return join(stateFolder(), "friction");
+  return frictionFolderOf(stateFolder());
 }
 
 function frictionFiles(): Record<string, string> {
@@ -155,7 +161,7 @@ function decidedNoteOf(id: string, heading: string, workflow = "code"): string {
   return [
     "---",
     `id: ${id}`,
-    "date: 2026-10-12",
+    `date: ${today}`,
     "session: s-1",
     `workflow: ${workflow}`,
     "filed-by: judge-findings",
@@ -187,8 +193,8 @@ describe("decide's Friction note", () => {
     await decider("s-1").decide(spec, dismissal);
 
     expect(frictionFiles()).toEqual({
-      "2026-10-12-s-1-1.md": decidedNoteOf(
-        "2026-10-12-s-1-1",
+      [`${today}-s-1-1.md`]: decidedNoteOf(
+        `${today}-s-1-1`,
         "Propose `decision` · a",
       ),
     });
@@ -201,8 +207,8 @@ describe("decide's Friction note", () => {
     await decider("s-1").decide(spec, { ...dismissal, itemId: "R7.2" });
 
     expect(Object.keys(frictionFiles())).toEqual([
-      "2026-10-12-s-1-1.md",
-      "2026-10-12-s-1-2.md",
+      `${today}-s-1-1.md`,
+      `${today}-s-1-2.md`,
     ]);
   });
 
@@ -212,8 +218,8 @@ describe("decide's Friction note", () => {
 
     await decider("s-1").decide(spec, dismissal);
 
-    expect(frictionFiles()["2026-10-12-s-1-1.md"]).toBe(
-      decidedNoteOf("2026-10-12-s-1-1", "Propose `decision` · a", "piece"),
+    expect(frictionFiles()[`${today}-s-1-1.md`]).toBe(
+      decidedNoteOf(`${today}-s-1-1`, "Propose `decision` · a", "piece"),
     );
   });
 
@@ -223,8 +229,8 @@ describe("decide's Friction note", () => {
     await decider("s-1").decide(spec, dismissal);
 
     expect(frictionFiles()).toEqual({
-      "2026-10-12-s-1-1.md": decidedNoteOf(
-        "2026-10-12-s-1-1",
+      [`${today}-s-1-1.md`]: decidedNoteOf(
+        `${today}-s-1-1`,
         "Defer `decision` · a",
       ),
     });
@@ -236,8 +242,8 @@ describe("decide's Friction note", () => {
     await decider().decide(spec, dismissal);
 
     expect(frictionFiles()).toEqual({
-      "2026-10-12-1.md": decidedNoteOf(
-        "2026-10-12-1",
+      [`${today}-1.md`]: decidedNoteOf(
+        `${today}-1`,
         "Propose `decision` · a",
       ).replace("session: s-1", "session:"),
     });

@@ -64,7 +64,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
-| `frictionNotes.ts` | | A Friction note's file: its fields, its id and its path in the friction folder, and its write, which never overwrites a note. |
+| `frictionNotes.ts` | | A Friction note's file: its fields, its id and its path in the friction folder, and its write. |
 | `fixtures/spec796.ts` | | Loads byro-repo #796, a real closed spec copied into `fixtures/byro-repo-796/`, that the `runner judge-brief` and `issue:close-parent` tests measure their briefs on. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
@@ -87,7 +87,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
-| `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
+| `localTime.ts` | | Words and reads a human-facing time: local, with its zone, and its local date. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `MapNext.ts` | `MapNext` | `npm run map:next`'s core: a `/wayfinder` session's read-only brief of a wayfinder map, its sub-issues, frontier and chosen ticket, printing only Trusted text, delegating to `MapNext/`. |
 | `MapNext/MapArgsParser.ts` | | Reads `npm run map:next`'s arguments into the map and named ticket, refusing what names neither. |

@@ -23,31 +23,18 @@ export interface FrictionNote {
   filedBy: NoteFiler;
   // `<repo>#<spec> R<n>.<k>`, or blank.
   source: string;
-  // Blank, `addressed <link>` or `dismissed: <reason>`.
-  status: string;
+  status: NoteStatus;
   body: string;
 }
 
-export interface WrittenNote {
-  id: string;
-  path: string;
-}
+export type NoteStatus = "" | `addressed ${string}` | `dismissed: ${string}`;
 
 export function frictionFolderOf(stateFolder: string): string {
   return join(stateFolder, "friction");
 }
 
-export function noteDateOf(time: Date): string {
-  const month = String(time.getMonth() + 1).padStart(2, "0");
-  const day = String(time.getDate()).padStart(2, "0");
-  return `${time.getFullYear()}-${month}-${day}`;
-}
-
 // `wx` refuses a file another writer took meanwhile, so the next number is tried instead.
-export function writeFrictionNote(
-  folder: string,
-  note: FrictionNote,
-): WrittenNote {
+export function writeFrictionNote(folder: string, note: FrictionNote): void {
   mkdirSync(folder, { recursive: true });
   const prefix = idPrefixOf(note);
   for (let k = nextNumberOf(folder, prefix); ; k += 1) {
@@ -55,7 +42,7 @@ export function writeFrictionNote(
     const path = join(folder, `${id}.md`);
     try {
       writeFileSync(path, noteFileOf(id, note), { flag: "wx" });
-      return { id, path };
+      return;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     }
@@ -75,7 +62,7 @@ function nextNumberOf(folder: string, prefix: string): number {
   return Math.max(0, ...numbers) + 1;
 }
 
-export function noteFileOf(id: string, note: FrictionNote): string {
+function noteFileOf(id: string, note: FrictionNote): string {
   const fields = [
     ["id", id],
     ["date", note.date],
