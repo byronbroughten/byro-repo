@@ -1,0 +1,5 @@
+# The friction and outcome logs live outside git, with a one-way Sheet backup
+
+Friction notes and outcome rows are kept as one file each in gitignored folders of the primary root, not committed, and `npm run logs -- sync` copies both to a Sheet the agent account owns, adding and updating rows but never deleting one. byro-repo is public, so a committed log can't hold piece-work prose, and every landing published a row. Moving the logs to the private `personal` repo would keep git history, but public byro-repo code would then depend on a private repo. A tracked note would also cost a workspace and a wrap-up for each capture, and parallel worktrees appending to one file would conflict. GitHub issues were rejected for the notes too, because issues there hold ideas that are close to fully formed. The cost is that git no longer backs up the logs: rows written since the last sync exist only on this disk. That is why the sync never deletes a row and `restore` rebuilds the folders. So don't move either log back into a tracked folder to regain git history.
+
+Source: byronbroughten/byro-repo#828
