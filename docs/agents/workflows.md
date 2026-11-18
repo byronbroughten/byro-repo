@@ -43,6 +43,8 @@ The words Piece, Deliverable, Section, Stage and Agent draft are [the writing gl
 
 [`/handoff`](../../.claude/skills/handoff/SKILL.md) is used in any Workflow stage of either Workflow, and [`writing-for-agents`](../../.claude/skills/writing-for-agents/SKILL.md) wherever a skill calls it, as `/revise-workflows` does.
 
+The [Primers](../../runner/GLOSSARY.md), each loading its rule before the action it names, are used in any Workflow stage of either Workflow: [`file-issue`](../../.claude/skills/file-issue/SKILL.md), [`code-style`](../../.claude/skills/code-style/SKILL.md), [`prose-style`](../../.claude/skills/prose-style/SKILL.md) and [`writing`](../../.claude/skills/writing/SKILL.md).
+
 ## Each Workflow's Steps
 
 [The runner glossary](../../runner/GLOSSARY.md#language) defines each Step.
@@ -131,20 +133,20 @@ A doc is listed when two or more skills or Steps of either Workflow reach it by 
 | [`verdicts.md`](./verdicts.md) | `/code-review`, `/implement-code`, `/implement-piece`, `/judge-findings`, `/review-piece`, `/revise-workflows` (its pair mode) | via runner prompt: the resolve Step; via `/code-review` and `/review-piece`: the review Step |
 | [`specs.md`](./specs.md) | `/project-spec`, `/project-tickets`, `/review-project-tickets` | |
 | [`delegation.md`](./delegation.md) | `/revise-workflows` (its log mode) | via `specs.md`: `/project-spec`, `/project-tickets`, `/review-project-tickets`; via `git-workflow.md`: `/implement-code`, `/judge-findings`, `/implement-piece`, the implement Step; via `planning.md`: `/plan-project` |
-| [`tickets.md`](./tickets.md) | `/project-spec`, `/project-tickets`, `/review-project-tickets` | |
+| [`tickets.md`](./tickets.md) | `/project-spec`, `/project-tickets`, `/review-project-tickets`, `file-issue` | |
 | [`handoffs.md`](./handoffs.md) | `/start-issue`, `/revise-workflows` | via always-on hook: the context nudge, for any session |
 | [`model-fit.md`](./model-fit.md) | `/project-spec`, `/project-tickets` | via `tickets.md`: `/review-project-tickets` |
-| The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/revise-workflows` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
-| [`prose-style.md`](../prose-style.md) | `/code-review`, `/revise-workflows` | via always-on hook: every prose edit |
+| The code-style rules: [config's](../../config/docs/code-style.md) and [the framework's](../../packages/framework/docs/code-style.md) | `/revise-workflows`, `code-style` | via always-on hook: every code edit, by `/implement-code`, the implement and resolve Steps, and `/judge-findings`' "now" fixes |
+| [`prose-style.md`](../prose-style.md) | `/code-review`, `/revise-workflows`, `prose-style` | via always-on hook: every prose edit |
 | [`prose-files.md`](./prose-files.md) | `/revise-workflows` | via always-on hook: every prose edit, through `prose-style.md` |
-| [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/project-spec`, `/project-tickets`, `/review-project-tickets`, `/code-review`, `/judge-findings`, `/close-project` | |
+| [The issue tracker doc](./issue-tracker.md) and [triage labels](./triage-labels.md) | `/wayfinder`, `domain-modeling`, `/project-spec`, `/project-tickets`, `/review-project-tickets`, `/code-review`, `/judge-findings`, `/close-project`, `file-issue` | |
 | [The git workflow doc](./git-workflow.md) | `/implement-code`, `/judge-findings`, `/implement-piece` | via runner prompt: the implement Step; via `rules.md`: `/plan-project`, `/project-spec`, `/project-tickets`, `/review-piece` |
 | [The runner glossary](../../runner/GLOSSARY.md) | `/runner`, `/review-project-tickets`, `/judge-findings`, `/revise-workflows` | |
 | [The guardrails doc](../claude-code-guardrails.md) | `/project-tickets`, `/review-project-tickets`' reviewer | |
 | Design docs, ADRs and glossaries | `/project-spec`, `/project-tickets`, `domain-modeling`, `tdd` | |
-| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `grilling`'s format by `/judge-findings` and `/revise-workflows`; `/note-friction`'s fields by `/revise-workflows`; `/judge-findings`' step 5 by `/close-project`, and `/revise-workflows`' pair mode by its `piece.md`; `/plan-project`'s `piece.md` step 4 by `/revise-workflows`' `piece.md`; `/close-project`'s steps 1 and 3 to 5 by `/judge-findings`, and its steps 1 to 5 by `/implement-code` and `/implement-piece`; `/judge-findings`' step 1 by `/revise-workflows`' pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate | |
-| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/plan-project`, `/implement-piece`, `/review-piece`, `/revise-workflows` | via `rules.md`: `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
-| [The academic style sheet](../academic-writing-style.md) | `/plan-project`, `/review-piece`, `/revise-workflows` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`) |
+| Skills read as docs | `/project-tickets` by `/judge-findings` and `/runner`; `grilling`'s format by `/judge-findings` and `/revise-workflows`; `/note-friction`'s fields by `/revise-workflows`; `/judge-findings`' step 5 by `/close-project`, and `/revise-workflows`' pair mode by its `piece.md`; `/plan-project`'s `piece.md` step 4 by `/revise-workflows`' `piece.md`; `/close-project`'s steps 1 and 3 to 5 by `/judge-findings`, and its steps 1 to 5 by `/implement-code` and `/implement-piece`; `/judge-findings`' step 1 by `/revise-workflows`' pair mode; `/judge-findings`' step 1 by `/project-spec`'s Phase gate; `/project-tickets` and `/project-spec` by `file-issue` | |
+| The Voice and Craft sheets: [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md) | `/plan-project`, `/implement-piece`, `/review-piece`, `/revise-workflows`, `writing` | via `rules.md`: `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`); via runner prompt: the piece implement Step |
+| [The academic style sheet](../academic-writing-style.md) | `/plan-project`, `/review-piece`, `/revise-workflows`, `writing` | via `rules.md`: `/implement-piece`, the piece implement Step, `/project-spec`, `/project-tickets`, `/judge-findings` (its `piece.md`) |
 | [`rules.md`](../pieces/rules.md), the rules for writing any Piece | `/plan-project`, `/project-spec`, `/project-tickets`, `/implement-piece`, `/review-piece`, `/judge-findings` (its `piece.md`) | via runner prompt: the piece implement Step |
 | [The writing glossary](../pieces/GLOSSARY.md) | `/plan-project`, `/project-spec`, `/project-tickets`, `/review-piece`, `/revise-workflows` (its pair mode), `/judge-findings` (its `piece.md`), `/close-project` (its `piece.md`) | via `rules.md`: `/implement-piece`, the piece implement Step |
 | [`grilling.md`](../pieces/grilling.md) | `/plan-project`, `/project-spec`, `/revise-workflows` | via `rules.md`: `/project-tickets`, `/implement-piece`, the piece implement Step, `/review-piece` |
@@ -185,7 +187,8 @@ Routes that depend on which files a ticket touches (the read-first gate's tier, 
 | `runner -- status` | `/runner` reads a run and, to diagnose, the Run board; `/review-project-tickets` and `/project-tickets`' Re-ticket read what has landed or started |
 | `npm run overlap` | `/review-piece` runs it; `/implement-piece` reruns it after a fix; the piece resolve Step reruns it after its Fixes; `/judge-findings` reruns it after a piece "now" fix |
 | `npm run pdf:text` and the page-range command in [`pdf-pages.md`](../pdf-pages.md) | `/research-piece` dumps text; `/plan-project` and `/review-research` count and print pages |
-| `npm run issue:ready` | `/project-spec`'s Phase gate and `/project-tickets`' step 7 relabel a spec `ready-for-agent` through it |
+| `npm run issue:ready` | `/project-spec`'s Phase gate and `/project-tickets`' step 7 relabel a spec `ready-for-agent` through it; `file-issue` names it for a relabel by hand |
+| `npm run doc:sections` | `file-issue`, `code-style`, `prose-style` and `writing` inject their rule sections through it |
 | Sub-issues and native blocking edges | `/project-tickets`, `/judge-findings` and `/runner` set them through `npm run issue:file`; `/review-piece` reads the parent through `gh api`; `/project-spec` sets a held spec's blocked-by edge and its Phase gate walks the chain; `/judge-findings` and `/close-project` list what a closed spec blocks |
 | The gworkspace tools (Drive and Docs) | `/plan-project`, `/implement-piece`, `/research-piece`, `/runner` on an `another source` answer |
 | `npm run verify:quotes` | `/research-piece` and the research Step check the fact list; `/runner` checks an addendum |
