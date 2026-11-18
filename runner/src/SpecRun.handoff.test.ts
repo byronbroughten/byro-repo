@@ -16,6 +16,7 @@ import {
   findingOf,
   github,
   haltComments,
+  handoffComments,
   handoffResultOf,
   heldTicketLine,
   implemented,
@@ -841,12 +842,6 @@ function resolvingWithWork(report: (isKept: boolean) => void): StepScript {
       sessionId: "fresh-session",
     };
   };
-}
-
-function handoffComments(): string[] {
-  return github.comments
-    .filter(({ body }) => body.includes("\n## Handoff\n"))
-    .map(({ body }) => body);
 }
 
 function writeSavedPeak(saved: string, implementPeak: number): void {

@@ -14,6 +14,8 @@ import {
   eventOf,
   github,
   haltComments,
+  handoffComments,
+  handoffResultOf,
   implemented,
   noConversation,
   primaryOf,
@@ -28,10 +30,20 @@ import {
   ticketState,
   useSpecRunHarness,
 } from "./specRunHarness.ts";
+import { budgetHandoffPrompt } from "./stepPrompts/resumePrompts.ts";
+import type { Handoff } from "./stepRecords.ts";
 
 useSpecRunHarness(rootCloneOnly);
 
 const key = `sk-ant-${"q9".repeat(12)}`;
+
+const handoff: Handoff = {
+  conclusion: "The merge is still to do.",
+  filesToOpen: [{ path: "half.ts", lines: "1-1" }],
+  ruledOut: [],
+  filesChanged: ["half.ts"],
+  stillFailing: [],
+};
 
 const capped: StepResult = {
   ...resultOf(undefined),
@@ -99,6 +111,11 @@ const conflicting = implemented("one.ts", {
   act: () => commitOnMaster("one.ts", "export const a = 1;\n"),
 });
 
+// A review that resumed the implementer and left it past the ticket budget.
+function reviewedPastBudget(): StepResult {
+  return { ...reviewed(), peakContext: 160_000 };
+}
+
 describe("run's wrap-up failures", () => {
   it("resumes the implementer once to merge master on a conflict, then reruns the wrap-up and lands", async () => {
     addSpec([1]);
@@ -135,6 +152,65 @@ describe("run's wrap-up failures", () => {
     expect(result.landed).toEqual([refOf(1)]);
     expect(agentStep.requests).toHaveLength(2);
     expect(haltComments()).toEqual([]);
+  });
+
+  it("reruns the wrap-up with no handoff when an implementer past the ticket budget then merges master cleanly", async () => {
+    addSpec([1]);
+    const agentStep = FakeAgentStep.init(
+      implemented("one.ts", {
+        act: () => {
+          commitOnMaster("two.ts", "export {};\n");
+          installHook("pre-merge-commit", 'rm "$0"\nexit 1');
+        },
+      }),
+      reviewedPastBudget(),
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(agentStep.requests).toHaveLength(2);
+    expect(handoffComments()).toEqual([]);
+    expect(ticketState()["byro-repo #1"]?.handoffCount).toBeUndefined();
+    expect(progressLines().map(eventOf)).toContain(
+      "byro-repo #1: the wrap-up conflicted with master, which then merged cleanly; rerunning the wrap-up.",
+    );
+  });
+
+  it("backs up and posts the handoff of an implementer past the ticket budget before the merge-master step launches on a real conflict", async () => {
+    addSpec([1]);
+    let branch = "";
+    let handoffsAtMerge: string[] = [];
+    let wasMerging = false;
+    const agentStep = FakeAgentStep.init(
+      conflicting,
+      reviewedPastBudget(),
+      async (request) => {
+        branch = git(request.cwd, "branch", "--show-current");
+        wasMerging = await isMerging(request.cwd);
+        writeFileSync(join(request.cwd, "half.ts"), "half a ticket\n");
+        return { ...handoffResultOf(handoff), sessionId: "handoff-session" };
+      },
+      async (request) => {
+        handoffsAtMerge = handoffComments();
+        git(request.cwd, "add", "half.ts");
+        return mergedMaster(request);
+      },
+    );
+
+    const result = await specRun(agentStep).run(spec);
+
+    expect(result.landed).toEqual([refOf(1)]);
+    expect(wasMerging).toBe(false);
+    expect(agentStep.requests[2]?.prompt).toBe(budgetHandoffPrompt);
+    expect(handoffsAtMerge).toHaveLength(1);
+    expect(handoffsAtMerge[0]).toContain("before the merge-master step");
+    expect(
+      git(primaryOf("byro-repo"), "show", `backup/${branch}-handoff-1:half.ts`),
+    ).toBe("half a ticket");
+    const merge = agentStep.requests[3];
+    expect(merge?.resumeSessionId).toBeUndefined();
+    expect(merge?.prompt).toMatch(/^You are the merge-master step/);
   });
 
   it("posts a Failure Halt quoting git's error when the runner's merge fails without conflicting", async () => {

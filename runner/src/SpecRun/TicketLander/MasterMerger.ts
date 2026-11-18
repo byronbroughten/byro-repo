@@ -1,12 +1,12 @@
 // A wrap-up failure's handling: on a conflict it starts a merge of master and runs the implementer once to resolve it,
-// after a handoff past the ticket budget,
+// after a handoff past the ticket budget only when some branched repo's merge would really conflict,
 // saving that merge's resolution for the review list as a Propose `decision`; any other failure Halts or Stops,
 // as a conflict does in a Workflow with no merge-master step.
 // ../TicketLander.ts hands it each wrap-up failure from its _land.
 // It builds its own ReviewStepper, HandoffTaker and HaltRaiser; the prompt is its spec's Workflow's, through ../../Workflow.ts.
 
 import { messageOf } from "../../failureText.ts";
-import { git, isMerging } from "../../git.ts";
+import { git, isMerging, wouldConflict } from "../../git.ts";
 import { issueRef } from "../../IssueWorkspaces.ts";
 import { SchemaFailure } from "../../SchemaFailure.ts";
 import type { MergeMasterRecord } from "../../stepRecords.ts";
@@ -98,7 +98,9 @@ export class MasterMerger extends SpecRunBase {
     );
     const conflicted = `${issueRef.labelOf(ticket.issue)}: the wrap-up conflicted with master`;
     // Before the merges start, since the handoff's backup commits the uncommitted work.
-    await this.handoffTaker._handOffPastBudget(ticketRun, "merge-master");
+    if (await isAnyConflicting(worktrees)) {
+      await this.handoffTaker._handOffPastBudget(ticketRun, "merge-master");
+    }
     let ran: RanStep;
     try {
       // From the runner's own process, since the step's sandbox blocks a git write to `.claude/` files.
@@ -214,6 +216,23 @@ export class MasterMerger extends SpecRunBase {
     state.mergeMasterRecord = record;
     state.unrecordedMerge = undefined;
     this._saveState(run);
+  }
+}
+
+// A clean merge reruns the wrap-up in the implementer's own session, so it needs no handoff.
+async function isAnyConflicting(worktrees: CloneWorktree[]): Promise<boolean> {
+  for (const { worktree } of worktrees) {
+    if (await wouldConflictOrFail(worktree)) return true;
+  }
+  return false;
+}
+
+// A failed check hands off as before, so the merge itself raises git's error as a Failure Halt.
+async function wouldConflictOrFail(worktree: string): Promise<boolean> {
+  try {
+    return await wouldConflict(worktree, "master");
+  } catch {
+    return true;
   }
 }
 

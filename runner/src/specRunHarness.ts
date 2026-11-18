@@ -280,6 +280,7 @@ export function specRun(
     // Pinned, so tuning a default can't move a test's past-the-threshold reading under it.
     fiveHourPauseAt: 0.94,
     weeklyPauseAt: 1,
+    ticketBudget: 150_000,
   });
   const run = SpecRun.init({
     knobs,
@@ -342,6 +343,12 @@ export function haltComments(): string[] {
   return github.comments
     .map(({ body }) => body)
     .filter((body) => body.includes("**Halt H"));
+}
+
+export function handoffComments(): string[] {
+  return github.comments
+    .filter(({ body }) => body.includes("\n## Handoff\n"))
+    .map(({ body }) => body);
 }
 
 export function reviewListOf(ticket: number): string | undefined {
@@ -412,6 +419,7 @@ interface SavedTicket {
   resolveRecords?: ResolveRecord[];
   researchRecord?: ResearchRecord;
   pullBaseline?: PullBaseline;
+  handoffCount?: number;
   sessions: StepSession[];
 }
 
