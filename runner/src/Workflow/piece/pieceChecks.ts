@@ -11,11 +11,11 @@ import { join } from "node:path";
 
 import { commandLabelOf } from "../../failureText.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
+import { markdownSectionOf } from "../../markdownSections.ts";
 import { runCollecting } from "../../runCollecting.ts";
 import type { Command } from "../../runKnobs.ts";
 import type { TicketState } from "../../SpecRun/runState.ts";
 import type { DismissedOverlap, DraftedRecord } from "../../stepRecords.ts";
-import { ticketSectionOf } from "../../ticketSections.ts";
 import type { TicketChecksInput } from "../../Workflow.ts";
 import { agentDraft, type DraftSection } from "./agentDraft.ts";
 import { draftingScope } from "./draftingScope.ts";
@@ -197,7 +197,9 @@ export const pieceChecks = {
 };
 
 function lengthMatchOf(specBody: string): RegExpExecArray | null {
-  return patterns.lengthLine.exec(ticketSectionOf(specBody, formHeading) ?? "");
+  return patterns.lengthLine.exec(
+    markdownSectionOf(specBody, formHeading) ?? "",
+  );
 }
 
 function sectionsDraftedOf({ record }: TicketState): string[] {

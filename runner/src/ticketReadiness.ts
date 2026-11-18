@@ -1,6 +1,7 @@
 // The check `npm run issue:file` and `npm run issue:ready` share before a ticket holds an agent or interactive label:
 // docs/agents/tickets.md's `## Where` section and last `## Model fit` section, a pair line then a reason ending in `~NK`.
 
+import { markdownSectionOf } from "./markdownSections.ts";
 import {
   estimateOf,
   isModelFitLast,
@@ -12,7 +13,6 @@ import {
   interactiveLabel,
   readyLabel,
 } from "./SpecRun/runState.ts";
-import { ticketSectionOf } from "./ticketSections.ts";
 
 const whereHeading = "## Where";
 
@@ -26,12 +26,12 @@ export const ticketReadiness = {
     return label === readyLabel || label === interactiveLabel;
   },
   hasModelFit(body: string): boolean {
-    return ticketSectionOf(body, modelFitHeading) !== undefined;
+    return markdownSectionOf(body, modelFitHeading) !== undefined;
   },
   // Each missing or malformed section, worded to follow the ticket's name; empty when the body passes.
   gapsOf(body: string): string[] {
     const gaps: string[] = [];
-    if (ticketSectionOf(body, whereHeading) === undefined) {
+    if (markdownSectionOf(body, whereHeading) === undefined) {
       gaps.push(`has no ${whereHeading} section`);
     }
     gaps.push(...modelFitGapsOf(body));

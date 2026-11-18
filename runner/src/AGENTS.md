@@ -97,6 +97,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `MapNext.ts` | `MapNext` | `npm run map:next`'s core: a `/wayfinder` session's read-only brief of a wayfinder map, its sub-issues, frontier and chosen ticket, printing only Trusted text, delegating to `MapNext/`. |
 | `MapNext/MapArgsParser.ts` | | Reads `npm run map:next`'s arguments into the map and named ticket, refusing what names neither. |
 | `MapNext/MapBriefWriter.ts` | | Words a read map's brief: its sub-issues, the frontier and the chosen ticket, counting Untrusted text with the command that reads it. |
+| `markdownSections.ts` | `markdownSections` | Finds one `## ` section of a Markdown body by its heading, or its last section: a ticket's for the runner, a rule doc's for `npm run doc:sections`. |
 | `modelFit.ts` | `modelFit` | Reads a ticket's Model fit pair and estimate and whether the section is last, and compares pairs. |
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |
@@ -197,7 +198,6 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `TicketReadier.ts` | `TicketReadier` | `npm run issue:ready`'s core: puts one `ready-*` label on an issue in place of any triage label it holds, once its body passes the check `issue:file` shares, skipping it for a spec headed for tickets; and its GitHub port. |
 | `ticketReadiness.ts` | | The check `issue:file` and `issue:ready` share on an agent or interactive ticket's `## Where` and last `## Model fit`, and the `ready-*` labels. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
-| `ticketSections.ts` | | Finds one `## ` section of a ticket's body by its heading, or its last section. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |
 | `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; where a session's transcript is, and the subagents it started since a time. |
 | `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |

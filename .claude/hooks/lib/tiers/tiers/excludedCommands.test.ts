@@ -207,6 +207,7 @@ describe("a call the box lets out, or holding no excluded command", () => {
     "npm test -- runner/src/Checks.test.ts",
     "npm run issue:read -- byro-repo 535 --body --hide-others",
     "npm run map:next -- byro-repo 804 | head",
+    "npm run doc:sections -- docs/prose-style.md 'File shapes' | head",
     "cd . && npm run issue:read -- byro-repo 535 --body --hide-others",
     "npm run issue:read -- byro-repo 535 --comments --hide-others | head -50",
     "npm run lint",
