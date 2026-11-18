@@ -3,6 +3,7 @@ import { join, normalize } from "node:path";
 
 import { markdownSectionOf } from "@byronbroughten/spec-runner/markdownSections";
 
+import { docSectionsCommand as command } from "../../.claude/hooks/lib/fullDocRead.ts";
 import {
   codeStylePath,
   frameworkStylePath,
@@ -11,7 +12,6 @@ import {
   writingDocPaths,
 } from "../../.claude/hooks/lib/readFirstGate.ts";
 
-const command = "npm run doc:sections";
 const usage = `usage: ${command} -- <doc> [<section>...]`;
 const knownPaths = [
   codeStylePath,

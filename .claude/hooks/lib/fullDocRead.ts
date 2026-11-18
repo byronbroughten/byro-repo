@@ -1,4 +1,6 @@
-// Whether a Read or a Bash read covered a whole doc, the deny message's wording, and the decision shape. Pure; used by the read-first gate.
+// Whether a Read or a Bash read covered a whole doc, which docs a skill injects, the deny message's wording, and the decision shape. Pure; used by the read-first gate.
+import { normalize } from "node:path";
+
 import { type FileLocation, rootRelative } from "./lintSet.ts";
 
 export interface EditDecision {
@@ -13,6 +15,14 @@ export interface ReadBounds {
 export interface FullDocRead extends FileLocation, ReadBounds {
   totalLines: number | undefined;
 }
+
+export const docSectionsCommand = "npm run doc:sections";
+
+// An injection's first argument, bare or quoted, is the doc it prints.
+const docSectionsInjection = new RegExp(
+  `!\`${docSectionsCommand} -- \\s*(?:"([^"\`]*)"|'([^'\`]*)'|([^\\s\`]+))[^\`]*\``,
+  "g",
+);
 
 export const fullReadHowTo =
   "Use a full Read with no offset or limit (a partial read isn't recorded; a whole-file `cat` counts)";
@@ -29,6 +39,14 @@ export function isFullDocRead(
     (totalLines !== undefined &&
       Number.isInteger(totalLines) &&
       limit >= totalLines)
+  );
+}
+
+// The repo-relative docs a skill's `` !`npm run doc:sections -- <doc> …` `` lines print into its body, whole or by section.
+export function docsInjectedBy(skillText: string): string[] {
+  return [...skillText.matchAll(docSectionsInjection)].map(
+    ([, doubleQuoted, singleQuoted, bare]) =>
+      normalize(doubleQuoted ?? singleQuoted ?? bare ?? ""),
   );
 }
 

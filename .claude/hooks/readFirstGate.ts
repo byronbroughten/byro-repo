@@ -1,10 +1,14 @@
-// PostToolUse on Read or Bash records a full read of each read-first doc, and a Read of a file a row would gate names that row's unread docs once per session; PreToolUse on a row's tools denies a call the row covers until each of its docs is recorded.
-import { existsSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+// PostToolUse on Read or Bash records a full read of each read-first doc, and on Skill each doc the skill's body injects through doc:sections; a Read of a file a row would gate names that row's unread docs once per session; PreToolUse on a row's tools denies a call the row covers until each of its docs is recorded.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 import { clonePathsOf } from "@byronbroughten/spec-runner/clonePaths";
 
-import { isFullDocBashRead, isFullDocRead } from "./lib/fullDocRead.ts";
+import {
+  docsInjectedBy,
+  isFullDocBashRead,
+  isFullDocRead,
+} from "./lib/fullDocRead.ts";
 import {
   type HookInput,
   lineCount,
@@ -28,6 +32,8 @@ import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
 import { BashReads } from "./lib/tiers/bashReads.ts";
 
 const readFirstDocs = readFirstRows.flatMap((row) => row.docs);
+// A project skill's bare name; a plugin's `plugin:skill` or a path is no Primer.
+const projectSkillName = /^[\w-]+$/;
 
 await runFailOpen(() => {
   const input = readHookInput();
@@ -90,6 +96,9 @@ function docsReadIn(input: HookInput): string[] {
 }
 
 function docsReadBy(input: HookInput, projectDir: string): ReadFirstDoc[] {
+  if (input.tool_name === "Skill") {
+    return docsInjectedBySkill(input, projectDir);
+  }
   const cwd = input.cwd ?? projectDir;
   const command = input.tool_input?.command;
   if (input.tool_name === "Bash" && typeof command === "string") {
@@ -120,6 +129,19 @@ function docsReadBy(input: HookInput, projectDir: string): ReadFirstDoc[] {
         doc.path,
       ),
   );
+}
+
+// The skill is the session project's own, the copy Claude Code loaded, not the gate root's.
+function docsInjectedBySkill(
+  input: HookInput,
+  projectDir: string,
+): ReadFirstDoc[] {
+  const name = input.tool_input?.skill;
+  if (typeof name !== "string" || !projectSkillName.test(name)) return [];
+  const skillPath = join(projectDir, ".claude", "skills", name, "SKILL.md");
+  if (!existsSync(skillPath)) return [];
+  const injected = docsInjectedBy(readFileSync(skillPath, "utf8"));
+  return readFirstDocs.filter((doc) => injected.includes(doc.path));
 }
 
 function markerPath(input: HookInput, doc: ReadFirstDoc): string {

@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { type EditDecision, isFullDocRead } from "./fullDocRead.ts";
+import {
+  docsInjectedBy,
+  type EditDecision,
+  isFullDocRead,
+} from "./fullDocRead.ts";
 import type { ToolInput } from "./hookIo.ts";
 import {
   codeStylePath,
@@ -581,6 +585,55 @@ describe("readFirstNudge", () => {
     const { context } = nudge(`/repo/${codeStylePath}`, except(proseStylePath));
     expect(context).toContain(proseStylePath);
     expect(context).not.toContain("(the code rules)");
+  });
+});
+
+describe("a Primer's read, the docs its skill injects through doc:sections", () => {
+  function primer(...injections: string[]): string {
+    return [
+      "---",
+      "name: a-primer",
+      "allowed-tools: Bash(npm run doc:sections *)",
+      "---",
+      "",
+      ...injections.map((args) => `!\`npm run doc:sections -- ${args}\``),
+    ].join("\n");
+  }
+  const sheetRaw = "/repo/packages/framework/src/02_SpreadsheetRaw/SheetRaw.ts";
+
+  it("lets the row's Edit through once its doc is printed, sections only included", () => {
+    expect(
+      edit("/repo/AGENTS.md", docsInjectedBy(primer(proseStylePath))),
+    ).toEqual(allowed);
+    expect(
+      edit(
+        "/repo/scripts/docLint.ts",
+        docsInjectedBy(primer(`./${codeStylePath} Naming "Class shape"`)),
+      ),
+    ).toEqual(allowed);
+  });
+
+  it("lets a row needing two docs through only when both are printed", () => {
+    const both = primer(
+      `${codeStylePath} Naming`,
+      `${frameworkStylePath} "Class shape"`,
+    );
+    expect(edit(sheetRaw, docsInjectedBy(both))).toEqual(allowed);
+    expect(
+      edit(sheetRaw, docsInjectedBy(primer(codeStylePath))).denyReason,
+    ).toMatch(/packages\/framework\/docs\/code-style\.md/);
+  });
+
+  it("still refuses with no such read", () => {
+    const noInjection = [
+      "Run `npm run doc:sections -- docs/prose-style.md` yourself.",
+      `!\`cat ${proseStylePath}\``,
+      `!\`npm run doc:sections -- docs/agents/tickets.md\``,
+    ].join("\n");
+    expect(docsInjectedBy(noInjection)).toEqual(["docs/agents/tickets.md"]);
+    expect(
+      edit("/repo/AGENTS.md", docsInjectedBy(noInjection)).denyReason,
+    ).toMatch(/docs\/prose-style\.md/);
   });
 });
 
