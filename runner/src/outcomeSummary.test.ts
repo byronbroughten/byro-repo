@@ -118,7 +118,7 @@ function summaryOf(
   return outcomeSummaryOf({
     rowFiles,
     selection,
-    outcomeFolder: "docs/agents/outcomes",
+    outcomeFolder: "outcomes",
     ticketBudget: 150_000,
     modelFitOf: async ({ repo, number }) =>
       `Opus medium: ${repo}#${number}'s reason`,

@@ -1,7 +1,0 @@
-# byro-repo#834 outcome
-
-Spec: [byro-repo#828](https://github.com/byronbroughten/byro-repo/issues/828)
-
-| Issue | Workflow | Pair | Account | Files changed | Estimate | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #834 | code | Opus medium | 6 | 10 | ~133K | 158K | Fix (resumed implementer) | 0 | 1 | 0 | 0 | 10 min | $1.92 | $1.88 | Fixed: noteDateOf duplicates the local YYYY-MM-DD that localTimeOf builds. (runner/src/frictionNotes.ts:40-44); The `\|Defer` legacy word breaks savedFormats.ts's 'one place old names are known' header. (runner/src/reviewList.ts:658-660); specWorkflowNameOf repeats labelledNameOf's piece-label test. (runner/src/Workflow.ts:471-473); The test's frictionFolder() re-joins "friction" instead of calling frictionFolderOf. (runner/src/SpecRun.decide.test.ts:141); noteFileOf is exported with no outside caller, and the WrittenNote return is dropped. (runner/src/frictionNotes.ts:31,78); `status: string` stands in for three set forms. (runner/src/frictionNotes.ts:26-27); The row states behaviour ('which never overwrites a note'). (runner/src/AGENTS.md:67); The test's expected date assumes a time zone east of UTC-9. (runner/src/SpecRun.decide.test.ts:158). | 6d5ac8a4-1371-44de-8225-aa8ebb6cb5c7 |

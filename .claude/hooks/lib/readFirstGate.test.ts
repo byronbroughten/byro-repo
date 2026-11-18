@@ -253,7 +253,6 @@ describe("the prose-style row", () => {
 
   it.each([
     "/repo/packages/diary/writing/pieces/a.md",
-    "/repo/docs/agents/outcomes/byro-repo-382/byro-repo-384.md",
     "/repo/package.json",
     "/elsewhere/AGENTS.md",
     "/repo/node_modules/x/README.md",
@@ -271,7 +270,7 @@ describe("the prose-style row", () => {
     expect(edit(path, unread).denyReason).toMatch(/docs\/prose-style\.md/);
   });
 
-  it("skips only the outcome records when the map has no personal clone", () => {
+  it("skips no folder when the map has no personal clone", () => {
     const withoutPersonal = (filePath: string): EditDecision =>
       readFirstDecision(
         {
@@ -287,9 +286,6 @@ describe("the prose-style row", () => {
     expect(
       withoutPersonal("/repo/packages/diary/writing/pieces/a.md").denyReason,
     ).toBeDefined();
-    expect(
-      withoutPersonal("/repo/docs/agents/outcomes/byro-repo-382/a.md"),
-    ).toEqual(allowed);
   });
 
   it("allows a code edit", () => {

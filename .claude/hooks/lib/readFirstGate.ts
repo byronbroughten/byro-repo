@@ -69,7 +69,6 @@ const frameworkRoots = [
   join("packages", "real-estate"),
 ].map((root) => root + sep);
 const personalRepo = "personal";
-const outcomesRoot = join("docs", "agents", "outcomes");
 const textOperationTypes = new Set([
   "insert_text",
   "replace_text",
@@ -295,11 +294,8 @@ function isGatedProse(
 
 function proseSkippedRootsOf(clonePaths: Record<string, string>): string[] {
   const personalClonePath = clonePaths[personalRepo];
-  const roots = [outcomesRoot];
-  if (personalClonePath !== undefined) {
-    roots.push(join(personalClonePath, "writing"));
-  }
-  return roots.map((root) => root + sep);
+  if (personalClonePath === undefined) return [];
+  return [join(personalClonePath, "writing") + sep];
 }
 
 function hasText(value: unknown): boolean {

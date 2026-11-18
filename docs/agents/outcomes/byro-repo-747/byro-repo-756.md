@@ -1,7 +1,0 @@
-# byro-repo#756 outcome
-
-Spec: [byro-repo#747](https://github.com/byronbroughten/byro-repo/issues/747)
-
-| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #756 | code | Opus medium | 6, 5 | 18 | 147K | Fix (resumed implementer) | 2 | 1 | 0 | 0 | 10 min | $1.84 | $2.81 | Fixed: `_bodyOf` has one caller but sits before it. (runner/src/WrapUp/LogRowCommitter.ts:50); The same issue-body read through `_withRetries` appears at both sites; extract it to WrapUpBase. (runner/src/WrapUp/LogRowCommitter.ts:50-54, runner/src/WrapUp/LandingKindPicker.ts:55-57); A `pairOf` test sits under the `estimateOf` describe block. (runner/src/modelFit.test.ts:85, describe("estimateOf")); The Files row is stale: it leaves out the estimate read. (runner/src/AGENTS.md:79, Files row for modelFit.ts); The Files row leaves out the estimate read. (runner/src/AGENTS.md:79, Files row for modelFit.ts). Proposed: The 30-row threshold restates tickets.md:31 with a different scope (batch vs whole log); the ~20-ticket line repeats tickets.md:38. (runner/skills/mine-outcomes/SKILL.md:48); The skill counts 30 estimated rows per batch, but tickets.md:31 reads as a running total; small batches may never reach 30. (runner/skills/mine-outcomes/SKILL.md:48). | 3bb3d3b9-adfe-4f79-b8ce-185d4aba8357 |

@@ -1,7 +1,0 @@
-# byro-repo#752 outcome
-
-Spec: [byro-repo#747](https://github.com/byronbroughten/byro-repo/issues/747)
-
-| Issue | Workflow | Pair | Account | Files changed | Peak context | Result | Proposals | Review rounds | Retries | Limit resumes | Duration | Cost (API-equivalent) | Review cost | What review caught | Session ids |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| #752 | code | Opus medium | 3 | 16 | 138K → 119K | Fix (resumed implementer) | 1 | 1 | 0 | 0 | 16 min | $2.78 | $2.57 | Fixed: Triage label strings duplicate runState.ts's readyLabel, interactiveLabel, humanLabel. (runner/src/ticketDrafts.ts:18-33); fieldsOf, kindOf, otherLabelsOf and blockersOf pass fileName around. (runner/src/ticketDrafts.ts:111-162); The draft-to-issue map is rebuilt by issueOfDraftIn in _link and _mismatchesOf, and issueOfDraftIn returns an arrow closure. (runner/src/TicketFiler.ts:61-72, 86, 104, 186-191); listText and issuesText share the none-or-join shape. (runner/src/TicketFiler.ts:204-214); addSubIssue and addBlocker repeat the read-database-id-then-POST shape. (runner/src/GhCli.ts:193-215); The FakeGitHub row omits filing tests. (runner/src/AGENTS.md:53, Files row FakeGitHub.ts); Adding issue:backlink to githubWriteScripts is scope creep. (.claude/hooks/lib/tiers/tiers/sandboxedCalls.ts:9). Proposed: A create or link failing midway throws without naming a draft and leaves earlier tickets filed. (runner/src/TicketFiler.ts:59-67). | ddd2b6a5-8c07-4c6f-bd31-afc64792ce91, 745a48a5-5261-442d-bd54-cf7cb585a52c |
