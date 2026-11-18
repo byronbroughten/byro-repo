@@ -36,10 +36,8 @@ export interface FrictionNote {
 
 export type NoteStatus = "" | `addressed ${string}` | `dismissed: ${string}`;
 
-/** A note as its file holds it, with the id it was filed under. */
-export interface WrittenNote extends FrictionNote {
-  id: string;
-}
+/** A note as its file holds it, with the id it was filed under; a hand-written or restored file's fields are unchecked text. */
+export type WrittenNote = Record<keyof FrictionNote | "id", string>;
 
 /** A written note's fields as its file names them, the body last. */
 export const noteFieldNames = [
@@ -109,11 +107,10 @@ export function noteOfFields(fields: Map<string, string>): WrittenNote {
     id: fields.get("id") ?? "",
     date: fields.get("date") ?? "",
     session: fields.get("session") ?? "",
-    // A hand-written or restored note's fields are carried as written, never checked.
-    workflow: (fields.get("workflow") ?? "") as NoteWorkflow,
-    filedBy: (fields.get("filed-by") ?? "") as NoteFiler,
+    workflow: fields.get("workflow") ?? "",
+    filedBy: fields.get("filed-by") ?? "",
     source: fields.get("source") ?? "",
-    status: (fields.get("status") ?? "") as NoteStatus,
+    status: fields.get("status") ?? "",
     body: fields.get("body") ?? "",
   };
 }

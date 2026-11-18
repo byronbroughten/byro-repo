@@ -87,7 +87,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
-| `logBackup.ts` | `logBackup` | `npm run logs`' core: syncs the friction and outcome folders to a Sheet, named by its ID or URL, and restores their missing files from it, through the Sheets values port its entry passes. |
+| `logBackup.ts` | `logBackup` | `npm run logs`' core: syncs the friction and outcome folders to a Sheet, named by its ID, and restores their missing files from it, through the Sheets values port its entry passes. |
 | `logBackup/FakeSheetValues.ts` | | The in-memory Sheet log backup tests use. |
 | `logBackup/logTabs.ts` | | The log backup's tabs, one per log: each one's header, its rows read from the log's folder and a row's file written back. |
 | `logBackup/RestSheetValues.ts` | `RestSheetValues` | The real Sheets values port over the Sheets REST API, on an injected access token, adding a tab the Sheet lacks before writing it. |
@@ -101,7 +101,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Notices.ts` | `Notices` | The notice port, its notice kinds and the run endings among them. |
 | `outlineApply.ts` | `outlineApply` | `npm run outline:apply`'s core: applies the Outline edits a developer's answer approves to a Trusted spec body, for an interactive `/research-piece` session. |
 | `outlineEdits.ts` | | A Research Halt's Outline edits: their schema, ids and words, the ones an answer approves, and their word-for-word application to a spec body's `## Outline`. |
-| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, a written row's cells by column, and a written row read back with its spec and written again. |
+| `outcomeLog.ts` | `outcomeLog` | The outcome row file's path, table and commit message, a written row's cells by column, the folder's row files and written rows read back, and a written row rebuilt from its label, spec link and cells and restored. |
 | `outcomeRowWriter.ts` | `outcomeRowWriter` | Writes a ticket's outcome row from its facts file. |
 | `outcomeSummary.ts` | `outcomeSummary` | `npm run outcome:summary`'s core: picks and filters the outcome log's rows and reports their costs, outliers, transcripts and Model fit by spec section. |
 | `outcomeSummary/OutcomeReport.ts` | | Words the outcome summary for a batch of sections, judging each row by the outlier rules. |

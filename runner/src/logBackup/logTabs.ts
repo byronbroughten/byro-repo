@@ -2,28 +2,18 @@
 // written back. A row's key is its first cell: a note's id, or an outcome row's `<repo>-<n>`.
 
 import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, join } from "node:path";
-
-import {
   fieldsOfNote,
   noteFieldNames,
   noteOfFields,
   restoreFrictionNote,
   writtenNotesIn,
 } from "../frictionNotes.ts";
-import type { IssueRef } from "../IssueWorkspaces.ts";
 import {
-  outcomePathOf,
-  type WrittenColumn,
+  labelOf,
+  restoreOutcomeRow,
   writtenColumns,
-  writtenFileOf,
-  writtenRowOf,
+  writtenRowOfParts,
+  writtenRowsIn,
 } from "../outcomeLog.ts";
 
 /** The two log folders a backup copies. */
@@ -61,68 +51,20 @@ const outcomes: LogTab = {
   name: "outcomes",
   header: [outcomeKeys.key, outcomeKeys.spec, ...writtenColumns],
   rowsIn({ outcomeFolder }) {
-    return rowFilesIn(outcomeFolder).map(({ key, path }) => {
-      const row = writtenRowOf(issueOfKey(key), readFileSync(path, "utf8"));
-      return [
-        key,
-        row.specUrl,
-        ...writtenColumns.map((column) => row.cells.get(column) ?? ""),
-      ];
-    });
+    return writtenRowsIn(outcomeFolder).map((row) => [
+      labelOf(row.issue, "-"),
+      row.specUrl,
+      ...writtenColumns.map((column) => row.cells.get(column) ?? ""),
+    ]);
   },
   restore({ outcomeFolder }, cells) {
-    const specUrl = cells.get(outcomeKeys.spec) ?? "";
-    const row = {
-      issue: issueOfKey(cells.get(outcomeKeys.key) ?? ""),
-      spec: specOfUrl(specUrl),
-      specUrl,
-      cells: new Map(
-        writtenColumns.map((column): [WrittenColumn, string] => [
-          column,
-          cells.get(column) ?? "",
-        ]),
-      ),
-    };
-    const path = outcomePathOf(outcomeFolder, row);
-    if (existsSync(path)) return false;
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, writtenFileOf(row));
-    return true;
+    const row = writtenRowOfParts({
+      label: cells.get(outcomeKeys.key) ?? "",
+      specUrl: cells.get(outcomeKeys.spec) ?? "",
+      cells,
+    });
+    return restoreOutcomeRow(outcomeFolder, row);
   },
 };
 
 export const logTabs: readonly LogTab[] = [friction, outcomes];
-
-// A spec's folder of row files; a file beside them, an older log's, isn't a row.
-function rowFilesIn(outcomeFolder: string): { key: string; path: string }[] {
-  if (!existsSync(outcomeFolder)) return [];
-  return readdirSync(outcomeFolder, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort()
-    .flatMap((folder) =>
-      readdirSync(join(outcomeFolder, folder))
-        .filter((name) => name.endsWith(".md"))
-        .sort()
-        .map((name) => ({
-          key: name.slice(0, -".md".length),
-          path: join(outcomeFolder, folder, name),
-        })),
-    );
-}
-
-function issueOfKey(key: string): IssueRef {
-  const [, repo, number] = /^(.+)-(\d+)$/.exec(key) ?? [];
-  if (repo === undefined) {
-    throw new Error(`The outcome row key "${key}" isn't <repo>-<n>.`);
-  }
-  return { repo, number: Number(number) };
-}
-
-function specOfUrl(specUrl: string): IssueRef {
-  const [, repo, number] = /\/([^/]+)\/issues\/(\d+)$/.exec(specUrl) ?? [];
-  if (repo === undefined) {
-    throw new Error(`The outcome row's Spec "${specUrl}" isn't an issue URL.`);
-  }
-  return { repo, number: Number(number) };
-}

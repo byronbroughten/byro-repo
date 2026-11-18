@@ -7,7 +7,7 @@
 import { type LogFolders, type LogTab, logTabs } from "./logBackup/logTabs.ts";
 import type { SheetValuesPort, TabRows } from "./logBackup/sheetValues.ts";
 
-/** The Sheet, by its ID or URL, and the folders it backs up. */
+/** The Sheet, by its ID, and the folders it backs up. */
 interface LogBackupRequest extends LogFolders {
   sheet: string;
 }
@@ -18,21 +18,18 @@ export const logBackup = {
     values: SheetValuesPort,
     { sheet, ...folders }: LogBackupRequest,
   ): Promise<string> {
-    const spreadsheetId = spreadsheetIdOf(sheet);
-    const lines = [];
-    for (const tab of logTabs) {
-      const held = await values.rowsOf(spreadsheetId, tab.name);
+    return linesPerTab(async (tab) => {
+      const held = await values.rowsOf(sheet, tab.name);
       const { rows, added, updated } = mergedRows(
         tab,
         held,
         tab.rowsIn(folders),
       );
       if (added + updated > 0) {
-        await values.write(spreadsheetId, tab.name, [[...tab.header], ...rows]);
+        await values.write(sheet, tab.name, [[...tab.header], ...rows]);
       }
-      lines.push(`${tab.name}: ${added} added, ${updated} updated`);
-    }
-    return `${lines.join("\n")}\n`;
+      return `${tab.name}: ${added} added, ${updated} updated`;
+    });
   },
 
   /** Writes the file of each row whose file is missing, a line per tab saying how many. */
@@ -40,26 +37,28 @@ export const logBackup = {
     values: SheetValuesPort,
     { sheet, ...folders }: LogBackupRequest,
   ): Promise<string> {
-    const spreadsheetId = spreadsheetIdOf(sheet);
-    const lines = [];
-    for (const tab of logTabs) {
-      const [header = [], ...rows] = await values.rowsOf(
-        spreadsheetId,
-        tab.name,
-      );
-      const written = rows
-        .filter((row) => (row[0] ?? "") !== "")
-        .filter((row) =>
-          tab.restore(
-            folders,
-            new Map(header.map((name, index) => [name, row[index] ?? ""])),
-          ),
-        ).length;
-      lines.push(`${tab.name}: ${written} files written`);
-    }
-    return `${lines.join("\n")}\n`;
+    return linesPerTab(async (tab) => {
+      const [header = [], ...rows] = await values.rowsOf(sheet, tab.name);
+      let written = 0;
+      for (const row of rows) {
+        if ((row[0] ?? "") === "") continue;
+        const cells = new Map(
+          header.map((name, index) => [name, row[index] ?? ""]),
+        );
+        if (tab.restore(folders, cells)) written += 1;
+      }
+      return `${tab.name}: ${written} files written`;
+    });
   },
 };
+
+async function linesPerTab(
+  lineOf: (tab: LogTab) => Promise<string>,
+): Promise<string> {
+  const lines = [];
+  for (const tab of logTabs) lines.push(await lineOf(tab));
+  return `${lines.join("\n")}\n`;
+}
 
 interface MergedRows {
   rows: TabRows;
@@ -90,8 +89,4 @@ function mergedRows(tab: LogTab, held: TabRows, fileRows: TabRows): MergedRows {
     },
     { rows, added: 0, updated: 0 },
   );
-}
-
-function spreadsheetIdOf(sheet: string): string {
-  return /\/spreadsheets\/d\/([^/?#]+)/.exec(sheet)?.[1] ?? sheet;
 }

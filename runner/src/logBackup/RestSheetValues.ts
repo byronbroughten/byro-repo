@@ -46,7 +46,7 @@ export class RestSheetValues implements SheetValuesPort {
     if (!(await this._tabsOf(spreadsheetId)).includes(tab)) {
       await this._sent(
         "POST",
-        `${spreadsheetsUrl}/${encodeURIComponent(spreadsheetId)}:batchUpdate`,
+        `${spreadsheetUrlOf(spreadsheetId)}:batchUpdate`,
         JSON.stringify({
           requests: [{ addSheet: { properties: { title: tab } } }],
         }),
@@ -62,7 +62,7 @@ export class RestSheetValues implements SheetValuesPort {
   private async _tabsOf(spreadsheetId: string): Promise<string[]> {
     const response = await this._sent(
       "GET",
-      `${spreadsheetsUrl}/${encodeURIComponent(spreadsheetId)}?fields=sheets.properties.title`,
+      `${spreadsheetUrlOf(spreadsheetId)}?fields=sheets.properties.title`,
     );
     const { sheets = [] } = (await response.json()) as SpreadsheetTitles;
     return sheets.flatMap((sheet) => sheet.properties?.title ?? []);
@@ -90,7 +90,11 @@ export class RestSheetValues implements SheetValuesPort {
   }
 }
 
+function spreadsheetUrlOf(spreadsheetId: string): string {
+  return `${spreadsheetsUrl}/${encodeURIComponent(spreadsheetId)}`;
+}
+
 // A quoted A1 range from A1, so a tab name is never read as a cell reference.
 function valuesUrlOf(spreadsheetId: string, tab: string): string {
-  return `${spreadsheetsUrl}/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(`'${tab}'!A1:ZZ`)}`;
+  return `${spreadsheetUrlOf(spreadsheetId)}/values/${encodeURIComponent(`'${tab}'!A1:ZZ`)}`;
 }

@@ -212,22 +212,6 @@ describe("logBackup.sync", () => {
     expect(sheet.tabs.get("friction")).toBe(held);
     expect(sheet.tabs.has("outcomes")).toBe(false);
   });
-
-  it("takes the Sheet by its URL", async () => {
-    writeOutcomeFile();
-    const read: string[] = [];
-    sheet.rowsOf = async (id) => {
-      read.push(id);
-      return [];
-    };
-
-    await logBackup.sync(sheet, {
-      ...request(),
-      sheet: "https://docs.google.com/spreadsheets/d/sheet-9/edit#gid=0",
-    });
-
-    expect(read).toEqual(["sheet-9", "sheet-9"]);
-  });
 });
 
 describe("logBackup.restore", () => {

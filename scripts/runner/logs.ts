@@ -9,7 +9,7 @@ import { RestSheetValues } from "@byronbroughten/spec-runner/RestSheetValues";
 import { AgentTokenMinter } from "../../.claude/hooks/lib/AgentTokenMinter.ts";
 import { outcomeFolder, stateFolder } from "./runnerConfig.ts";
 
-const usage = "Usage: npm run logs -- sync | restore --sheet <Sheet ID or URL>";
+const usage = "Usage: npm run logs -- sync | restore --sheet <Sheet ID>";
 
 const [mode, flag, sheet, ...rest] = process.argv.slice(2);
 if (
