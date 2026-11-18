@@ -50,7 +50,11 @@ const cantsByScript: [RegExp, string][] = [
   [/^(app|dev)\b/, boxReasons.cant.google],
   [/^(google:script|doc:print|piece:pull|logs)\b/, boxReasons.cant.agentToken],
   [/^(runner|session:probe)\b/, boxReasons.cant.claude],
-  [/^(issue|wrap-up)\b/, boxReasons.cant.ps],
+  // Their workspace lookups read each lease's holder with `ps`; the other issue scripts reach no lease.
+  [
+    /^(issue:(list|start|promote|release|remove)|wrap-up)\b/,
+    boxReasons.cant.ps,
+  ],
   [/^jev\b/, boxReasons.cant.jev],
   [/^ws:rm\b/, boxReasons.cant.claudeFiles],
 ];

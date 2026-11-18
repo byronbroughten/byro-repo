@@ -98,7 +98,12 @@
     "allowUnsandboxedCommands": false,
     "enableWeakerNetworkIsolation": true,
     "excludedCommands": [
-      "npm run issue*",
+      "npm run issue:list",
+      "npm run issue:list *",
+      "npm run issue:start *",
+      "npm run issue:promote *",
+      "npm run issue:release *",
+      "npm run issue:remove *",
       "npm run wrap-up *",
       "npm run research:push",
       "npm run google:script *",

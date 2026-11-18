@@ -1028,6 +1028,16 @@ describe("a sandboxed call", () => {
     );
   });
 
+  it("allows an issue read beside other commands in the box in both modes, as the map's read", () => {
+    const command =
+      "cd . && npm run issue:read -- byro-repo 851 --body --hide-others | head -50";
+    modes.forEach((mode) =>
+      expect(sandboxedDecisionOf(command, mode)?.permissionDecision).toBe(
+        "allow",
+      ),
+    );
+  });
+
   it("is allowed, naming the box, in both modes", () => {
     [
       "node .scratch/x.ts",
@@ -1175,7 +1185,12 @@ describe("a sandboxed call", () => {
 // #594's misreads, each call as its session's transcript holds it, under settings.json's entries.
 describe("a call the gate once misread", () => {
   const entries = [
-    "npm run issue*",
+    "npm run issue:list",
+    "npm run issue:list *",
+    "npm run issue:start *",
+    "npm run issue:promote *",
+    "npm run issue:release *",
+    "npm run issue:remove *",
     "npm run wrap-up *",
     "npm run check",
     "npm run check *",
@@ -1221,7 +1236,12 @@ describe("a call the gate once misread", () => {
 });
 
 describe("a call with the sandbox off", () => {
-  const entries = ["npm run issue*", "npm run check", "npm test", "npm test *"];
+  const entries = [
+    "npm run issue:start *",
+    "npm run check",
+    "npm test",
+    "npm test *",
+  ];
   const off = {
     cause: "`sandbox.enabled` isn't true",
     fix: 'set `"enabled": true` in the `sandbox` block',
