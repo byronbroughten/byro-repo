@@ -98,6 +98,8 @@ export interface SpecRunConfig {
   stateFolder: string;
   // Read from the runner's own environment, not the stream: shared history writes every account's transcripts under it.
   configFolder: string;
+  // The Claude Code session a command runs in, which a Friction note `runner decide` files names; unset outside one.
+  sessionId?: string;
   wrapUpKnobs?: Partial<WrapUpKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;

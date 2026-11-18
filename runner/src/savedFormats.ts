@@ -1,4 +1,4 @@
-// Reads a run state or facts file saved by an older runner into today's shapes, the one place old names are known:
+// Reads a run state or facts file saved by an older runner into today's shapes, the one place a saved file's old names are known:
 // before #297 Propose was Defer and Proposals were `defers`; before #364 resolve was the `triage` and `fix` steps,
 // a fresh resolver was `triage`, and its records, session and base were `triage`, `triageSession` and `fixBase`;
 // before #367 a facts file's sessions shared one ticket-level account and config folder, and a run state's had neither;

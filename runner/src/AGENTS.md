@@ -64,6 +64,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `FakeIssueSource.ts` | | The scripted issue source issue-reader and Outline-edit tests use. |
 | `FakeNotices.ts` | `FakeNotices` | The notice port run-loop tests read back. |
 | `FakeUsageReader.ts` | | The scripted usage reader run-loop, account-switch and Accounts section tests use. |
+| `frictionNotes.ts` | | A Friction note's file: its fields, its id and its path in the friction folder, and its write. |
 | `fixtures/spec796.ts` | | Loads byro-repo #796, a real closed spec copied into `fixtures/byro-repo-796/`, that the `runner judge-brief` and `issue:close-parent` tests measure their briefs on. |
 | `GhCli.ts` | `GhCli` | The real `gh` port. |
 | `git.ts` | | Git helpers the workspaces, run loop and wrap-up share, the worktree add, remove, list and switch helpers and the branch lookup included. |
@@ -86,7 +87,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `LandingLock.ts` | `LandingLock` | The per-primary lock wrap-up lands under. |
 | `LeaseHeld.ts` | | The error for another holder's live workspace lease. |
 | `limitGuard.ts` | `limitGuard` | The limit guard: reads usage, picks launch or Limit wait and ranks the accounts. |
-| `localTime.ts` | | Words and reads a human-facing time: local, with its zone. |
+| `localTime.ts` | | Words and reads a human-facing time: local, with its zone, and its local date. |
 | `lockFixture.ts` | | Pid-lock fixtures the lock tests share. |
 | `MapNext.ts` | `MapNext` | `npm run map:next`'s core: a `/wayfinder` session's read-only brief of a wayfinder map, its sub-issues, frontier and chosen ticket, printing only Trusted text, delegating to `MapNext/`. |
 | `MapNext/MapArgsParser.ts` | | Reads `npm run map:next`'s arguments into the map and named ticket, refusing what names neither. |
@@ -111,7 +112,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `recordSchema.ts` | | Schema parts the step records share, the implement record's variants, the review record built from a Workflow's axes and the gap-check record among them, the `output` wrapper a session step's record sits under and its unwrap, and their validator. |
 | `RepoVisibility.ts` | `RepoVisibility` | `npm run repos`'s core: each repo in the repo map with its path and visibility. |
 | `resolveRecords.ts` | | The resolve record every Workflow's resolve step returns: its schema, numbered findings, retry prompt, record and commit checks, and the builder of a Workflow's resolve rules. |
-| `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit and the skipped-reviewers note among them, and undecided count, `runner decide`'s edit marking one item decided or handled, a session re-review's merge into the posted list, and a spec's undecided and hand-ticked items read in `/judge-findings`' judging order. |
+| `reviewList.ts` | `reviewList` | The review list's comment formats, a research ticket's unwanted Unverified facts' audit and the skipped-reviewers note among them, and undecided count, `runner decide`'s edit marking one item decided or handled and a Proposal's heading, a session re-review's merge into the posted list, and a spec's undecided and hand-ticked items read in `/judge-findings`' judging order. |
 | `runBoard.ts` | `runBoard` | The Run board behind `runner status` and `runner watch` with no spec: its Runs section and the Accounts section after it. |
 | `runCollecting.ts` | `runCollecting` | Runs one process with its output collected. |
 | `runCommand.ts` | | Runs a configured command, returning its output tail when it fails, for the preflight and a ticket's checks. |
@@ -140,7 +141,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `SpecRun/OutlineEditApplier.ts` | | Applies the Outline edits an answered Research Halt approves to the spec body, raising a fresh Research Halt on an edit it can't apply. |
 | `SpecRun/PreflightChecker.ts` | | The run's preflight over its member list: run locks, each member's refusals and the shared preflight Stop. |
 | `SpecRun/ResearchStepper.ts` | | Runs a research ticket's research step and its handoffs, creating its scratch folder, keeps its record, and runs its quote check, sending the step back on red. |
-| `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled. |
+| `SpecRun/ReviewItemDecider.ts` | | `runner decide`: records one item of the developer's own review list as decided or handled, filing a Friction note for a decided Proposal. |
 | `SpecRun/ReviewListPoster.ts` | | Posts review lists and covered-later notes. |
 | `SpecRun/ReviewStepper.ts` | | Runs a ticket's review, with its reviewer check, and resolve steps. |
 | `SpecRun/RunLoop.ts` | | The run's ticket loop across its members, idling and end, and its account hold's release. |
@@ -195,7 +196,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
-| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow, the composed spec end and gap-check input, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
+| `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with, its outcome row's review cell and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow and of a spec's own, the composed spec end and gap-check input, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
 | `Workflow/code/codeWorkflow.ts` | `codeWorkflow` | Builds the code Workflow from a repo's checks and review skill: each ticket's Step sequence, the Step each one goes on to, its spec-end Steps and their trigger, its agent steps' rules and its outcome row's review cell. |
 | `Workflow/code/gapCheck.ts` | | The code Workflow's section of the gap check. |
 | `Workflow/code/implementCodeSkill.ts` | `implementCodeSkill` | Generates the `/implement-code` skill from the implement step's shared body. |
