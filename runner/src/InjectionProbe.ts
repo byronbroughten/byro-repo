@@ -17,7 +17,10 @@ import {
 } from "./headlessProbe.ts";
 
 export type InvokedBy =
-  "slash command" | "Skill tool" | "Skill tool with no Skill allow rule";
+  | "slash command"
+  | "Skill tool"
+  | "Skill tool with no Skill allow rule"
+  | "Skill tool with only Skill(inject-npm-colon) allowed";
 
 interface InjectionSkill {
   name: string;
@@ -98,23 +101,36 @@ const injectionSkills = {
   bash: { name: "inject-bash", allowedTools: "Bash" },
 } as const satisfies Record<string, InjectionSkill>;
 
-// Every skill by both routes with Skill allowed, then one skill with allowed-tools through the Skill tool without.
-// A skill with allowed-tools asks before the Skill tool runs it, and nobody answers; allowing Skill frees no Bash call. The last run takes the rule out to see that denial again.
+// Every skill by both routes with Skill allowed, then the Skill tool without a blanket rule: with none, then with one skill allowed by name.
+// A skill with allowed-tools asks before the Skill tool runs it, and nobody answers; allowing Skill frees no Bash call. The last runs take the rule out, or name one skill, to see which call that denial still stops.
 const runs = {
   permissions: {
     "slash command": { allow: ["Skill"] },
     "Skill tool": { allow: ["Skill"] },
     "Skill tool with no Skill allow rule": { allow: [] },
+    "Skill tool with only Skill(inject-npm-colon) allowed": {
+      allow: ["Skill(inject-npm-colon)"],
+    },
   },
   allowed: ["slash command", "Skill tool"],
-  denied: {
-    skill: injectionSkills.npmSpace,
-    invokedBy: "Skill tool with no Skill allow rule",
-  },
+  withoutBlanketRule: [
+    {
+      skill: injectionSkills.npmSpace,
+      invokedBy: "Skill tool with no Skill allow rule",
+    },
+    {
+      skill: injectionSkills.npmColon,
+      invokedBy: "Skill tool with only Skill(inject-npm-colon) allowed",
+    },
+    {
+      skill: injectionSkills.npmSpace,
+      invokedBy: "Skill tool with only Skill(inject-npm-colon) allowed",
+    },
+  ],
 } as const satisfies {
   permissions: Record<InvokedBy, Permissions>;
   allowed: InvokedBy[];
-  denied: { skill: InjectionSkill; invokedBy: InvokedBy };
+  withoutBlanketRule: { skill: InjectionSkill; invokedBy: InvokedBy }[];
 };
 
 // The throwaway folder's two scripts: the brief an injected command runs, and the SessionStart and PreToolUse hook that logs what it sees.
@@ -207,7 +223,9 @@ export class InjectionProbe {
           );
         }
       }
-      outcomes.push(await this._probe({ folder, sandbox, ...runs.denied }));
+      for (const run of runs.withoutBlanketRule) {
+        outcomes.push(await this._probe({ folder, sandbox, ...run }));
+      }
       return { sandbox, permissions: runs.permissions, outcomes };
     } finally {
       rmSync(folder, { recursive: true, force: true });
