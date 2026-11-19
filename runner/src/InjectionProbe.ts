@@ -101,8 +101,8 @@ const injectionSkills = {
   bash: { name: "inject-bash", allowedTools: "Bash" },
 } as const satisfies Record<string, InjectionSkill>;
 
-// Every skill by both routes with Skill allowed, then two runs through the Skill tool without a blanket rule.
-// A skill with allowed-tools asks before the Skill tool runs it, and nobody answers; allowing Skill frees no Bash call. The first extra run takes the rule out to see that denial again; the other two allow one skill by name, to see whether that frees it alone: the named skill, then a second skill with allowed-tools the rule doesn't name.
+// Every skill by both routes with Skill allowed, then the Skill tool without a blanket rule: with none, then with one skill allowed by name.
+// A skill with allowed-tools asks before the Skill tool runs it, and nobody answers; allowing Skill frees no Bash call. The last runs take the rule out, or name one skill, to see which call that denial still stops.
 const runs = {
   permissions: {
     "slash command": { allow: ["Skill"] },

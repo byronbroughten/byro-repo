@@ -131,7 +131,7 @@ describe("InjectionProbe", () => {
       "inject-plain",
       "fake-session-id",
     ]);
-    expect(report.outcomes.slice(0, 8).every((outcome) => outcome.brief)).toBe(
+    expect(report.outcomes.slice(0, -3).every((outcome) => outcome.brief)).toBe(
       true,
     );
     expect(report.outcomes[0]?.hookCalls).toEqual([]);
@@ -180,15 +180,15 @@ describe("InjectionProbe", () => {
 
   it("reports a Skill call with no Skill allow rule as denied, beside the allowed ones that ran", async () => {
     const report = await probe().run(folder);
-    const last = report.outcomes[8];
-    if (last === undefined) throw new Error("The report holds no outcome");
+    const noRule = report.outcomes.at(-3);
+    if (noRule === undefined) throw new Error("The report holds no outcome");
 
-    expect(last.skillCall).toEqual({
+    expect(noRule.skillCall).toEqual({
       status: "error",
       error: "Permission to use Skill has been denied.",
     });
-    expect(last.brief).toBeUndefined();
-    expect(injectionOutcomeText(last)).toContain(
+    expect(noRule.brief).toBeUndefined();
+    expect(injectionOutcomeText(noRule)).toContain(
       "inject-npm-space (allowed-tools: Bash(npm run brief *)) by Skill tool with no Skill allow rule: Skill call failed (Permission to use Skill has been denied.); not run",
     );
     expect(report.outcomes[3]?.skillCall).toEqual({ status: "ran" });
@@ -217,7 +217,7 @@ describe("InjectionProbe", () => {
 
   it("reports whether a Skill(<name>) allow rule ran the skill it names and denied the one beside it", async () => {
     const report = await probe().run(folder);
-    const [named, other] = report.outcomes.slice(9);
+    const [named, other] = report.outcomes.slice(-2);
     if (named === undefined || other === undefined) {
       throw new Error("The report holds no Skill(<name>) outcome");
     }
