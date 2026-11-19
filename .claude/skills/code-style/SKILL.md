@@ -8,6 +8,6 @@ The code rules from [config's style doc](../../../config/docs/code-style.md), th
 
 !`npm run doc:sections -- config/docs/code-style.md "Class shape" Naming Comments "Error handling & validation" "Type modeling" "Functional vs. imperative idioms" Smells Tests Tooling "Imports & file organization"`
 
-The framework's rules, which layer on them for framework and app code, from [the framework style doc](../../../packages/framework/docs/code-style.md), printed whole:
+The framework's rules, which layer on them for framework and app code, from [the framework style doc](../../../packages/framework/docs/code-style.md):
 
-!`npm run doc:sections -- packages/framework/docs/code-style.md`
+!`npm run doc:sections -- packages/framework/docs/code-style.md "Class shape" Naming Comments "Error handling & validation" "Type modeling" "Where for…in appears" "Caller-less public members" Tests Tooling "Imports & file organization"`

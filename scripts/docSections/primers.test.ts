@@ -16,12 +16,20 @@ import { ruleDocs } from "./ruleDocs.ts";
 
 const repoRoot = fileURLToPath(new URL("../../", import.meta.url));
 const primerNames = ["file-issue", "code-style", "prose-style", "writing"];
+const reasoningFilesHeading = "Reasoning files";
+// file-issue prints only the two tickets.md sections a draft needs.
+const partialPrints = new Set(["docs/agents/tickets.md"]);
 
 function skillTextOf(name: string): string {
   return readFileSync(
     join(repoRoot, ".claude", "skills", name, "SKILL.md"),
     "utf8",
   );
+}
+
+function headingsOf(doc: string): string[] {
+  const text = readFileSync(join(repoRoot, doc), "utf8");
+  return [...text.matchAll(/^## (.+)$/gm)].map(([, heading = ""]) => heading);
 }
 
 describe("the Primers", () => {
@@ -36,6 +44,26 @@ describe("the Primers", () => {
       ).not.toThrow();
     }
   });
+
+  it.each(primerNames)(
+    "%s names every section of a doc it prints by section",
+    (name) => {
+      const sectionedInjections = docSectionsArgsOf(skillTextOf(name)).filter(
+        ([doc]) => doc !== undefined && !partialPrints.has(doc),
+      );
+      for (const [doc = "", ...sections] of sectionedInjections) {
+        if (sections.length === 0) continue;
+        const unnamed = headingsOf(doc).filter(
+          (heading) =>
+            heading !== reasoningFilesHeading && !sections.includes(heading),
+        );
+        expect(
+          unnamed,
+          `${doc}'s unnamed sections; a heading holding a backtick can't be named inside an injection, so drop the backticks`,
+        ).toEqual([]);
+      }
+    },
+  );
 
   it.each(primerNames)("%s is model-invocable", (name) => {
     expect(skillTextOf(name)).not.toMatch(/^disable-model-invocation: true$/m);
