@@ -28,6 +28,10 @@ _Avoid_: phase, step
 The Markdown file of a Piece's Sections as agents draft them, kept in the repo that files the Piece's spec. Agents draft in it, a push writes it into the Deliverable, and `/revise-workflows`' pair mode compares it with the edited Deliverable. A Section the developer wrote is marked as theirs. It is never edited by hand.
 _Avoid_: Snapshot, AI copy, draft (alone)
 
+**Image placeholder**:
+The paragraph in an Agent draft that stands where an image goes in the Deliverable. It names the image's file beside the Agent draft, or, for an image with no file, lists the facts the image shows.
+_Avoid_: image stand-in, figure marker, placeholder (alone)
+
 **Edit gate**:
 The developer's ticket to edit the Deliverable, which an Interactive session closes out with `/close-project` on its spec.
 _Avoid_: review ticket, judgement ticket, human gate
