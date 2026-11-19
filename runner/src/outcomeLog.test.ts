@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { estimateOf } from "./modelFit.ts";
 import {
-  outcomeCommitMessage,
   outcomeFileOf,
   type OutcomeRow,
   peakContextOf,
@@ -166,35 +165,6 @@ describe("peakContextOf", () => {
   it("lists each implementer session's peak in order", () => {
     expect(peakContextOf({ peakContext: [150_000, 90_000] })).toBe(
       "150K → 90K",
-    );
-  });
-});
-
-describe("outcomeCommitMessage", () => {
-  it("says which resolver fixed a reviewed ticket", () => {
-    expect(
-      outcomeCommitMessage({
-        ...row,
-        facts: {
-          pair: "Opus medium",
-          peakContext: [80_000],
-          reviewFixes: "fresh",
-        },
-      }),
-    ).toBe(
-      "Record the #218 outcome: Opus medium, 7 files, 80K, fixed after review by a fresh resolver.",
-    );
-  });
-
-  it("says a ticket with no code skipped review", () => {
-    expect(
-      outcomeCommitMessage({
-        ...row,
-        filesChanged: 0,
-        facts: { pair: "Opus medium", reviewFixes: "skipped" },
-      }),
-    ).toBe(
-      "Record the #218 outcome: Opus medium, 0 files, unrecorded, review skipped (no code).",
     );
   });
 });

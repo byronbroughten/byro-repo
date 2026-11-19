@@ -118,8 +118,8 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
 // Fails every GitHub call once the row is written, so a no-code landing, which pushes nothing, stops at its close.
 export function cutGitHubAfterTheRow(): Partial<WrapUpConfig> {
   return {
-    async writeOutcomeRow(root, request) {
-      const written = writeOutcomeRow(root, request);
+    async writeOutcomeRow(_root, request) {
+      const written = writeOutcomeRow(request);
       github.failuresLeft = Number.POSITIVE_INFINITY;
       return written;
     },

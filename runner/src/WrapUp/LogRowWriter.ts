@@ -66,8 +66,7 @@ export class LogRowWriter extends WrapUpBase {
       handoffSessionIds = await this.closer._handoffSessionIdsOf(issue);
     }
     const spec = await this.closer._specOf(issue);
-    const writeRow = this.config.writeOutcomeRow ?? writeOutcomeRow;
-    await writeRow(worktree, {
+    const request = {
       issue,
       spec,
       workflow: await this._workflowOf(issue, spec),
@@ -78,6 +77,11 @@ export class LogRowWriter extends WrapUpBase {
       silenceTimeoutMs: this.knobs.silenceTimeoutMs,
       stateFolder: this.config.stateFolder,
       outcomeFolder: this.config.outcomeFolder,
-    });
+    };
+    if (this.config.writeOutcomeRow === undefined) {
+      writeOutcomeRow(request);
+      return;
+    }
+    await this.config.writeOutcomeRow(worktree, request);
   }
 }

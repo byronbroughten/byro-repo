@@ -250,11 +250,6 @@ function rowFileOf(
   ].join("\n");
 }
 
-export function outcomeCommitMessage(row: OutcomeRow): string {
-  const { issue, filesChanged, facts } = row;
-  return `Record the #${issue.number} outcome: ${facts.pair ?? unrecorded}, ${filesChanged} files, ${peakContextOf(facts)}, ${resultPhraseOf(facts)}.`;
-}
-
 export function peakContextOf({ peakContext }: OutcomeFacts): string {
   if (peakContext === undefined || peakContext.length === 0) return unrecorded;
   return peakContext.map(kiloOf).join(" → ");
@@ -332,19 +327,6 @@ const resultByReviewFixes: Record<ReviewFixes, string> = {
   implementer: "Fix (resumed implementer)",
   fresh: "Fix (fresh resolver)",
   skipped: "skipped (no code)",
-};
-
-function resultPhraseOf({ halt, reviewFixes }: OutcomeFacts): string {
-  if (halt !== undefined) return "halted then passed";
-  if (reviewFixes === undefined) return "result unrecorded";
-  return resultPhraseByReviewFixes[reviewFixes];
-}
-
-const resultPhraseByReviewFixes: Record<ReviewFixes, string> = {
-  none: "first-try pass",
-  implementer: "fixed after review by the resumed implementer",
-  fresh: "fixed after review by a fresh resolver",
-  skipped: "review skipped (no code)",
 };
 
 function whatReviewCaughtCellOf({

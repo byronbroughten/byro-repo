@@ -164,7 +164,7 @@ describe("run", () => {
     await wrapUp({
       writeOutcomeRow: async (root, request) => {
         hasTicketCode.push(existsSync(join(root, "script.ts")));
-        return writeOutcomeRow(root, request);
+        return writeOutcomeRow(request);
       },
     }).run(ticket);
 

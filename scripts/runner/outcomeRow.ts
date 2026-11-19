@@ -11,5 +11,5 @@ if (request === undefined) {
   process.exitCode = 1;
 } else {
   const parsed = JSON.parse(request) as OutcomeRowRequest;
-  console.log(JSON.stringify(writeOutcomeRow(process.cwd(), parsed)));
+  console.log(JSON.stringify(writeOutcomeRow(parsed)));
 }
