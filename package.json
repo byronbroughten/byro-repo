@@ -64,6 +64,7 @@
     "overlap": "node scripts/overlap/overlap.ts",
     "outline": "node scripts/outline/outline.ts",
     "doc:sections": "node scripts/docSections/docSections.ts",
+    "image:render": "node scripts/imageRender/imageRender.ts",
     "pdf:text": "node scripts/quotes/pdfText.ts",
     "verify:quotes": "node scripts/quotes/verifyQuotes.ts"
   },
@@ -72,6 +73,7 @@
   },
   "devDependencies": {
     "@byronbroughten/config": "^0.1.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@rollup/plugin-typescript": "^12.1.4",
     "@types/google-apps-script": "^2.0.11",
     "@types/node": "^22.20.4",
