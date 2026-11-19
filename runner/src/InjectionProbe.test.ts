@@ -13,9 +13,9 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { injectionOutcomeText } from "./injectionOutcomeText.ts";
 import {
   type InjectionOutcome,
-  injectionOutcomeText,
   InjectionProbe,
   type InjectionReport,
 } from "./InjectionProbe.ts";

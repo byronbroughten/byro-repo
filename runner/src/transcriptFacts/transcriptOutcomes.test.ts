@@ -1,177 +1,29 @@
-import {
-  cpSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  realpathSync,
-  renameSync,
-  rmSync,
-  utimesSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import type { OutcomeFacts } from "./outcomeLog.ts";
 import {
   handoffSessionIdOf,
   latestPairOf,
-  localTranscriptsOf,
   type RecordedSession,
-  type StepAgent,
-  type TicketSessions,
-  transcriptFactsOf,
   unrecordedFactsOf,
-} from "./transcriptFacts.ts";
-
-const fixtures = join(import.meta.dirname, "..", "fixtures", "transcripts");
-
-let configFolder: string;
-
-beforeEach(() => {
-  configFolder = realpathSync(mkdtempSync(join(tmpdir(), "transcripts-")));
-  cpSync(fixtures, join(configFolder, "projects", "-workspace-byro-repo"), {
-    recursive: true,
-  });
-});
-
-afterEach(() => {
-  rmSync(configFolder, { recursive: true, force: true });
-});
-
-// One handed-off implement session (from its comment), then the final implement step, review and two resolve sessions.
-function sessions(overrides: Partial<TicketSessions> = {}): TicketSessions {
-  return {
-    steps: [
-      step("implement", "session-implement-2"),
-      step("review", "session-review"),
-      step("resolve", "session-triage"),
-      step("resolve", "session-fix"),
-    ],
-    ...overrides,
-  };
-}
-
-function step(agent: StepAgent, sessionId: string): RecordedSession {
-  return { agent, sessionId, account: 2, configFolder };
-}
-
-// Moves the review and resolve transcripts to account 1's folder and records them there.
-function reviewedOnAccountOne(): TicketSessions {
-  const accountOne = join(configFolder, "account-1");
-  const from = join(configFolder, "projects", "-workspace-byro-repo");
-  const to = join(accountOne, "projects", "-workspace-byro-repo");
-  mkdirSync(to, { recursive: true });
-  const reviewIds = ["session-review", "session-triage", "session-fix"];
-  for (const id of reviewIds) {
-    renameSync(join(from, `${id}.jsonl`), join(to, `${id}.jsonl`));
-  }
-  return {
-    steps: sessions().steps.map((recorded) =>
-      reviewIds.includes(recorded.sessionId)
-        ? { ...recorded, account: 1, configFolder: accountOne }
-        : recorded,
-    ),
-  };
-}
-
-const handoffs = ["session-implement-1"];
-const silenceTimeoutMs = 10 * 60_000;
-// Over every gap in the fixtures, so their Duration is each transcript's whole span.
-const fixtureCapMs = 60 * 60_000;
-
-function factsOf(
-  ticketSessions: TicketSessions,
-  handoffSessionIds: string[],
-  capMs = fixtureCapMs,
-): OutcomeFacts {
-  return transcriptFactsOf(ticketSessions, {
-    handoffSessionIds,
-    silenceTimeoutMs: capMs,
-  });
-}
-
-function entriesAt(minutes: number[]): string {
-  return minutes
-    .map((minute) =>
-      JSON.stringify({
-        type: "user",
-        timestamp: new Date(Date.UTC(2026, 9, 6, 10, minute)).toISOString(),
-      }),
-    )
-    .join("\n");
-}
-
-function writeTranscript(sessionId: string, text: string): void {
-  writeFileSync(
-    join(
-      configFolder,
-      "projects",
-      "-workspace-byro-repo",
-      `${sessionId}.jsonl`,
-    ),
-    `${text}\n`,
-  );
-}
-
-function at(minute: number): string {
-  return new Date(Date.UTC(2026, 9, 6, 10, minute)).toISOString();
-}
-
-// An Opus 5.5 reply costing `dollars` in output tokens alone.
-function pricedReply(id: string, minute: number, dollars: number): object {
-  return {
-    type: "assistant",
-    timestamp: at(minute),
-    message: {
-      id,
-      model: "claude-opus-5-5",
-      usage: { output_tokens: Math.round(dollars * 50_000) },
-    },
-  };
-}
-
-// One session's launches, ten minutes apart: each a prompt, then its replies' dollars, each followed by a tool result.
-function launchesOf(launchDollars: number[][]): string {
-  return launchDollars
-    .flatMap((replies, launch) => [
-      {
-        type: "user",
-        timestamp: at(launch * 10),
-        message: { content: `launch ${launch}` },
-      },
-      ...replies.flatMap((dollars, reply) => [
-        pricedReply(`msg-${launch}-${reply}`, launch * 10 + reply + 1, dollars),
-        {
-          type: "user",
-          timestamp: at(launch * 10 + reply + 1),
-          message: { content: [{ type: "tool_result", content: "ok" }] },
-        },
-      ]),
-    ])
-    .map((entry) => JSON.stringify(entry))
-    .join("\n");
-}
-
-function writeSubagent(
-  sessionId: string,
-  { minute, dollars }: { minute: number; dollars: number },
-): void {
-  const folder = join(
-    configFolder,
-    "projects",
-    "-workspace-byro-repo",
-    sessionId,
-    "subagents",
-  );
-  mkdirSync(folder, { recursive: true });
-  writeFileSync(
-    join(folder, `agent-${minute}.jsonl`),
-    `${JSON.stringify(pricedReply(`sub-${minute}`, minute, dollars))}\n`,
-  );
-}
+} from "../transcriptFacts.ts";
+import {
+  at,
+  configFolder,
+  entriesAt,
+  factsOf,
+  handoffs,
+  launchesOf,
+  pricedReply,
+  reviewedOnAccountOne,
+  sessions,
+  silenceTimeoutMs,
+  step,
+  writeSubagent,
+  writeTranscript,
+} from "./transcriptFixture.ts";
 
 describe("transcriptFactsOf", () => {
   it("reads the pair from the implementer's transcripts", () => {
@@ -182,31 +34,6 @@ describe("transcriptFactsOf", () => {
     expect(factsOf(sessions(), handoffs).peakContext).toEqual([
       150_000, 90_000,
     ]);
-  });
-
-  it("prices the implementers and their subagents alone, counting a repeated reply once", () => {
-    expect(factsOf(sessions(), handoffs).costUsd).toBeCloseTo(1.454, 6);
-  });
-
-  it("prices the review and resolve sessions together as review cost", () => {
-    expect(factsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(0.114, 6);
-  });
-
-  it("prices a review that started no further step as the review session alone", () => {
-    const steps = sessions().steps.filter(
-      ({ agent }) => agent === "implement" || agent === "review",
-    );
-    expect(factsOf(sessions({ steps }), handoffs).reviewCostUsd).toBeCloseTo(
-      0.024,
-      6,
-    );
-  });
-
-  it("leaves review cost unrecorded when no review session was recorded", () => {
-    const steps = sessions().steps.filter(({ agent }) => agent === "implement");
-    expect(
-      factsOf(sessions({ steps }), handoffs).reviewCostUsd,
-    ).toBeUndefined();
   });
 
   it("sums every step session's span, review and handoffs included", () => {
@@ -289,51 +116,6 @@ describe("transcriptFactsOf", () => {
     const facts = factsOf(sessions({ steps }), []);
 
     expect([facts.pair, facts.peakContext]).toEqual(["Opus medium", [90_000]]);
-  });
-
-  it("leaves review cost unrecorded when a model has no price", () => {
-    const fix = join(
-      configFolder,
-      "projects",
-      "-workspace-byro-repo",
-      "session-fix.jsonl",
-    );
-    writeFileSync(
-      fix,
-      readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-mystery-9"),
-    );
-    expect(factsOf(sessions(), handoffs).reviewCostUsd).toBeUndefined();
-  });
-
-  it("prices a Haiku transcript", () => {
-    const fix = join(
-      configFolder,
-      "projects",
-      "-workspace-byro-repo",
-      "session-fix.jsonl",
-    );
-    writeFileSync(
-      fix,
-      readFileSync(fix, "utf8").replace("claude-opus-5-5", "claude-haiku-5-5"),
-    );
-    expect(factsOf(sessions(), handoffs).reviewCostUsd).toBeCloseTo(0.085, 6);
-  });
-
-  it("leaves cost unrecorded when an implementer's model has no price", () => {
-    const implement = join(
-      configFolder,
-      "projects",
-      "-workspace-byro-repo",
-      "session-implement-2.jsonl",
-    );
-    writeFileSync(
-      implement,
-      readFileSync(implement, "utf8").replaceAll(
-        "claude-opus-5-5",
-        "claude-mystery-9",
-      ),
-    );
-    expect(factsOf(sessions(), handoffs).costUsd).toBeUndefined();
   });
 
   it("leaves the implementer's facts unrecorded when no implementer session was recorded", () => {
@@ -598,74 +380,5 @@ describe("latestPairOf", () => {
       "not json",
     ].join("\n");
     expect(latestPairOf(text)).toBeUndefined();
-  });
-});
-
-describe("localTranscriptsOf", () => {
-  let home: string;
-
-  beforeEach(() => {
-    home = realpathSync(mkdtempSync(join(tmpdir(), "large-reads-")));
-  });
-
-  afterEach(() => {
-    rmSync(home, { recursive: true, force: true });
-  });
-
-  function writeSession(
-    folder: string,
-    sessionId: string,
-    timestamps: string[],
-  ): void {
-    const project = join(home, folder, "projects", "-workspace");
-    mkdirSync(project, { recursive: true });
-    const lines = timestamps.map((timestamp) =>
-      JSON.stringify({ type: "user", timestamp, message: { content: "hi" } }),
-    );
-    writeFileSync(join(project, `${sessionId}.jsonl`), `${lines.join("\n")}\n`);
-  }
-
-  it("reads each session that started in the range, once across the config folders, leaving out subagents", () => {
-    writeSession("live", "inside", ["2026-11-02T10:00:00Z"]);
-    writeSession("account-1", "inside", ["2026-11-02T10:00:00Z"]);
-    writeSession("account-1", "also-inside", [
-      "2026-11-09T10:00:00Z",
-      "2026-11-12T10:00:00Z",
-    ]);
-    writeSession("account-1", "before", ["2026-10-30T10:00:00Z"]);
-    writeSession("account-1", "after", ["2026-11-10T00:00:00Z"]);
-    const subagents = join(
-      home,
-      "account-1",
-      "projects",
-      "-workspace",
-      "inside",
-      "subagents",
-    );
-    mkdirSync(subagents, { recursive: true });
-    writeFileSync(join(subagents, "agent-1.jsonl"), "{}\n");
-    const found = localTranscriptsOf(
-      [join(home, "live"), join(home, "account-1"), join(home, "missing")],
-      {
-        from: new Date("2026-11-01T00:00:00Z"),
-        to: new Date("2026-11-10T00:00:00Z"),
-      },
-    );
-    expect(found.map(({ sessionId }) => sessionId).sort()).toEqual([
-      "also-inside",
-      "inside",
-    ]);
-  });
-
-  it("skips a transcript last written before the range without reading it", () => {
-    writeSession("live", "stale", ["2026-11-02T10:00:00Z"]);
-    const path = join(home, "live", "projects", "-workspace", "stale.jsonl");
-    const longAgo = new Date("2026-01-01T00:00:00Z");
-    utimesSync(path, longAgo, longAgo);
-    const found = localTranscriptsOf([join(home, "live")], {
-      from: new Date("2026-11-01T00:00:00Z"),
-      to: new Date("2026-11-10T00:00:00Z"),
-    });
-    expect(found).toEqual([]);
   });
 });
