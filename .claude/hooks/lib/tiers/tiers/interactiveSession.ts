@@ -2,6 +2,7 @@
 import { GhApiCall } from "../GhApiCall.ts";
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
+import { ghIssue } from "./ghIssue.ts";
 import { npmCommands } from "./npmCommands.ts";
 
 export const interactiveSession = {
@@ -12,7 +13,7 @@ export const interactiveSession = {
   ): Verdict | undefined {
     const [program, verb, ...args] = words;
     if (mode !== "interactive" || program !== "gh") return undefined;
-    if (verb === "issue" && args[0] === "create") {
+    if (ghIssue.callOf(words)?.verb === "create") {
       return {
         permissionDecision: "allow",
         why: "`gh issue close` undoes it",

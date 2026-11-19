@@ -1,6 +1,7 @@
 // The refusal of a `gh issue edit` adding a `ready-*` label, in either mode, since only `npm run issue:ready` checks the ticket's body before relabelling it.
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
+import { ghIssue } from "./ghIssue.ts";
 
 // Mirrors `readyLabels` in runner/src/ticketReadiness.ts, as it can't import across the hooks boundary.
 const readyLabels = new Set([
@@ -16,11 +17,9 @@ export const readyLabelEdits = {
     { words }: SimpleCommand,
     { mode }: CallContext,
   ): Verdict | undefined {
-    const [program, noun, verb, ...args] = words;
-    if (program !== "gh" || noun !== "issue" || verb !== "edit") {
-      return undefined;
-    }
-    if (!addedLabelsOf(args).some((label) => readyLabels.has(label))) {
+    const call = ghIssue.callOf(words);
+    if (call?.verb !== "edit") return undefined;
+    if (!addedLabelsOf(call.args).some((label) => readyLabels.has(label))) {
       return undefined;
     }
     if (mode !== "interactive") {

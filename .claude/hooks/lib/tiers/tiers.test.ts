@@ -30,6 +30,9 @@ const readyLabelEdits = [
   "gh issue edit 341 --add-label=ready-for-interactive",
   'gh issue edit 341 --remove-label needs-triage --add-label "docs,ready-for-human"',
   "gh issue edit 341 --add-label Ready-For-Agent",
+  "gh issue -R byronbroughten/byro-repo edit 341 --add-label ready-for-agent",
+  "gh issue --repo byronbroughten/byro-repo edit 341 --add-label ready-for-agent",
+  "gh issue --repo=byronbroughten/byro-repo edit 341 --add-label=ready-for-human",
 ];
 
 describe("gateDecision", () => {
@@ -379,6 +382,21 @@ describe("a runner step's gh calls", () => {
     },
   );
 
+  it("reads the verb past a flag before it, as gh does", () => {
+    [
+      "gh issue -R byronbroughten/byro-repo edit 341 --remove-label ready-for-agent",
+      "gh issue --repo=byronbroughten/byro-repo comment 447 -b done",
+    ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
+    [
+      "gh issue -R byronbroughten/byro-repo close 447",
+      "gh issue -R byronbroughten/byro-repo view 447",
+    ].forEach((command) => {
+      const decision = modeDecisionOf(command, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain(blockerInstead);
+    });
+  });
+
   it("denies closing an issue with the blocker text", () => {
     const decision = modeDecisionOf("gh issue close 447", "runnerStep");
     expect(decision?.permissionDecision).toBe("deny");
@@ -448,6 +466,31 @@ describe("an Interactive session's gh calls", () => {
       "gh issue create -R ByronBroughten/byro-repo --title T --body-file /tmp/body.md --label ready-for-agent";
     expect(decisionOf(command)).toBe("allow");
     expect(runnerStepDecisionOf(command)).toBe("deny");
+  });
+
+  it("gives a leading-flag `gh issue` the verdict its trailing-flag twin gets", () => {
+    const pairs: [string, string][] = [
+      [
+        "gh issue -R byronbroughten/byro-repo edit 341 --add-label ready-for-agent",
+        "gh issue edit 341 -R byronbroughten/byro-repo --add-label ready-for-agent",
+      ],
+      [
+        "gh issue -R byronbroughten/byro-repo create --title T --body-file /tmp/body.md",
+        "gh issue create -R byronbroughten/byro-repo --title T --body-file /tmp/body.md",
+      ],
+      [
+        "gh issue -R byronbroughten/byro-repo edit 341 --add-label needs-triage",
+        "gh issue edit 341 -R byronbroughten/byro-repo --add-label needs-triage",
+      ],
+    ];
+    const modes: SessionMode[] = ["interactive", "runnerStep"];
+    pairs.forEach(([leading, trailing]) => {
+      modes.forEach((mode) => {
+        expect(modeDecisionOf(leading, mode)?.permissionDecision).toBe(
+          modeDecisionOf(trailing, mode)?.permissionDecision,
+        );
+      });
+    });
   });
 
   it("allows a gh api read, and refuses it in a runner step", () => {
