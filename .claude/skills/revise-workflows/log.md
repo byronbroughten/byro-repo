@@ -5,7 +5,7 @@ Log mode triages the open [Friction notes](../../../runner/GLOSSARY.md#language)
 - **The friction folder**, `.runner/friction/`: one `<id>.md` per note, with [`/note-friction`'s fields](../note-friction/SKILL.md). A note is **open** when its `status:` line is blank.
 - **The outcome log**, `.runner/outcomes/<spec repo>-<spec n>/<repo>-<n>.md`: one row file per landed ticket.
 
-**The last triage's date is the newest status change in the folder**: the newest modification time of a note whose status isn't blank. With none, no triage has run, and every note counts as since.
+**The last triage's date is the newest status change in the folder**: the newest date opening a non-blank `status:` line, never a file's modification time, which a restore moves. With none, no triage has run, and every note counts as since.
 
 ## 1. Report notes per ticket
 

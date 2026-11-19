@@ -34,7 +34,8 @@ export interface FrictionNote {
   body: string;
 }
 
-export type NoteStatus = "" | `addressed ${string}` | `dismissed: ${string}`;
+// Each non-blank status opens with the triage's date, the one date a restore can't move.
+export type NoteStatus = "" | `addressed ${string}` | `dismissed ${string}`;
 
 /** A note as its file holds it, with the id it was filed under; a hand-written or restored file's fields are unchecked text. */
 export type WrittenNote = Record<keyof FrictionNote | "id", string>;

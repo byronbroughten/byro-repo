@@ -94,4 +94,4 @@ An answer that opens a new question goes in the next round, in the same format. 
 - **File**: write the candidate as a Friction note by [`/note-friction`](../note-friction/SKILL.md)'s fields, `filed-by: developer`, its body the question's title and body.
 - **No**: write nothing for it.
 
-In log mode, then set each note's `status:` line, the one write log mode makes to a note: `addressed <link>` for a note a yes covered or step 2 of `log.md` found solved, the link to the commit, issue or doc that addresses it; `dismissed: <reason>` for one under a no, the developer's reason or `declined at triage`. A note under a file, or under no question, stays blank. Never delete a note.
+In log mode, then set each note's `status:` line, the one write log mode makes to a note: `addressed <YYYY-MM-DD> <link>` for a note a yes covered or step 2 of `log.md` found solved, the link to the commit, issue or doc that addresses it; `dismissed <YYYY-MM-DD>: <reason>` for one under a no, the developer's reason or `declined at triage`; each date is today's. A note under a file, or under no question, stays blank. Never delete a note.
