@@ -20,7 +20,7 @@ import {
   type InjectionReport,
 } from "./InjectionProbe.ts";
 
-// Stands in for claude: runs each --settings SessionStart hook with HOOK_TMPDIR as its TMPDIR, denies a Skill call to a skill with allowed-tools when Skill isn't allowed, and runs the skill's injected command, the session ID substituted, as node; HOOKED=1 first passes it through each PreToolUse hook, SKIP=1 runs nothing.
+// Stands in for claude: runs each --settings SessionStart hook with HOOK_TMPDIR as its TMPDIR, denies a Skill call to a skill with allowed-tools unless an allow rule names Skill or that skill, and runs the skill's injected command, the session ID substituted, as node; HOOKED=1 first passes it through each PreToolUse hook, SKIP=1 runs nothing.
 const fakeClaude = `#!/usr/bin/env node
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -45,7 +45,8 @@ function print(content) {
 }
 runHooks("SessionStart", {});
 if (viaSkill) print({ type: "tool_use", id: "skill-1", name: "Skill", input: { skill: name } });
-const isDenied = viaSkill && !settings.permissions.allow.includes("Skill") && skill.includes("allowed-tools:");
+const isAllowed = settings.permissions.allow.some((rule) => rule === "Skill" || rule === "Skill(" + name + ")");
+const isDenied = viaSkill && !isAllowed && skill.includes("allowed-tools:");
 if (isDenied) {
   print({ type: "tool_result", tool_use_id: "skill-1", is_error: true, content: "Permission to use Skill has been denied." });
 } else {
@@ -123,12 +124,14 @@ describe("InjectionProbe", () => {
       "inject-bash slash command",
       "inject-bash Skill tool",
       "inject-npm-space Skill tool with no Skill allow rule",
+      "inject-npm-colon Skill tool with only Skill(inject-npm-colon) allowed",
+      "inject-npm-space Skill tool with only Skill(inject-npm-colon) allowed",
     ]);
     expect(report.outcomes[0]?.brief?.args).toEqual([
       "inject-plain",
       "fake-session-id",
     ]);
-    expect(report.outcomes.slice(0, -1).every((outcome) => outcome.brief)).toBe(
+    expect(report.outcomes.slice(0, 8).every((outcome) => outcome.brief)).toBe(
       true,
     );
     expect(report.outcomes[0]?.hookCalls).toEqual([]);
@@ -177,7 +180,7 @@ describe("InjectionProbe", () => {
 
   it("reports a Skill call with no Skill allow rule as denied, beside the allowed ones that ran", async () => {
     const report = await probe().run(folder);
-    const last = report.outcomes.at(-1);
+    const last = report.outcomes[8];
     if (last === undefined) throw new Error("The report holds no outcome");
 
     expect(last.skillCall).toEqual({
@@ -207,7 +210,31 @@ describe("InjectionProbe", () => {
       "Bash",
       "Bash",
       "Bash(npm run brief *)",
+      "Bash(npm run brief:*)",
+      "Bash(npm run brief *)",
     ]);
+  });
+
+  it("reports whether a Skill(<name>) allow rule ran the skill it names and denied the one beside it", async () => {
+    const report = await probe().run(folder);
+    const [named, other] = report.outcomes.slice(9);
+    if (named === undefined || other === undefined) {
+      throw new Error("The report holds no Skill(<name>) outcome");
+    }
+
+    expect(named.skillCall).toEqual({ status: "ran" });
+    expect(named.brief?.args).toEqual(["inject-npm-colon", "fake-session-id"]);
+    expect(other.skillCall).toEqual({
+      status: "error",
+      error: "Permission to use Skill has been denied.",
+    });
+    expect(other.brief).toBeUndefined();
+    expect(injectionOutcomeText(named)).toContain(
+      "inject-npm-colon (allowed-tools: Bash(npm run brief:*)) by Skill tool with only Skill(inject-npm-colon) allowed: Skill call ran; ran,",
+    );
+    expect(injectionOutcomeText(other)).toContain(
+      "inject-npm-space (allowed-tools: Bash(npm run brief *)) by Skill tool with only Skill(inject-npm-colon) allowed: Skill call failed (Permission to use Skill has been denied.); not run",
+    );
   });
 
   it("reports the Bash call a PreToolUse hook saw", async () => {
@@ -247,13 +274,16 @@ describe("InjectionProbe", () => {
     });
   });
 
-  it("allows the Skill tool and no Bash call, so only the skill's allowed-tools can free its injection", async () => {
+  it("allows the Skill tool, or one skill by name, and no Bash call, so only the skill's allowed-tools can free its injection", async () => {
     const report = await probe().run(folder);
 
     expect(report.permissions).toEqual({
       "slash command": { allow: ["Skill"] },
       "Skill tool": { allow: ["Skill"] },
       "Skill tool with no Skill allow rule": { allow: [] },
+      "Skill tool with only Skill(inject-npm-colon) allowed": {
+        allow: ["Skill(inject-npm-colon)"],
+      },
     });
   });
 
