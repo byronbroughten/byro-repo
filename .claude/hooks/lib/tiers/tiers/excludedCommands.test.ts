@@ -1,7 +1,11 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
 import { sandboxOffWords } from "../../sandboxState.ts";
 import { gateDecision } from "../tiers.ts";
+import { excludedCommands } from "./excludedCommands.ts";
 
 const entries = [
   "npm run issue:list",
@@ -36,6 +40,40 @@ function decisionOf(command: string) {
     sandbox: { isOn: false, excludedCommands: entries },
   });
 }
+
+const settingsPath = fileURLToPath(
+  new URL("../../../../settings.json", import.meta.url),
+);
+
+// A command the entry matches: its `*` filled in, as `npm run app*` takes `app:probe` and `npm run wrap-up *` takes `wrap-up x`.
+function commandMatching(entry: string): string {
+  return entry.replace(/ \*$/, " x").replace(/\*$/, ":x");
+}
+
+describe("the project settings' `npm` entries", () => {
+  const settings = JSON.parse(readFileSync(settingsPath, "utf8")) as {
+    sandbox: { excludedCommands: string[] };
+  };
+  const npmEntries = settings.sandbox.excludedCommands.filter((entry) =>
+    entry.startsWith("npm "),
+  );
+
+  it("has `npm` entries to check", () => {
+    expect(npmEntries.length).toBeGreaterThan(0);
+  });
+
+  it.each(npmEntries)(
+    "gives `%s` a specific reason, never the generic one",
+    (entry) => {
+      const refusal = excludedCommands.refusalOf(
+        `cd . && ${commandMatching(entry)}`,
+        [entry],
+      );
+      expect(refusal).toContain("in the sandbox");
+      expect(refusal).not.toContain("the sandbox can't run it");
+    },
+  );
+});
 
 describe("an excluded command the call keeps in the box", () => {
   it.each([

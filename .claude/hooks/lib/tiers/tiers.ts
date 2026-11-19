@@ -1,5 +1,5 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-// The classifiers live in tiers/, a file per subject: the raw push, a `gh issue edit` adding a `ready-*` label, `gh label list`, `ps` and `pgrep`, `open`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh` or `git push`, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box.
+// The classifiers live in tiers/, a file per subject: the raw push, a `gh issue edit` adding a `ready-*` label, `gh label list`, `ps` and `pgrep`, `open`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh` or `git push`, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box, and ghIssue.ts reads a `gh issue` call's verb for the classifiers that need it.
 import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";

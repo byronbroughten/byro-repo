@@ -1,6 +1,7 @@
 // The verdicts only a runner step gets: its gh issue writes and its targets' live aliases.
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
+import { ghIssue } from "./ghIssue.ts";
 import { npmCommands } from "./npmCommands.ts";
 
 const targetAliases = [
@@ -26,14 +27,15 @@ export const runnerStep = {
     { mode }: CallContext,
   ): Verdict | undefined {
     if (mode !== "runnerStep") return undefined;
-    if (words[0] !== "gh" || words[1] !== "issue") return undefined;
-    if (words[2] === "close") {
+    const call = ghIssue.callOf(words);
+    if (!call) return undefined;
+    if (call.verb === "close") {
       return {
         permissionDecision: "ask",
         why: "closes an issue, which only the runner or the developer does",
       };
     }
-    if (!ghStepWrites.has(words[2] ?? "")) return undefined;
+    if (!ghStepWrites.has(call.verb)) return undefined;
     return {
       permissionDecision: "allow",
       why: "a further `gh issue edit` or comment undoes it",
