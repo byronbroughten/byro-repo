@@ -86,6 +86,19 @@ export function draftMaterialsLineOf({
   return `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone, the passages folder is \`${passagesFolderIn(workspacePath, issue)}\`, and the ticket's spec is ${spec.repo}#${spec.number}.`;
 }
 
+// The resolve and red-checks prompts' words for the images a fix may change and how it commits them.
+export const draftImageWords = {
+  developerImage: "an image with no SVG source beside it",
+
+  agentImagesOf(specNumber: number): string {
+    return `the agent's own images in the image folder, \`${agentDraft.imageFolderOf(specNumber)}\`, those with an SVG source beside them`;
+  },
+
+  commitOf(specNumber: number): string {
+    return `\`git -C <clone> add ${agentDraft.imageFolderOf(specNumber)}\` when you changed an image there`;
+  },
+};
+
 export interface DraftingWords {
   draftPath: string;
   specRepo: string;

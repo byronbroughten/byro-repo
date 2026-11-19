@@ -103,49 +103,10 @@ describe("agentDraft", () => {
     expect(agentDraft.imageFolderOf(10)).toBe("writing/agent-drafts/10/");
   });
 
-  describe("image placeholders", () => {
-    const body =
-      "Prose before.\n\n\\[Image 1: sales\\_by\\_month.png\\]\n\nProse between.\n\n\\[Image 2: Sales rose each month; March was the highest.\\]\n\nProse after.\n";
-
-    it("returns each placeholder's number and its file name or its facts", () => {
-      expect(agentDraft.imagePlaceholdersOf(body)).toEqual([
-        { number: 1, file: "sales_by_month.png" },
-        {
-          number: 2,
-          facts: "Sales rose each month; March was the highest.",
-        },
-      ]);
-    });
-
-    it("reads text that is more than one PNG file name as facts", () => {
-      expect(
-        agentDraft.imagePlaceholdersOf(
-          "\\[Image 3: chart.png and table.png\\]\n\n\\[Image 4: chart.svg\\]\n",
-        ),
-      ).toEqual([
-        { number: 3, facts: "chart.png and table.png" },
-        { number: 4, facts: "chart.svg" },
-      ]);
-    });
-
-    it("finds no placeholder in a bracket that isn't a paragraph of its own", () => {
-      expect(
-        agentDraft.imagePlaceholdersOf(
-          "See \\[Image 1: chart.png\\] here.\n\n- \\[Image 2: chart.png\\]\n",
-        ),
-      ).toEqual([]);
-    });
-
-    it("leaves each placeholder paragraph out of a body's prose", () => {
-      expect(agentDraft.proseOf(body)).toBe(
-        "Prose before.\n\nProse between.\n\nProse after.\n",
-      );
-    });
-
-    it("round-trips a draft holding placeholders unchanged", () => {
-      const draft = `## Results\n<!-- agent h.results -->\n\n${body}`;
-      expect(agentDraft.draftOf(agentDraft.sectionsOf(draft))).toBe(draft);
-    });
+  it("round-trips a draft holding Image placeholders unchanged", () => {
+    const draft =
+      "## Results\n<!-- agent h.results -->\n\nProse before.\n\n\\[Image 1: sales\\_by\\_month.png\\]\n\n\\[Image 2: Sales rose each month.\\]\n";
+    expect(agentDraft.draftOf(agentDraft.sectionsOf(draft))).toBe(draft);
   });
 
   describe("pulledOf", () => {

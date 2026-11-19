@@ -218,11 +218,12 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt, record schema and reviewer check. |
-| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path and its image folder's, its H1 and H2 lines, a Section body's Image placeholders and its prose without them, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
+| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path and its image folder's, its H1 and H2 lines, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
+| `Workflow/piece/agentDraft/imagePlaceholders.ts` | | The Image placeholders in an Agent draft Section's body, each with its number and its file or facts, and the body's prose without them. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
 | `Workflow/piece/gapCheck.ts` | | The piece Workflow's section of the gap check. |
 | `Workflow/piece/implementPieceSkill.ts` | `implementPieceSkill` | Generates the `/implement-piece` skill from the piece implement step's drafting lines. |
-| `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, the drafting lines `/implement-piece` shares, passages folder, output schema, record and record checks. |
+| `Workflow/piece/implementStep.ts` | | The piece implement step's prompt, the drafting lines `/implement-piece` shares, the resolve and red-checks prompts' words for the images a fix may change, passages folder, output schema, record and record checks. |
 | `Workflow/piece/pieceChecks.ts` | | A drafting ticket's checks: overlap and the spec's length limit over the prose, Image placeholders left out, the overlap command's report and the `Length:` line the review inputs reuse, and the prompts' wording of an overlap run and its fixes. |
 | `Workflow/piece/pieceWorkflow.ts` | `pieceWorkflow` | Builds the piece Workflow from a repo's overlap and quote commands and Docs port: its research and drafting Steps, research, implement, review, with its supplied inputs, resolve and red-checks agent steps, its spec-end Steps and their trigger, pull and push rules, quote check, drafting checks and the source targets read from the spec's Supporting Material. |
 | `Workflow/piece/redChecksStep.ts` | | The piece red-checks step's prompt, fixing red piece checks in the Agent draft and its image folder, and its output schema. |

@@ -25,7 +25,7 @@ describe("pieceResolvePrompt", () => {
 
   it("lets a fix touch the agent's own images in the image folder, those with an SVG source beside them", () => {
     expect(prompt).toContain(
-      "A fix touches only the Agent draft and only the Sections this ticket names, by their full heading paths, and the agent's own images in the image folder, `writing/agent-drafts/10/`, those with an SVG source beside them: never a Section marked `<!-- developer -->`, an image with no SVG source, the spec, the fact list or a Research comment.",
+      "A fix touches only the Agent draft and only the Sections this ticket names, by their full heading paths, and the agent's own images in the image folder, `writing/agent-drafts/10/`, those with an SVG source beside them: never a Section marked `<!-- developer -->`, an image with no SVG source beside it, the spec, the fact list or a Research comment.",
     );
   });
 
