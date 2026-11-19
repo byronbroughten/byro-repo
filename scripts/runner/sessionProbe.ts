@@ -5,10 +5,8 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
-import {
-  injectionOutcomeText,
-  InjectionProbe,
-} from "@byronbroughten/spec-runner/InjectionProbe";
+import { injectionOutcomeText } from "@byronbroughten/spec-runner/InjectionOutcomeText";
+import { InjectionProbe } from "@byronbroughten/spec-runner/InjectionProbe";
 import {
   commandOutcomeText,
   SandboxProbe,

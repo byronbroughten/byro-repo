@@ -2,14 +2,13 @@
 // the implementer's, the resumed turns and their subagents the review's. transcriptFacts.ts builds one per ticket.
 
 import {
-  costUsdOf,
   type SessionEntries,
-  stepIdsOf,
-  type TicketSessions,
   timeOf,
   type Transcript,
   type TranscriptEntry,
-} from "../transcriptFacts.ts";
+} from "./transcriptLocation.ts";
+import { stepIdsOf, type TicketSessions } from "./transcriptOutcomes.ts";
+import { costUsdOf } from "./transcriptPricing.ts";
 
 type CostSide = "implementer" | "review";
 

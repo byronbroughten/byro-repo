@@ -72,6 +72,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `halts.ts` | | Halts: their comments and a posted comment's id, ticket and `Blocks:` line read back, notices, the resume prompt and the words of the fresh Halt on an Outline edit the runner can't apply, of the Halt on a ticket that picks no Workflow and of the push Halts, on a Section by its heading path and on a Doc's pending suggestions. |
 | `halts/haltReplies.ts` | | Reads a developer's replies to a Halt: which answer it, `stop spec` and a Failure or push Halt's answer. |
 | `headlessProbe.ts` | | Launches the one-turn headless session the probes run, refusing a stream-json one that printed no events, and reads a folder's sandbox block and a session's stream events. |
+| `InjectionOutcomeText.ts` | `InjectionOutcomeText` | Words an injection probe outcome's line: the Skill call, the brief, the hook's tmpdir and the calls it saw. |
 | `InjectionProbe.ts` | `InjectionProbe` | `npm run session:probe -- --injection-check`: whether a skill's injected command runs, in the box or not, and what a PreToolUse hook sees of it, by slash command and through the Skill tool, for each `allowed-tools` entry; whether it sees the session ID and can read and write the hooks' `claude-guardrails/`; and whether a Skill call with no `Skill` allow rule is denied. |
 | `IssueReader.ts` | `IssueReader` | `npm run issue:read`: prints an issue as Trusted and Untrusted text, reads a Trusted body's Model fit line for `npm run outcome:summary`, names a ticket's skill and, for `/close-project`, its spec for `npm run issue:start`, and words the headline, body and others' comment count a brief prints for `map:next`, `issue:close-parent` and `runner judge-brief`. |
 | `IssueWorkspaces.ts` | `IssueWorkspaces` | Creates, promotes, resumes, leases, lists and removes issue and session workspaces, delegating to `IssueWorkspaces/`. |
@@ -200,8 +201,12 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ticketReadiness.ts` | | The check `issue:file` and `issue:ready` share on an agent or interactive ticket's `## Where` and last `## Model fit`, and the `ready-*` labels. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |
-| `transcriptFacts.ts` | `transcriptFacts` | Outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded; the config folders transcripts are under, where a session's transcript is, the main-session transcripts started in a date range, and the subagents a session started since a time. |
+| `transcriptFacts.ts` | `transcriptFacts` | Re-assembles the `transcriptFacts/` pieces under one import path. |
 | `transcriptFacts/ReviewResumes.ts` | | The implementer sessions a review or resolve step resumed, split by a recorded review start or the resumed launch's prompt, and each side's cost. |
+| `transcriptFacts/transcriptFixture.ts` | | The config folder of fixture transcripts, the sessions over it and the writers the `transcriptFacts` tests share. |
+| `transcriptFacts/transcriptLocation.ts` | | Where transcripts are: the config folders, a session's transcript and the main-session transcripts started in a date range. |
+| `transcriptFacts/transcriptOutcomes.ts` | | The outcome facts computed from transcripts: pair, peaks, duration and cost, and why one is unrecorded. |
+| `transcriptFacts/transcriptPricing.ts` | | The price table and what a transcript's replies cost at it. |
 | `UnhandledStop.ts` | `UnhandledStop` | The outcomes the run loop doesn't handle yet, and their error. |
 | `verdicts.ts` | | A finding's axes, `spec`, `standards` and `reader`, and its verdicts. |
 | `Workflow.ts` | | The Workflow type, its spec-end Steps, source targets, pull and push rules, each agent step's rules and prompt input, the one schema every step of the implementer's session launches with and the accessors that throw for a step a Workflow leaves out, the pick of a ticket's Workflow and of a spec's own, the composed spec end and gap-check input, and an interactive session's skill, from the labels: the core's one way to a Workflow. |
