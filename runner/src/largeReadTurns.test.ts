@@ -277,7 +277,7 @@ describe("the step openings the prompts are worded from", () => {
   it.each(
     steps.flatMap((step) => [
       [step, stepOpeningOf(step)],
-      [step, stepOpeningOf(step, draftingTicketKind)],
+      [`${step}${draftingTicketKind}`, stepOpeningOf(step, draftingTicketKind)],
     ]),
   )("names the %s from its prompt's opening", (step, opening) => {
     const kinds = largeReadTurnsOf([
@@ -298,7 +298,9 @@ describe("the step openings the prompts are worded from", () => {
           ...readThen("r1", bigText, 1),
         ]),
       ]);
-      expect(kinds.map(({ kind }) => kind)).toEqual(["review step"]);
+      expect(kinds.map(({ kind }) => kind)).toEqual([
+        `review step${ticketKind}`,
+      ]);
     },
   );
 });

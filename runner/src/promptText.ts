@@ -26,17 +26,22 @@ export function stepOpeningOf(step: string, ticketKind = ""): string {
 const runReviewStep = "review step";
 
 const openedStepPatterns = {
-  fresh: /^You are the (?<step>[a-z-]+ step|gap check) of an unattended run/,
+  fresh:
+    /^You are the (?<step>[a-z-]+ step|gap check) of an unattended run(?<ticketKind> on [^.:]+)?/,
   review: new RegExp(
-    `you now run its (?<step>${runReviewStep}) in an unattended run`,
+    `you now run its (?<step>${runReviewStep}) in an unattended run(?<ticketKind> on [^.:]+)?`,
   ),
 } as const;
 
-// The step a prompt's opening names, a run's resumed review included; undefined for any other prompt.
+// The step a prompt's opening names, with its ticket kind, a run's resumed review included; undefined for any other prompt.
 export function openedStepOf(prompt: string): string | undefined {
   return Object.values(openedStepPatterns)
-    .map((pattern) => prompt.match(pattern)?.groups?.step)
-    .find((step) => step !== undefined);
+    .map((pattern) => prompt.match(pattern)?.groups)
+    .flatMap((groups) => {
+      if (groups?.step === undefined) return [];
+      return [`${groups.step}${groups.ticketKind ?? ""}`];
+    })
+    .at(0);
 }
 
 export function codeListOf(
