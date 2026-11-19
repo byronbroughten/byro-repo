@@ -1,8 +1,8 @@
 // `npm run image:render -- <svg file>`: writes a PNG of the same name beside the SVG.
-// The core is pngRender.ts; this parses the argument, reads the SVG and writes the PNG.
+// The core is imageRenderPng.ts; this parses the argument, reads the SVG and writes the PNG.
 import { readFileSync, writeFileSync } from "node:fs";
 
-import { pngOf } from "./pngRender.ts";
+import { pngOf } from "./imageRenderPng.ts";
 
 const usage =
   "Usage: npm run image:render -- <svg file>; writes a PNG of the same name beside it";
