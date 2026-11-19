@@ -53,7 +53,7 @@
     "./reviewStep": "./src/Workflow/code/reviewStep.ts",
     "./runCollecting": "./src/runCollecting.ts",
     "./runKnobs": "./src/runKnobs.ts",
-    "./InjectionOutcomeText": "./src/InjectionOutcomeText.ts",
+    "./injectionOutcomeText": "./src/injectionOutcomeText.ts",
     "./InjectionProbe": "./src/InjectionProbe.ts",
     "./SandboxProbe": "./src/SandboxProbe.ts",
     "./SessionProbe": "./src/SessionProbe.ts",

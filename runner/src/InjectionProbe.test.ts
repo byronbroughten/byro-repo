@@ -13,7 +13,7 @@ import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { injectionOutcomeText } from "./InjectionOutcomeText.ts";
+import { injectionOutcomeText } from "./injectionOutcomeText.ts";
 import {
   type InjectionOutcome,
   InjectionProbe,
