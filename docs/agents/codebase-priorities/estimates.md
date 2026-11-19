@@ -2,7 +2,7 @@
 
 An [observation index](../prose-files.md#terms) of measured costs a tradeoff's estimate can come from, grouped by subject, following the [observation-index rules](../../prose-style.md#observation-indexes). Each line gives its tag, the measurement, its conditions, its date, its evidence and the priorities it bears on.
 
-Per-ticket peak context, cost and duration are a record, not an observation: one file per landed issue, dated by its session ids, in [the outcome log](../model-fit.md#outcome-log), the primary root's `.runner/outcomes/`, written by wrap-up, never committed or cleared, and backed up by `npm run logs -- sync`; Research and older Pieces are in the `personal` repo's `writing/docs/model-fit.md`.
+Per-ticket peak context, cost and duration are a record, not an observation: one file per landed issue, dated by its session ids, in [the outcome log](../model-fit.md#outcome-log); Research and older Pieces are in the `personal` repo's `writing/docs/model-fit.md`.
 
 ## Reads
 
