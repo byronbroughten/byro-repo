@@ -39,6 +39,7 @@ const freeScripts = new Map<string, string>([
   ["jev", freeWhys.jev],
   ["outline", "it only reads a file"],
   ["doc:sections", "it only reads a tracked rule doc"],
+  ["image:render", "it only writes a PNG beside the SVG it names"],
   ["outcome:summary", "it only reads the outcome log and issues"],
   ["prompt:scan", "it only reads transcripts"],
   [
