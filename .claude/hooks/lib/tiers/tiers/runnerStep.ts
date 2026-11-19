@@ -28,13 +28,14 @@ export const runnerStep = {
   ): Verdict | undefined {
     if (mode !== "runnerStep") return undefined;
     const call = ghIssue.callOf(words);
-    if (call?.verb === "close") {
+    if (!call) return undefined;
+    if (call.verb === "close") {
       return {
         permissionDecision: "ask",
         why: "closes an issue, which only the runner or the developer does",
       };
     }
-    if (!call || !ghStepWrites.has(call.verb)) return undefined;
+    if (!ghStepWrites.has(call.verb)) return undefined;
     return {
       permissionDecision: "allow",
       why: "a further `gh issue edit` or comment undoes it",

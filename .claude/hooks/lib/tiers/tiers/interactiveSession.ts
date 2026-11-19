@@ -11,7 +11,7 @@ export const interactiveSession = {
     { words }: SimpleCommand,
     { mode }: CallContext,
   ): Verdict | undefined {
-    const [program, verb, ...args] = words;
+    const [program, noun, ...args] = words;
     if (mode !== "interactive" || program !== "gh") return undefined;
     if (ghIssue.callOf(words)?.verb === "create") {
       return {
@@ -20,7 +20,7 @@ export const interactiveSession = {
         needsPlainText: true,
       };
     }
-    if (verb !== "api") return undefined;
+    if (noun !== "api") return undefined;
     const call = GhApiCall.init(args);
     if (call?.isRead) {
       return {

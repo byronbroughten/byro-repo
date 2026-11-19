@@ -383,18 +383,20 @@ describe("a runner step's gh calls", () => {
   );
 
   it("reads the verb past a flag before it, as gh does", () => {
-    [
+    for (const command of [
       "gh issue -R byronbroughten/byro-repo edit 341 --remove-label ready-for-agent",
       "gh issue --repo=byronbroughten/byro-repo comment 447 -b done",
-    ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
-    [
+    ]) {
+      expect(runnerStepDecisionOf(command)).toBe("allow");
+    }
+    for (const command of [
       "gh issue -R byronbroughten/byro-repo close 447",
       "gh issue -R byronbroughten/byro-repo view 447",
-    ].forEach((command) => {
+    ]) {
       const decision = modeDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain(blockerInstead);
-    });
+    }
   });
 
   it("denies closing an issue with the blocker text", () => {
@@ -484,13 +486,13 @@ describe("an Interactive session's gh calls", () => {
       ],
     ];
     const modes: SessionMode[] = ["interactive", "runnerStep"];
-    pairs.forEach(([leading, trailing]) => {
-      modes.forEach((mode) => {
+    for (const [leading, trailing] of pairs) {
+      for (const mode of modes) {
         expect(modeDecisionOf(leading, mode)?.permissionDecision).toBe(
           modeDecisionOf(trailing, mode)?.permissionDecision,
         );
-      });
-    });
+      }
+    }
   });
 
   it("allows a gh api read, and refuses it in a runner step", () => {

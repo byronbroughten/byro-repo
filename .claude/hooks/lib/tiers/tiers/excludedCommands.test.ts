@@ -50,19 +50,19 @@ function commandMatching(entry: string): string {
   return entry.replace(/ \*$/, " x").replace(/\*$/, ":x");
 }
 
-describe("the project settings' `npm run` entries", () => {
+describe("the project settings' `npm` entries", () => {
   const settings = JSON.parse(readFileSync(settingsPath, "utf8")) as {
     sandbox: { excludedCommands: string[] };
   };
-  const npmRunEntries = settings.sandbox.excludedCommands.filter((entry) =>
-    entry.startsWith("npm run "),
+  const npmEntries = settings.sandbox.excludedCommands.filter((entry) =>
+    entry.startsWith("npm "),
   );
 
-  it("has `npm run` entries to check", () => {
-    expect(npmRunEntries.length).toBeGreaterThan(0);
+  it("has `npm` entries to check", () => {
+    expect(npmEntries.length).toBeGreaterThan(0);
   });
 
-  it.each(npmRunEntries)(
+  it.each(npmEntries)(
     "gives `%s` a specific reason, never the generic one",
     (entry) => {
       const refusal = excludedCommands.refusalOf(
