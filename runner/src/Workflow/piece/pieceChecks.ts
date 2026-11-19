@@ -113,11 +113,12 @@ export const pieceChecks = {
     return lengthMatchOf(specBody)?.[0];
   },
 
-  // Over every Section's body, headings and author marks left out.
+  // Over every Section's prose, headings, author marks and Image placeholders left out.
   wordCountOf(sections: DraftSection[]): number {
     return sections.reduce(
       (count, { markdown }) =>
-        count + (markdown.match(patterns.word)?.length ?? 0),
+        count +
+        (agentDraft.proseOf(markdown).match(patterns.word)?.length ?? 0),
       0,
     );
   },

@@ -1,6 +1,6 @@
 // A Piece's Agent draft file, as ../../../../docs/pieces/agent-draft.md describes it: the Doc's `# <H1>` and `## <H2>`
 // lines, each Section marked as the developer's or an agent's, with its heading's headingId, on the line under its
-// heading and named by its heading path. Pull, from pieceWorkflow.ts, merges a Doc read into it, and the push reads its
+// heading and named by its heading path, and the Image placeholders in a Section's body. Pull, from pieceWorkflow.ts, merges a Doc read into it, and the push reads its
 // agent Sections back out; the Doc's Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
 
 import {
@@ -18,6 +18,19 @@ export type DraftSection = HeadedSection & {
   headingId: string | undefined;
 };
 
+// A placeholder names its image's file or, for an image with no file, lists the facts it shows.
+export type ImagePlaceholder = { number: number } & (
+  { file: string } | { facts: string }
+);
+
+// A placeholder is a paragraph of its own, `\[Image <n>: <file or facts>\]`, the dialect escaping its brackets.
+const imagePatterns = {
+  placeholder: /^\\\[Image (\d+): ([\s\S]+)\\\]$/,
+  pngFile: /^[^\s/\\]+\.png$/,
+  escape: /\\([\\*_[\]])/g,
+  paragraphBreak: /\n{2,}/,
+} as const;
+
 // A mark is `<!-- developer -->` or `<!-- agent -->`, then the heading's headingId when it has one.
 const authorMark = {
   pattern: /^<!-- (developer|agent)(?: (\S+))? -->$/,
@@ -32,6 +45,26 @@ const authorMark = {
 export const agentDraft = {
   pathOf(specNumber: NumberOrPlaceholder): string {
     return `writing/agent-drafts/${specNumber}.md`;
+  },
+
+  // Each image's PNG, and an agent-made image's SVG source of the same name.
+  imageFolderOf(specNumber: NumberOrPlaceholder): string {
+    return `writing/agent-drafts/${specNumber}/`;
+  },
+
+  imagePlaceholdersOf(markdown: string): ImagePlaceholder[] {
+    return paragraphsOf(markdown).flatMap((paragraph) => {
+      const placeholder = placeholderOf(paragraph);
+      return placeholder === undefined ? [] : [placeholder];
+    });
+  },
+
+  // A Section's body with each Image placeholder paragraph left out.
+  proseOf(markdown: string): string {
+    const prose = paragraphsOf(markdown).filter(
+      (paragraph) => placeholderOf(paragraph) === undefined,
+    );
+    return `${prose.join("\n\n")}\n`;
   },
 
   sectionsOf(draft: string): DraftSection[] {
@@ -105,6 +138,23 @@ export const agentDraft = {
       .reduce(withGoneSection, pulled);
   },
 };
+
+function paragraphsOf(markdown: string): string[] {
+  return markdown
+    .trim()
+    .split(imagePatterns.paragraphBreak)
+    .filter((paragraph) => paragraph !== "");
+}
+
+function placeholderOf(paragraph: string): ImagePlaceholder | undefined {
+  const [, number, text] = imagePatterns.placeholder.exec(paragraph) ?? [];
+  if (number === undefined || text === undefined) return undefined;
+  const unescaped = text.replace(imagePatterns.escape, "$1").trim();
+  if (imagePatterns.pngFile.test(unescaped)) {
+    return { number: Number(number), file: unescaped };
+  }
+  return { number: Number(number), facts: unescaped };
+}
 
 function markOf(
   path: string,

@@ -9,6 +9,9 @@ An Agent draft ([GLOSSARY.md](./GLOSSARY.md#language)) is the agents' last versi
 - **The author mark is `<!-- developer <headingId> -->` or `<!-- agent <headingId> -->`, carrying its heading's Google Docs `headingId`.** A Section an agent drafted is the agent's; every other Section is the developer's. A mark with no ID, `<!-- developer -->` or `<!-- agent -->`, still parses, as an older file's or a heading with no ID has it. A drafting agent copies a mark unchanged, its ID included.
 - **Every H1 carries a mark**: an H1 with no text of its own holds an empty Section marked `<!-- developer -->`. A file with no `#` lines names each Section by its H2 alone.
 - **A Doc's Title paragraph counts as an H1**: the Docs module prints it as `#`, so it starts a heading path like any H1.
+- **An Image placeholder ([GLOSSARY.md](./GLOSSARY.md#language)) is a paragraph of its own in a Section's body: `\[Image <n>: <file or facts>\]`**, the dialect escaping its brackets, `<n>` the image's number. Text after the colon that is one PNG file name, such as `\[Image 1: sales-by-month.png\]`, names the image's file in the image folder; any other text, such as `\[Image 2: Sales rose each month; March was the highest.\]`, lists the facts an image with no file shows. The length check leaves each placeholder out of a Section's words.
+- **The image folder is `writing/agent-drafts/<n>/` beside the Agent draft**: each image's PNG and, for an agent-made image, its SVG source of the same name. It is committed like the Agent draft.
+- **An image's owner follows its source file**: one with an SVG source beside it is the agent's; one without is the developer's and is never edited. A placeholder carries no mark.
 - **The file changes only by a pull, an implement step (a run's or an `/implement-piece` session's), or a `/judge-findings` "now" fix.** Its edits are never made by hand.
 
 ## Pull
