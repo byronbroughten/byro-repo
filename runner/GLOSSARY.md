@@ -158,6 +158,14 @@ _Avoid_: merge, ship, done, closed (for a landing)
 A repo's one long-lived clone. Work lands into it and is never made in it.
 _Avoid_: main repo, root clone
 
+**Home repo**:
+The repo every session starts in: it holds the shared agent tooling and the areas, and every other repo is cloned inside it.
+_Avoid_: monorepo, root repo
+
+**Area**:
+A folder in the home repo for one business or one part of life, holding its notes and any apps built for it.
+_Avoid_: business area, life area, project (a Project is a set of specs)
+
 **Workspace**:
 A disposable set of checkouts, one per repo, where edits are made instead of in the primary checkouts.
 _Avoid_: worktree (bare), sandbox
