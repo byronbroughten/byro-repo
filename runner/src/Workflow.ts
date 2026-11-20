@@ -16,12 +16,13 @@ import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import type { SessionSubmit } from "./promptText.ts";
 import { sessionOutputSchemaOf } from "./recordSchema.ts";
 import type { Command } from "./runKnobs.ts";
-import type {
-  PullBaseline,
-  TicketState,
-  TicketStep,
-  TrackedIssue,
-  Wait,
+import {
+  humanLabel,
+  type PullBaseline,
+  type TicketState,
+  type TicketStep,
+  type TrackedIssue,
+  type Wait,
 } from "./SpecRun/runState.ts";
 import type {
   DismissedOverlap,
@@ -46,9 +47,15 @@ export type Landing = "code" | "research";
 export type SessionSkill =
   "implement-code" | "research-piece" | "close-project" | "implement-piece";
 
+// A ticket's session skill with the labels it was picked from, which say whether the ticket is drafting.
+export interface SkilledTicket extends LabelledIssue {
+  skill: SessionSkill;
+}
+
 // An Edit gate ticket walks the drafting Steps too, but the Agent draft there is the developer's to edit.
-export function isDraftingSkill(skill: SessionSkill): boolean {
-  return skill === "implement-piece";
+// A drafting ticket follows `implement-piece` with no `ready-for-human` label; a developer-only step follows it too, with the label.
+export function isDrafting({ skill, labels }: SkilledTicket): boolean {
+  return skill === "implement-piece" && !labels.includes(humanLabel);
 }
 
 // `/close-project` always takes the parent's number, so an Edit gate's session names its spec, never the gate.

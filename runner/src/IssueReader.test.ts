@@ -408,9 +408,10 @@ describe("IssueReader.sessionSkillOf", () => {
     expect(await skillOf(["research"], ["piece"])).toBe("research-piece");
   });
 
-  it("names /close-project and the spec for the Edit gate under a piece spec", async () => {
+  it("names /close-project, the spec and the ticket's labels for the Edit gate under a piece spec", async () => {
     expect(await pickOf(["ready-for-human", "edit-gate"], ["piece"])).toEqual({
       skill: "close-project",
+      labels: ["ready-for-human", "edit-gate"],
       spec: { repo: "byro-repo", number: 3 },
     });
   });

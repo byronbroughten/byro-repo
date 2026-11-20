@@ -85,7 +85,7 @@ async function startedTicketOf(
   key: WorkspaceKey,
 ): Promise<StartedTicket | undefined> {
   if ("session" in key) return undefined;
-  const [{ skill, spec }, text] = await Promise.all([
+  const [pick, text] = await Promise.all([
     issueReader.sessionSkillOf(key),
     issueReader.read([
       key.repo,
@@ -95,7 +95,7 @@ async function startedTicketOf(
       "--hide-others",
     ]),
   ]);
-  return { issue: key, skill, spec, text };
+  return { ...pick, issue: key, text };
 }
 
 // Opens at the primary root, not the workspace, so hooks never point into a folder wrap-up removes.

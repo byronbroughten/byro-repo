@@ -2,9 +2,10 @@
 import { isAbsolute, relative } from "node:path";
 
 import {
-  isDraftingSkill,
+  isDrafting,
   isSpecSkill,
   type SessionSkill,
+  type SkilledTicket,
 } from "@byronbroughten/spec-runner/IssueReader";
 import {
   type IssueRef,
@@ -21,9 +22,8 @@ interface StartReport {
   otherIssueBranches: RepoBranch[];
 }
 
-export interface StartedTicket {
+export interface StartedTicket extends SkilledTicket {
   issue: IssueRef;
-  skill: SessionSkill;
   // The ticket's parent, or the ticket itself with none.
   spec: IssueRef;
   text: string;
@@ -48,9 +48,10 @@ export function startReportOf({
 }
 
 // A drafting ticket's session pulls its Agent draft before drafting; `/start-issue` sends the pull with `EnterWorktree`.
-function ticketLinesOf({ issue, skill, spec, text }: StartedTicket): string[] {
+function ticketLinesOf(ticket: StartedTicket): string[] {
+  const { issue, skill, spec, text } = ticket;
   const lines = [skillLineOf(skill, spec)];
-  if (isDraftingSkill(skill)) {
+  if (isDrafting(ticket)) {
     lines.push(`Pull: npm run piece:pull -- ${issue.repo} ${issue.number}`);
   }
   return [...lines, text];
