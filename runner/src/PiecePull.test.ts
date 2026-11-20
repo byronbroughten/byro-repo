@@ -148,7 +148,7 @@ describe("PiecePull", () => {
     it("an Edit gate ticket", async () => {
       source.issues.set(
         ticket.number,
-        readableOf(ticket, { parent: spec, labels: [humanLabel] }),
+        readableOf(ticket, { parent: spec, labels: [humanLabel, "edit-gate"] }),
       );
       const { path } = await workspaces().create(ticket);
 

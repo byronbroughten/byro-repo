@@ -17,8 +17,7 @@ export function pieceGapCheckSectionOf(draftPath: string): GapCheckSection {
     followUp: "a drafting ticket",
     heldOpen: {
       name: "the Edit gate",
-      description:
-        "the developer's `ready-for-human` ticket to edit the Deliverable",
+      description: "the developer's `edit-gate` ticket to edit the Deliverable",
     },
   };
 }
