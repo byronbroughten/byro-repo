@@ -1112,6 +1112,17 @@ describe("a sandboxed call", () => {
     );
   });
 
+  it("leaves a runner step's Interactive-only script to its row only when the row counts it as a GitHub call", () => {
+    expect(
+      sandboxedDecisionOf("npm run issue:file -- x", "runnerStep")
+        ?.permissionDecision,
+    ).toBe("deny");
+    expect(
+      sandboxedDecisionOf("npm run doc:print -- x", "runnerStep")
+        ?.permissionDecision,
+    ).toBe("allow");
+  });
+
   it("still refuses an edit adding a ready-* label in both modes", () => {
     for (const mode of modes) {
       expect(

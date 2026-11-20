@@ -3,14 +3,7 @@
 import type { SimpleCommand } from "../ShellParser.ts";
 import { excludedCommands } from "./excludedCommands.ts";
 import { gitWrites } from "./gitWrites.ts";
-import { npmCommands } from "./npmCommands.ts";
-
-// The npm scripts running `gh` writes that a runner step is refused, inside the box too, where the words hold no `gh` for the scan to find; `issue:backlink`'s write is free, so it isn't here.
-const githubWriteScripts = new Set([
-  "issue:file",
-  "issue:close-parent",
-  "issue:ready",
-]);
+import { interactiveScripts } from "./interactiveScripts.ts";
 
 // Shell punctuation a quoted word may hold, and the brace expansion bash would run as `gh`, as in `{gh,x}`.
 const tokenBreaks = /[\s;&|()`{},]+/;
@@ -41,8 +34,7 @@ export const sandboxedCalls = {
         .filter((token) => token !== "")
         .map((token) => token.replace(/^.*\/(?=(gh|git)$)/, "")),
     );
-    const script = npmCommands.scriptOf(words)?.name;
-    if (script !== undefined && githubWriteScripts.has(script)) return true;
+    if (interactiveScripts.countsAsGitHubCall(words)) return true;
     return tokens.some(
       (token, at) =>
         token === "gh" ||
