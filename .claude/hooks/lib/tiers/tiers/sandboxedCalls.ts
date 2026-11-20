@@ -34,7 +34,7 @@ export const sandboxedCalls = {
         .filter((token) => token !== "")
         .map((token) => token.replace(/^.*\/(?=(gh|git)$)/, "")),
     );
-    if (interactiveScripts.writesGitHub(words)) return true;
+    if (interactiveScripts.countsAsGitHubCall(words)) return true;
     return tokens.some(
       (token, at) =>
         token === "gh" ||

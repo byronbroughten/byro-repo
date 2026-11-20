@@ -22,9 +22,9 @@ export const interactiveScripts = {
     return script.sessionVerdict;
   },
 
-  // A prefixed call counts too, so `npm --prefix x run issue:file` can't slip out of the box's GitHub check.
-  writesGitHub(words: string[]): boolean {
-    return scriptOf(words)?.writesGitHub === true;
+  // A prefixed call counts too, so `npm --prefix=x run issue:file` can't slip out of the box's GitHub check.
+  countsAsGitHubCall(words: string[]): boolean {
+    return scriptOf(words)?.countAsGitHubCall === true;
   },
 };
 
@@ -35,12 +35,12 @@ function scriptOf(words: string[]): InteractiveScript | undefined {
   );
 }
 
-// A script only an Interactive session runs: `stepWhy` is a runner step's refusal, `sessionVerdict` the session's, and `writesGitHub` marks one running `gh` writes, which the box doesn't free, as its words hold no `gh` for the scan to find.
+// A script only an Interactive session runs: `stepWhy` is a runner step's refusal, `sessionVerdict` the session's, and `countAsGitHubCall` marks one running `gh` writes, which the box doesn't free, as its words hold no `gh` for the scan to find.
 interface InteractiveScript {
   name: string;
   stepWhy: string;
   sessionVerdict: Verdict;
-  writesGitHub?: boolean;
+  countAsGitHubCall?: boolean;
 }
 
 const scripts = {
@@ -58,7 +58,7 @@ const scripts = {
   issueFile: {
     name: "issue:file",
     stepWhy: "files issues, which only an Interactive session does",
-    writesGitHub: true,
+    countAsGitHubCall: true,
     sessionVerdict: {
       permissionDecision: "allow",
       why: "`gh issue close` undoes each issue `npm run issue:file` creates, and the opposite call each sub-issue and blocked-by link",
@@ -108,7 +108,7 @@ const scripts = {
   issueCloseParent: {
     name: "issue:close-parent",
     stepWhy: "closes a parent issue, which only an Interactive session does",
-    writesGitHub: true,
+    countAsGitHubCall: true,
     sessionVerdict: {
       permissionDecision: "allow",
       why: "`gh issue reopen` undoes the close `npm run issue:close-parent` makes, and a further comment its closing comment",
@@ -119,7 +119,7 @@ const scripts = {
     name: "issue:ready",
     stepWhy:
       "changes an issue's triage label, which only an Interactive session does",
-    writesGitHub: true,
+    countAsGitHubCall: true,
     sessionVerdict: {
       permissionDecision: "allow",
       why: "a further relabel undoes the one `npm run issue:ready` makes",
