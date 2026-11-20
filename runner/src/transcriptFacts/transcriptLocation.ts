@@ -1,5 +1,4 @@
 // Where transcripts are: the config folders, a session's transcript and the main-session transcripts started in a date range.
-// transcriptFacts.ts re-exports the public members; projectDirsOf, entriesOf, transcriptOf and transcriptsOf stay inside the folder.
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
