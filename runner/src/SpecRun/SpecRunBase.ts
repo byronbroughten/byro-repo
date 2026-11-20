@@ -91,7 +91,7 @@ export interface SpecRunConfig {
   primaryRoot: string;
   workspaceFolder: string;
   symlinkedFiles: string[];
-  // Installs a new workspace's dependencies when copying the primary's fails.
+  // Installs a new workspace's dependencies, when the copy from the primary can't be used.
   installSeedDependencies(workspaceRoot: string): Promise<void>;
   // The install and after-fast-forward commands npm run wrap-up lands with, so a runner landing runs the same ones.
   wrapUpCommands: WrapUpCommands;
