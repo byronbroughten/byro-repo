@@ -23,9 +23,9 @@ Explore the repo, if you haven't already, by [`specs.md`'s Exploring](../../../d
 
 For each spec with code work, sketch its test seams and warn of any planned test that would break a test speed rule, by [`specs.md`'s Test seams](../../../docs/agents/specs.md#test-seams).
 
-## 3. Fill the Piece's nine fields
+## 3. Fill the Piece's ten fields
 
-A piece or mixed spec fills nine fields for its Piece. Its Piece follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md), [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md) and [`grilling.md`](../../../docs/pieces/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here. Draw each field from the conversation `/plan-project` ran, in the developer's words where they gave them:
+A piece or mixed spec fills ten fields for its Piece. Its Piece follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](../../../docs/pieces/rules.md), [`GLOSSARY.md`](../../../docs/pieces/GLOSSARY.md) and [`grilling.md`](../../../docs/pieces/grilling.md). Use their words (Piece, Deliverable, Section, Supporting Material, Reference) and cite them; never restate them here. Draw each field from the conversation `/plan-project` ran, in the developer's words where they gave them:
 
 - **Deliverable**: the Google Doc's title and Doc ID.
 - **Supporting Material**: each by title and Drive ID, with what it is for. For one too long to read whole, such as a book, list the passages that count by page range, given as PDF pages with the printed pages beside them when they differ, such as `PDF pp. 45–60 (printed 31–46)`.
@@ -34,6 +34,7 @@ A piece or mixed spec fills nine fields for its Piece. Its Piece follows the Pie
 - **Form**: the length limit and its cut order, and the template if there is one. With a limit, the field holds a line of its own, `Length: <n> words`, counted over the body text of every Section with headings left out; a run checks the draft against it.
 - **Outline**: the glossary's Outline as the developer approved it at the grill's end. [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md) says how it is written and how a template in Form fixes its Sections.
 - **Facts**: the closed list the Piece may use, with each answer to grilling.md's Your own text question named as given, quoted or with where it lives.
+- **Images**: grilling.md's Images answers, one entry per image: its number and caption, who makes it, the agent or the developer, its Drive file ID when the developer's file exists, and the facts it shows, which [`rules.md`](../../../docs/pieces/rules.md) keeps outside the Facts field.
 - **Research** and **Final pass**: grilling.md's answers to the questions of those names.
 
 Done when every field holds an answer or the developer's waiver. Ask for any field the conversation left open, all in one message, before the proposal; a Drive or Doc ID is always asked for, never guessed.
@@ -52,7 +53,7 @@ File nothing until the developer says yes to the proposal. A change they ask for
 
 ## 5. Write each spec
 
-A code spec uses the code template, a piece spec the piece template. **A mixed spec uses the code template, and carries its Piece's nine fields as the piece template's sections, `## Deliverable` to `## Final pass`, after `## Testing Decisions`.** Every spec after the first ends with a `## Phase gate` section, before `## Where` and `## Model fit` when it has them:
+A code spec uses the code template, a piece spec the piece template. **A mixed spec uses the code template, and carries its Piece's ten fields as the piece template's sections, `## Deliverable` to `## Final pass`, `## Images` after `## Facts`, after `## Testing Decisions`.** Every spec after the first ends with a `## Phase gate` section, before `## Where` and `## Model fit` when it has them:
 
 <phase-gate-template>
 
@@ -162,6 +163,8 @@ A short numbered list, only as long as the Piece needs: `As <actor>, I want <fea
 ## Outline
 
 ## Facts
+
+## Images
 
 ## Research
 

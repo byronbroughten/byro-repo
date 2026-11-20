@@ -38,7 +38,7 @@ Dispatch them all at once, reads only, each told the file IDs or issue numbers, 
 
 ## 3. Ask in rounds
 
-Call the Skill tool with "grilling" for its round format; the rounds rule here and this branch's done criterion win over that skill's. **Rounds rule**: every question whose answer doesn't wait on another goes in one round, and each voice question is asked alone, one at a time, so its answer stays in the developer's words; Temperature and Reach share one round. Ask the Long reads question against step 2's chapter lists: "which of these matter?"
+Call the Skill tool with "grilling" for its round format; the rounds rule here and this branch's done criterion win over that skill's. **Rounds rule**: every question whose answer doesn't wait on another goes in one round, and each voice question is asked alone, one at a time, so its answer stays in the developer's words; Temperature and Reach share one round. Ask the Long reads question against step 2's chapter lists: "which of these matter?" For each developer image the Images question names whose file exists, ask for its Drive file ID as section 1 asks for the Supporting Material's, never guessed.
 
 **Before drafting, read the root's `docs/writing-voice.md` and `docs/writing-craft.md` with a Read that has no offset or limit, or a whole-file `cat`**, and for an Academic Piece `docs/academic-writing-style.md`, per [`docs/pieces/rules.md`'s Implementing a piece spec section](../../../docs/pieces/rules.md#implementing-a-piece-spec). Every draft in the grill, the calibration paragraph included, follows them.
 
@@ -53,7 +53,7 @@ Every question carries a recommendation:
 
 1. **The calibration paragraph.** Once the questions before it are answered, draft one paragraph in chat and have the developer rewrite it. Name each difference, then ask whether it holds for this Piece alone, which makes it a style override for the Style field, or for every Piece, which makes it a `/revise-workflows piece` candidate. In #1, one rewrite would have surfaced the name-not-pronoun, verdict-first and serial-comma habits before the full draft.
 2. **The Outline.** Read [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md), then draft it from the settled facts for the developer's approval.
-3. **Research and Final pass**: ask grilling.md's two questions that wait on the Outline in one round once it is approved, so every [`/project-spec`](../project-spec/SKILL.md#3-fill-the-pieces-nine-fields) field is settled.
+3. **Research and Final pass**: ask grilling.md's two questions that wait on the Outline in one round once it is approved, so every [`/project-spec`](../project-spec/SKILL.md#3-fill-the-pieces-ten-fields) field is settled.
 4. **The `/revise-workflows piece` candidates**: list each difference that holds for every Piece in chat, unwritten, for that skill's approval.
 5. **Delete the PDFs step 2 downloaded**, by the paths it got back; each later stage downloads the ranges it reads.
 

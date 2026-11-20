@@ -4,7 +4,7 @@ A spec that holds only facts yields a draft that is accurate but flat, and the d
 
 ## Questions
 
-The voice questions are the verdict, the stakes, a before and after, Temperature and Reach. Research and Final pass wait on the approved Outline. Each example is from Piece A, a letter of support, unless it names another Piece by its letter.
+The voice questions are the verdict, the stakes, a before and after, Temperature and Reach. Research and Final pass wait on the approved Outline. Each example is from Piece A, a letter of support, unless it names another Piece by its letter or is marked generic.
 
 - **The reader.** Who reads the Piece, what they already know, and which of the Piece's terms they use daily; a term not on that list gets glossed. It fills the spec's Reader field, which `/review-piece`'s `reader` axis stands in for. (B: the professor, grading against the rubric, who has read the first draft.)
 - **The verdict.** The strongest thing the developer would say, word for word, at full strength. It opens the Piece's main section. (A: "I can say without a doubt that Sam has more creativity and ingenuity than I have encountered in any other contractor.")
@@ -13,6 +13,7 @@ The voice questions are the verdict, the stakes, a before and after, Temperature
 - **Missing facts.** Read the fact list back and ask what is missing, and any step only you can do; the developer's memory holds facts no Supporting Material does. (A added chimney repairs, the first duplex and the home bought this year.)
 - **Your own text.** Which of the developer's own words the Piece keeps or revises: an earlier draft, the rewritten calibration paragraph, Supporting Material already graded. The spec's Facts field names each as given, so the review doesn't flag it as untraced. (B: the graded draft, whose sentences may be reused or revised.)
 - **Long reads.** Which Supporting Material or References are too long to read whole, such as a book or a lender's selling guide, and which page ranges or sections count. The spec lists them, so agents read only those passages. (B: a standards guide and a textbook.)
+- **Images.** Which images the Piece holds, such as a chart or a photo, and for each its number and caption, who makes it, the agent or the developer, and what it shows; for a developer's image, its Drive file ID, or that the file doesn't exist yet. The spec's Images field lists them, so the drafter makes or downloads each and the review checks it against its entry. (Generic: Figure 1, a bar chart of the budget by funding source, which the agent makes, showing each source's share; Figure 2, a photo of the site, the developer's, already in Drive.)
 - **The cut order.** Which listed facts go first when space runs short. (A cut the water heater and both tenant anecdotes.)
 - **What stays out.** Facts that are true and relevant but that the developer won't put in the Piece at any length, and what, if anything, stands in for them. (B: "Let's leave out the LLC transfer stuff and just say I'm working on the HELOC thing in the fall.")
 - **Funding sources.** For each budget or cost figure, which sources pay for it and in what share; a single named source reads as the whole. (C: the new HELOC funds only part of the $N budget, and cash reserves the rest: "some of which will come from a new HELOC with Example Credit Union")
