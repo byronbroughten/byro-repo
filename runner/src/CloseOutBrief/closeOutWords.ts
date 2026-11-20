@@ -3,11 +3,11 @@ import { labels } from "../WrapUp/wrapUpTypes.ts";
 
 const command = "issue:close-parent";
 
-// `/close-project` and `judge-brief` find a piece ticket by this label, never by a missing `code` one, since a mixed spec has both.
-// A piece spec's developer-only steps are `ready-for-human` too, so only `edit-gate` marks its Edit gate.
 export const closeOutLabels = {
   ...labels,
+  // `/close-project` and `judge-brief` find a piece ticket by this label, never by a missing `code` one, since a mixed spec has both.
   piece: "piece",
+  // A piece spec's developer-only steps are `ready-for-human` too, so only `edit-gate` marks its Edit gate.
   editGate: "edit-gate",
 } as const;
 
