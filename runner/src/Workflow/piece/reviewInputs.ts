@@ -20,11 +20,13 @@ import type {
 import { agentDraft } from "./agentDraft.ts";
 import { formHeading, pieceChecks } from "./pieceChecks.ts";
 
+export const imagesHeading = "## Images";
+
 const headings = {
   reader: "## Reader",
   outline: "## Outline",
   style: "## Style",
-  images: "## Images",
+  images: imagesHeading,
   order: "## Order",
   unverified: "## Unverified",
 } as const;
