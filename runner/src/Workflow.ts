@@ -48,11 +48,11 @@ export type SessionSkill =
   "implement-code" | "research-piece" | "close-project" | "implement-piece";
 
 // A ticket's session skill with the labels it was picked from, which say whether the ticket is drafting.
-export interface SkilledTicket {
+export interface SkilledTicket extends LabelledIssue {
   skill: SessionSkill;
-  labels: string[];
 }
 
+// An Edit gate ticket walks the drafting Steps too, but the Agent draft there is the developer's to edit.
 // A drafting ticket follows `implement-piece` with no `ready-for-human` label; a developer-only step follows it too, with the label.
 export function isDrafting({ skill, labels }: SkilledTicket): boolean {
   return skill === "implement-piece" && !labels.includes(humanLabel);
