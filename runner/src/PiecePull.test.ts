@@ -140,7 +140,20 @@ describe("PiecePull", () => {
       const { path } = await workspaces().create(ticket);
 
       await expect(piecePull().pull(ticket)).rejects.toThrow(
-        "utils #7 is not a drafting ticket: its Workflow has no pull Step, so piece:pull has nothing to pull.",
+        "utils #7 is not a drafting ticket, so piece:pull has nothing to pull.",
+      );
+      expect(existsSync(join(path, pieceDrafts.draftPath))).toBe(false);
+    });
+
+    it("a developer-only step, `ready-for-human` with no `edit-gate`", async () => {
+      source.issues.set(
+        ticket.number,
+        readableOf(ticket, { parent: spec, labels: [humanLabel] }),
+      );
+      const { path } = await workspaces().create(ticket);
+
+      await expect(piecePull().pull(ticket)).rejects.toThrow(
+        "utils #7 is not a drafting ticket",
       );
       expect(existsSync(join(path, pieceDrafts.draftPath))).toBe(false);
     });

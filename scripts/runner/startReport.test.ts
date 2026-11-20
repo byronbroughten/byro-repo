@@ -7,6 +7,7 @@ const ticketText = "## Model fit (Trusted text)\n\nSonnet medium";
 const ticket: StartedTicket = {
   issue: { repo: "personal", number: 357 },
   skill: "implement-code",
+  labels: [],
   spec: { repo: "personal", number: 350 },
   text: ticketText,
 };
@@ -52,8 +53,23 @@ describe("startReportOf", () => {
     );
   });
 
+  it("names /implement-piece and no pull command on a developer-only step, `ready-for-human` with no `edit-gate`", () => {
+    const step: StartedTicket = {
+      ...ticket,
+      skill: "implement-piece",
+      labels: ["ready-for-human", "piece"],
+    };
+    expect(startReportOf({ ...started, ticket: step })).toBe(
+      `${path}\nSkill: /implement-piece\n${ticketText}`,
+    );
+  });
+
   it("names /close-project with the spec's number, never the gate's, and no pull command on an Edit gate", () => {
-    const gate: StartedTicket = { ...ticket, skill: "close-project" };
+    const gate: StartedTicket = {
+      ...ticket,
+      skill: "close-project",
+      labels: ["ready-for-human", "edit-gate", "piece"],
+    };
     expect(startReportOf({ ...started, ticket: gate })).toBe(
       `${path}\nSkill: /close-project personal 350\n${ticketText}`,
     );

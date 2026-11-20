@@ -3,19 +3,19 @@ import { createHash } from "node:crypto";
 import { type IssueRef, issueRef } from "./IssueWorkspaces.ts";
 import { modelFitTextOf } from "./modelFit.ts";
 import {
-  isDraftingSkill,
+  isDrafting,
   isSpecSkill,
   type SessionSkill,
   sessionSkillOf,
+  type SkilledTicket,
   type Workflows,
 } from "./Workflow.ts";
 
-// Workflow.ts is no package entry, so the scripts that print the skill take its type and tests from here.
-export { isDraftingSkill, isSpecSkill, type SessionSkill };
+// Workflow.ts is no package entry, so the scripts that print the skill take its types and tests from here.
+export { isDrafting, isSpecSkill, type SessionSkill, type SkilledTicket };
 
-// The spec is the ticket's parent, or the ticket itself with none.
-export interface SessionSkillPick {
-  skill: SessionSkill;
+// The spec is the ticket's parent, or the ticket itself with none; the labels are the ticket's.
+export interface SessionSkillPick extends SkilledTicket {
   spec: IssueRef;
 }
 
@@ -172,6 +172,7 @@ export class IssueReader {
         : await source.readableIssueOf(ticket.parent);
     return {
       skill: sessionSkillOf({ ticket, spec }, workflows),
+      labels: ticket.labels,
       spec: spec.issue,
     };
   }

@@ -11,7 +11,7 @@ import {
 } from "./IssueWorkspaces.ts";
 import { draftPull, type WrittenPull } from "./SpecRun/runState/draftPull.ts";
 import {
-  isDraftingSkill,
+  isDrafting,
   pickedWorkflowOf,
   pullOf,
   type PullRules,
@@ -101,9 +101,11 @@ export class PiecePull {
 
   private _rulesOf(read: ReadTicket): PullRules {
     const workflow = pickedWorkflowOf(read, this.config.workflows);
-    if (!isDraftingSkill(workflow.sessionSkillOf(read.ticket))) {
+    const { labels } = read.ticket;
+    const skill = workflow.sessionSkillOf(read.ticket);
+    if (!isDrafting({ skill, labels })) {
       throw new Error(
-        `${issueRef.labelOf(read.ticket.issue)} is not a drafting ticket: its Workflow has no pull Step, so piece:pull has nothing to pull.`,
+        `${issueRef.labelOf(read.ticket.issue)} is not a drafting ticket, so piece:pull has nothing to pull.`,
       );
     }
     return pullOf(workflow);
