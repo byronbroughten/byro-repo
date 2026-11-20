@@ -117,6 +117,32 @@ describe("pieceChecks.wordCountOf", () => {
   it("counts every Section's body words, headings and author marks left out", () => {
     expect(pieceChecks.wordCountOf(sections)).toBe(15);
   });
+
+  it("counts only the prose words of a Section holding an Image placeholder", () => {
+    const withImage = agentDraft.sectionsOf(
+      "## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n\n\\[Image 1: crossing.png\\]\n\n\\[Image 2: The ferry left at noon and landed at four.\\]\n",
+    );
+
+    expect(pieceChecks.wordCountOf(withImage)).toBe(6);
+  });
+});
+
+describe("pieceChecks.lengthFailureOf with Image placeholders", () => {
+  const manyFacts = agentDraft.sectionsOf(
+    "## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n\n\\[Image 1: The ferry left at noon, crossed in four hours, carried ninety cars and landed at the north quay.\\]\n\n## The landing\n<!-- agent -->\n\nThey came ashore.\n\n\\[Image 2: landing.png\\]\n",
+  );
+
+  it("lets a placeholder listing many facts past a limit its words would otherwise break", () => {
+    expect(
+      pieceChecks.lengthFailureOf("## Form\n\nLength: 9 words\n", manyFacts),
+    ).toBeUndefined();
+  });
+
+  it("leaves placeholders out of the per-Section words of a length failure", () => {
+    expect(
+      pieceChecks.lengthFailureOf("## Form\n\nLength: 8 words\n", manyFacts),
+    ).toContain('9 words ("The crossing": 6, "The landing": 3)');
+  });
 });
 
 describe("pieceChecks messages", () => {

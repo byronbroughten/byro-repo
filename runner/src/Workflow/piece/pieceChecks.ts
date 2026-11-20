@@ -18,6 +18,7 @@ import type { TicketState } from "../../SpecRun/runState.ts";
 import type { DismissedOverlap, DraftedRecord } from "../../stepRecords.ts";
 import type { TicketChecksInput } from "../../Workflow.ts";
 import { agentDraft, type DraftSection } from "./agentDraft.ts";
+import { imagePlaceholders } from "./agentDraft/imagePlaceholders.ts";
 import { draftingScope } from "./draftingScope.ts";
 import { passagesFolderIn } from "./implementStep.ts";
 
@@ -113,11 +114,12 @@ export const pieceChecks = {
     return lengthMatchOf(specBody)?.[0];
   },
 
-  // Over every Section's body, headings and author marks left out.
+  // Over every Section's prose, headings, author marks and Image placeholders left out.
   wordCountOf(sections: DraftSection[]): number {
     return sections.reduce(
       (count, { markdown }) =>
-        count + (markdown.match(patterns.word)?.length ?? 0),
+        count +
+        (imagePlaceholders.proseOf(markdown).match(patterns.word)?.length ?? 0),
       0,
     );
   },

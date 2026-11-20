@@ -1,7 +1,8 @@
 // A Piece's Agent draft file, as ../../../../docs/pieces/agent-draft.md describes it: the Doc's `# <H1>` and `## <H2>`
 // lines, each Section marked as the developer's or an agent's, with its heading's headingId, on the line under its
-// heading and named by its heading path. Pull, from pieceWorkflow.ts, merges a Doc read into it, and the push reads its
-// agent Sections back out; the Doc's Markdown dialect and its split into Sections are ../../Docs/markdownDialect.ts's.
+// heading and named by its heading path, and the image folder beside it. Pull, from pieceWorkflow.ts, merges a Doc read
+// into it, and the push reads its agent Sections back out; the Doc's Markdown dialect and its split into Sections are
+// ../../Docs/markdownDialect.ts's, and the Image placeholders in a Section's body are agentDraft/imagePlaceholders.ts's.
 
 import {
   type HeadedSection,
@@ -32,6 +33,11 @@ const authorMark = {
 export const agentDraft = {
   pathOf(specNumber: NumberOrPlaceholder): string {
     return `writing/agent-drafts/${specNumber}.md`;
+  },
+
+  // Each image's PNG, and an agent-made image's SVG source of the same name.
+  imageFolderOf(specNumber: NumberOrPlaceholder): string {
+    return `writing/agent-drafts/${specNumber}/`;
   },
 
   sectionsOf(draft: string): DraftSection[] {

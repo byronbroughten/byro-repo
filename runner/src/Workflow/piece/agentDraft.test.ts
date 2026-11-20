@@ -98,6 +98,17 @@ describe("agentDraft", () => {
     ]);
   });
 
+  it("gives the image folder beside the draft for a spec number", () => {
+    expect(agentDraft.pathOf(10)).toBe("writing/agent-drafts/10.md");
+    expect(agentDraft.imageFolderOf(10)).toBe("writing/agent-drafts/10/");
+  });
+
+  it("round-trips a draft holding Image placeholders unchanged", () => {
+    const draft =
+      "## Results\n<!-- agent h.results -->\n\nProse before.\n\n\\[Image 1: sales\\_by\\_month.png\\]\n\n\\[Image 2: Sales rose each month.\\]\n";
+    expect(agentDraft.draftOf(agentDraft.sectionsOf(draft))).toBe(draft);
+  });
+
   describe("pulledOf", () => {
     it("mirrors the Doc's # lines, marking each H1 and keeping agent Sections", () => {
       const doc =
