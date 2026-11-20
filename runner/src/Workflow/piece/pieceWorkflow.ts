@@ -78,7 +78,7 @@ import {
   pieceResolvePrompt,
   pieceResolveRecordProblems,
 } from "./resolveStep.ts";
-import { reviewInputs } from "./reviewInputs.ts";
+import { imagesHeading, reviewInputs } from "./reviewInputs.ts";
 import {
   pieceReviewerCheckOf,
   pieceReviewPrompt,
@@ -92,7 +92,7 @@ const ticketLabels = {
 } as const;
 const specHeadings = {
   sources: "## Supporting Material",
-  images: "## Images",
+  images: imagesHeading,
   deliverable: "## Deliverable",
 } as const;
 // A Drive file ID, bare or inside a Drive URL; the spec names each source and its Deliverable by one.
