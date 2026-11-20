@@ -34,7 +34,7 @@ A piece or mixed spec fills ten fields for its Piece. Its Piece follows the Piec
 - **Form**: the length limit and its cut order, and the template if there is one. With a limit, the field holds a line of its own, `Length: <n> words`, counted over the body text of every Section with headings left out; a run checks the draft against it.
 - **Outline**: the glossary's Outline as the developer approved it at the grill's end. [`docs/pieces/outlining.md`](../../../docs/pieces/outlining.md) says how it is written and how a template in Form fixes its Sections.
 - **Facts**: the closed list the Piece may use, with each answer to grilling.md's Your own text question named as given, quoted or with where it lives.
-- **Images**: grilling.md's Images answers, one entry per image: its number and caption, who makes it, the agent or the developer, its Drive file ID when the developer's file exists, and the facts it shows. Its facts are outside the Facts field: the prose may use only the values the Outline names for it.
+- **Images**: grilling.md's Images answers, one entry per image: its number and caption, who makes it, the agent or the developer, its Drive file ID when the developer's file exists, and the facts it shows, which [`rules.md`](../../../docs/pieces/rules.md) keeps outside the Facts field.
 - **Research** and **Final pass**: grilling.md's answers to the questions of those names.
 
 Done when every field holds an answer or the developer's waiver. Ask for any field the conversation left open, all in one message, before the proposal; a Drive or Doc ID is always asked for, never guessed.
