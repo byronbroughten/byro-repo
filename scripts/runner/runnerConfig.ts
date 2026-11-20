@@ -105,7 +105,7 @@ export const issueWorkspacesConfig: IssueWorkspacesConfig = {
   // EnterWorktree asks for approval on any path outside the repo's .claude/worktrees/, whatever the allow rules say.
   workspaceFolder: join(primaryRoot, ".claude", "worktrees"),
   symlinkedFiles: ["sheets.config.json", ".clasp.json"],
-  async installDependencies(workspaceRoot) {
+  async installSeedDependencies(workspaceRoot) {
     execFileSync("npm", ["install"], { cwd: workspaceRoot, stdio: "inherit" });
   },
   async issueTitle({ repo, number }) {
@@ -185,7 +185,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
   const {
     workspaceFolder,
     symlinkedFiles,
-    installDependencies,
+    installSeedDependencies,
     removeCommand,
   } = issueWorkspacesConfig;
   return {
@@ -204,7 +204,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     primaryRoot,
     workspaceFolder,
     symlinkedFiles,
-    installDependencies,
+    installSeedDependencies,
     wrapUpCommands,
     promoteCommandOf: ({ repo, number }: IssueRef) =>
       promoteCommandOf(repo, `${number}`),

@@ -16,7 +16,7 @@ export const timing = {
     time = timing.startTime.getTime();
     return {
       clock: { now: () => new Date(time) },
-      async installDependencies() {
+      async installSeedDependencies() {
         advance(4);
       },
     };

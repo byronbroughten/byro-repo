@@ -237,7 +237,7 @@ describe("create, a second time", () => {
 describe("create, when a step fails", () => {
   it("rolls back, leaving no folder or registered worktree, so the next create starts afresh", async () => {
     const failing = workspaces({
-      async installDependencies() {
+      async installSeedDependencies() {
         throw new Error("npm install failed");
       },
     });
