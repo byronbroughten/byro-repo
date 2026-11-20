@@ -403,7 +403,12 @@ describe("review on a piece spec's drafting ticket", () => {
   describe("the inputs /review-piece copies word for word", () => {
     const inputsFolder = (): string =>
       join(workspacePath(), ".runner", "review-inputs", "byro-repo-1");
-    const fieldedBody = `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Reader\n\nA ferry passenger who missed the boat.\n\n## Style\n\nEvidence: firsthand · Formality: general\n\n- Keep the gulls.\n\n## Form\n\nLength: 300 words\nCut the harbour first.\n\n## Outline\n\n- The harbour: dawn.\n- The crossing: the escape.\n`;
+    const fieldedBody = `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Reader\n\nA ferry passenger who missed the boat.\n\n## Style\n\nEvidence: firsthand · Formality: general\n\n- Keep the gulls.\n\n## Form\n\nLength: 300 words\nCut the harbour first.\n\n## Images\n\n1. The quay at dawn, a photo.\n2. The ferry's route, a map.\n\n## Outline\n\n- The harbour: dawn.\n- The crossing: the escape.\n`;
+    // The harness's overlapping draft, with one Image placeholder naming a file in each Section and one listing facts.
+    const imagedDraft =
+      "## The harbour\n<!-- developer -->\n\nGulls circled the quay at dawn.\n\n\\[Image 1: quay-dawn.png\\]\n\n## The crossing\n<!-- agent -->\n\nThe ferry slipped out at noon.\n\n\\[Image 2: ferry-route.PNG\\]\n\n\\[Image 3: The ferry's route, from the quay to the far shore\\]\n";
+    const imageFolder = (): string =>
+      join(workspacePath(), "writing", "agent-drafts", "213");
 
     function addFieldedSpec(body = fieldedBody): void {
       addDraftingSpec();
@@ -421,6 +426,7 @@ describe("review on a piece spec's drafting ticket", () => {
           "outline.md",
           "length-limit.md",
           "style.md",
+          "images.md",
           "unverified.md",
           "overlap.txt",
         ]) {
@@ -440,9 +446,9 @@ describe("review on a piece spec's drafting ticket", () => {
       );
       const seen: Record<string, string> = {};
 
-      await specRun(FakeAgentStep.init(drafted(), reviewReading(seen))).run(
-        spec,
-      );
+      await specRun(
+        FakeAgentStep.init(drafted({}, imagedDraft), reviewReading(seen)),
+      ).run(spec);
 
       expect(seen["reader.md"]).toBe(
         "A ferry passenger who missed the boat.\n",
@@ -457,10 +463,18 @@ describe("review on a piece spec's drafting ticket", () => {
       expect(seen["unverified.md"]).toBe(
         "- The gulls were herring gulls: no source.\n",
       );
+      expect(seen["images.md"]).toBe(
+        `1. The quay at dawn, a photo.\n2. The ferry's route, a map.\n\n## Image files\n\n- ${join(imageFolder(), "quay-dawn.png")}\n- ${join(imageFolder(), "ferry-route.PNG")}\n`,
+      );
       expect(seen["overlap.txt"]).toContain(
         '1. "the ferry slipped out" (4 words), logbook.txt',
       );
-      for (const file of ["reader.md", "outline.md", "overlap.txt"]) {
+      for (const file of [
+        "reader.md",
+        "outline.md",
+        "images.md",
+        "overlap.txt",
+      ]) {
         expect(seen.prompt).toContain(join(inputsFolder(), file));
       }
       expect(seen.prompt).toContain(join(inputsFolder(), "overlap-allow.txt"));
@@ -483,6 +497,10 @@ describe("review on a piece spec's drafting ticket", () => {
       expect(seen["outline.md"]).toBe("- The crossing: the escape.\n");
       expect(seen["reader.md"]).toBeUndefined();
       expect(seen["unverified.md"]).toBeUndefined();
+      expect(seen["images.md"]).toBeUndefined();
+      expect(seen.prompt).toContain(
+        "No Images file: the spec has no `## Images` field.",
+      );
       expect(seen.prompt).toContain(
         "No Reader file: the spec has no `## Reader` field.",
       );

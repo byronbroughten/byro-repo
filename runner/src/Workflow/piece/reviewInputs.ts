@@ -1,10 +1,11 @@
 // The inputs `/review-piece` copies word for word, written before a drafting ticket's review launches, run or session brief:
 // the spec's Reader, Outline and Length limit, the research tickets' Unverified sections, the overlap command's report
-// over the Agent draft and the Style file. Each goes to its own file in the review-inputs folder, uncommitted, as the
+// over the Agent draft, the Style file and the Images field with each image file the draft's placeholders name, through
+// agentDraft/imagePlaceholders.ts's parse. Each goes to its own file in the review-inputs folder, uncommitted, as the
 // passages folder does; a field the spec lacks is named as absent instead. The fact list stays the review's to build.
 // pieceWorkflow.ts registers it as its review rules' supplied inputs, and reviewStep.ts names each file in the prompt.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { IssueRef } from "../../IssueWorkspaces.ts";
@@ -16,12 +17,15 @@ import type {
   SuppliedInput,
   WrittenInput,
 } from "../../Workflow.ts";
+import { agentDraft } from "./agentDraft.ts";
+import { imagePlaceholders } from "./agentDraft/imagePlaceholders.ts";
 import { formHeading, pieceChecks } from "./pieceChecks.ts";
 
 const headings = {
   reader: "## Reader",
   outline: "## Outline",
   style: "## Style",
+  images: "## Images",
   order: "## Order",
   unverified: "## Unverified",
 } as const;
@@ -50,7 +54,7 @@ interface StyleAxes {
 }
 
 export const reviewInputs = {
-  // In `/review-piece`'s order: Reader, Unverified, Outline, Length limit, Overlap and its allow file, Style.
+  // In `/review-piece`'s order: Reader, Unverified, Outline, Length limit, Overlap and its allow file, Style, then Images.
   async write(run: ReviewInputsRun): Promise<SuppliedInput[]> {
     const folder = reviewInputsFolderIn(run.workspacePath, run.ticket);
     mkdirSync(folder, { recursive: true });
@@ -97,6 +101,12 @@ export const reviewInputs = {
       overlap,
       allow,
       ...styleInputsOf(folder, body),
+      fieldInputOf(folder, {
+        name: "Images",
+        file: "images.md",
+        text: imagesOf(run),
+        absence: absentFieldOf(headings.images),
+      }),
     ];
   },
 };
@@ -177,6 +187,31 @@ async function overlapReportOf(
     allowFile,
   });
   return report.text;
+}
+
+// The Images field verbatim, then the path of each image file the Agent draft's placeholders name, in draft order.
+function imagesOf({
+  spec,
+  specClone,
+  draftPath,
+}: ReviewInputsRun): string | undefined {
+  const field = fieldOf(spec.body, headings.images);
+  if (field === undefined) return undefined;
+  const folder = join(specClone, agentDraft.imageFolderOf(spec.issue.number));
+  const draft = readFileSync(join(specClone, draftPath), "utf8");
+  const paths = agentDraft
+    .sectionsOf(draft)
+    .flatMap(({ markdown }) => imagePlaceholders.of(markdown))
+    .flatMap((placeholder) =>
+      "file" in placeholder ? [`- ${join(folder, placeholder.file)}`] : [],
+    );
+  return `${field}\n${imageFilesOf(paths)}`;
+}
+
+// The heading stays when no placeholder names a file, so a reviewer can tell none from lost ones.
+function imageFilesOf(paths: string[]): string {
+  if (paths.length === 0) return "## Image files\n";
+  return `## Image files\n\n${paths.join("\n")}\n`;
 }
 
 // The Style file shape docs/pieces/style-file.md names: the Axes lines, then the overrides, Form and Order verbatim.
