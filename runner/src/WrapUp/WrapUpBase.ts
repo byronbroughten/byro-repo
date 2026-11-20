@@ -159,7 +159,7 @@ export class WrapUpBase {
   ): Promise<void> {
     if (!(await packageDependencies.isAnyChanged(comparisons))) return;
     try {
-      await this.config.installDependencies?.(root);
+      await this.config.installDependencies(root);
     } catch (error) {
       throw new WrapUpFailure(
         "install",

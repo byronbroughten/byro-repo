@@ -33,7 +33,10 @@ import {
 } from "@byronbroughten/spec-runner/runKnobs";
 import type { SpecRunConfig } from "@byronbroughten/spec-runner/SpecRun";
 import { configFolderOf } from "@byronbroughten/spec-runner/transcriptFacts";
-import type { WrapUpConfig } from "@byronbroughten/spec-runner/WrapUp";
+import type {
+  WrapUpCommands,
+  WrapUpConfig,
+} from "@byronbroughten/spec-runner/WrapUp";
 
 export const githubOwner = "byronbroughten";
 // The one login whose text is Trusted text; fixed here, never taken from a command line.
@@ -143,7 +146,22 @@ export const outcomeFolder = join(stateFolder, "outcomes");
 // Wrap-up's check on the merged workspace, for every landing, code or piece.
 const mergeChecks: WrapUpConfig["mergeChecks"] = [["npm", "run", "check"]];
 
+// Shared by npm run wrap-up and the runner's landings, so a dependency a branch adds reaches the primary either way.
+const wrapUpCommands: WrapUpCommands = {
+  // Workspaces copy node_modules rather than install, so this is how a landed prepare change reaches the primaries.
+  async afterFastForward(root) {
+    execFileSync("npm", ["run", "prepare"], { cwd: root, stdio: "inherit" });
+  },
+  async installDependencies(root) {
+    execFileSync("npm", ["install", "--ignore-scripts"], {
+      cwd: root,
+      stdio: "inherit",
+    });
+  },
+};
+
 export const wrapUpConfig: WrapUpConfig = {
+  ...wrapUpCommands,
   workspaces: issueWorkspacesConfig,
   github: new GhCli(githubOwner),
   githubOwner,
@@ -160,16 +178,6 @@ export const wrapUpConfig: WrapUpConfig = {
         { cwd: root, encoding: "utf8" },
       ),
     ) as WrittenOutcomeRow,
-  // Workspaces copy node_modules rather than install, so this is how a landed prepare change reaches the primaries.
-  async afterFastForward(root) {
-    execFileSync("npm", ["run", "prepare"], { cwd: root, stdio: "inherit" });
-  },
-  async installDependencies(root) {
-    execFileSync("npm", ["install", "--ignore-scripts"], {
-      cwd: root,
-      stdio: "inherit",
-    });
-  },
   log: (line) => console.log(line),
 };
 
@@ -197,6 +205,7 @@ export function specRunConfigOf(owner: string): SpecRunConfig {
     workspaceFolder,
     symlinkedFiles,
     installDependencies,
+    wrapUpCommands,
     promoteCommandOf: ({ repo, number }: IssueRef) =>
       promoteCommandOf(repo, `${number}`),
     removeCommand,

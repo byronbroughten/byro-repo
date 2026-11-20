@@ -46,6 +46,7 @@ export {
   type LandingBranch,
   type ParentCheck,
   type ParentIssue,
+  type WrapUpCommands,
   type WrapUpConfig,
   type WrapUpGitHub,
   type WrapUpKnobs,

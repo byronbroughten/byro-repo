@@ -79,7 +79,7 @@ export class MasterFastForwarder extends WrapUpBase {
 
   private async _runAfterFastForward(): Promise<void> {
     try {
-      await this.config.afterFastForward?.(this.config.workspaces.primaryRoot);
+      await this.config.afterFastForward(this.config.workspaces.primaryRoot);
     } catch (error) {
       this._log(
         `Warning: the after-fast-forward hook failed, continuing: ${messageOf(error)}`,

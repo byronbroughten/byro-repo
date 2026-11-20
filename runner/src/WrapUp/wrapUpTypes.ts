@@ -121,7 +121,15 @@ export const defaultWrapUpKnobs: WrapUpKnobs = {
   silenceTimeoutMs: defaultRunKnobs.silenceTimeoutMs,
 };
 
-export interface WrapUpConfig {
+// Required, so a config that forgets them, as the runner's once did, fails tsc instead of landing with no install.
+export interface WrapUpCommands {
+  // Run at the primary root once the primaries are fast-forwarded; a failure only warns.
+  afterFastForward(primaryRoot: string): Promise<void>;
+  // Run at a root whose merge changed a package.json's dependencies, as installCommandLabel words it.
+  installDependencies(root: string): Promise<void>;
+}
+
+export interface WrapUpConfig extends WrapUpCommands {
   workspaces: IssueWorkspacesConfig;
   github: WrapUpGitHub;
   githubOwner: string;
@@ -138,10 +146,6 @@ export interface WrapUpConfig {
     root: string,
     request: OutcomeRowRequest,
   ): Promise<WrittenOutcomeRow>;
-  // Run at the primary root once the primaries are fast-forwarded; a failure only warns.
-  afterFastForward?(primaryRoot: string): Promise<void>;
-  // Run at a root whose merge changed a package.json's dependencies, as installCommandLabel words it.
-  installDependencies?(root: string): Promise<void>;
   knobs?: Partial<WrapUpKnobs>;
   sleep?(ms: number): Promise<void>;
   log?(line: string): void;
