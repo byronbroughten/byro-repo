@@ -1,7 +1,7 @@
 // The inputs `/review-piece` copies word for word, written before a drafting ticket's review launches, run or session brief:
 // the spec's Reader, Outline and Length limit, the research tickets' Unverified sections, the overlap command's report
-// over the Agent draft, the Style file and the Images field with each image file the draft's placeholders name, through
-// agentDraft/imagePlaceholders.ts's parse. Each goes to its own file in the review-inputs folder, uncommitted, as the
+// over the Agent draft, the Style file and the Images field with each image file the draft's placeholders name, as
+// agentDraft.ts reads them. Each goes to its own file in the review-inputs folder, uncommitted, as the
 // passages folder does; a field the spec lacks is named as absent instead. The fact list stays the review's to build.
 // pieceWorkflow.ts registers it as its review rules' supplied inputs, and reviewStep.ts names each file in the prompt.
 
@@ -18,7 +18,6 @@ import type {
   WrittenInput,
 } from "../../Workflow.ts";
 import { agentDraft } from "./agentDraft.ts";
-import { imagePlaceholders } from "./agentDraft/imagePlaceholders.ts";
 import { formHeading, pieceChecks } from "./pieceChecks.ts";
 
 const headings = {
@@ -189,7 +188,6 @@ async function overlapReportOf(
   return report.text;
 }
 
-// The Images field verbatim, then the path of each image file the Agent draft's placeholders name, in draft order.
 function imagesOf({
   spec,
   specClone,
@@ -200,11 +198,8 @@ function imagesOf({
   const folder = join(specClone, agentDraft.imageFolderOf(spec.issue.number));
   const draft = readFileSync(join(specClone, draftPath), "utf8");
   const paths = agentDraft
-    .sectionsOf(draft)
-    .flatMap(({ markdown }) => imagePlaceholders.of(markdown))
-    .flatMap((placeholder) =>
-      "file" in placeholder ? [`- ${join(folder, placeholder.file)}`] : [],
-    );
+    .imageFilesOf(draft)
+    .map((file) => `- ${join(folder, file)}`);
   return `${field}\n${imageFilesOf(paths)}`;
 }
 

@@ -218,7 +218,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt, record schema and reviewer check. |
-| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path and its image folder's, its H1 and H2 lines, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
+| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path and its image folder's, the image files its placeholders name, its H1 and H2 lines, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
 | `Workflow/piece/agentDraft/imagePlaceholders.ts` | | The Image placeholders in an Agent draft Section's body, each with its number and its file or facts, and the body's prose without them. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
 | `Workflow/piece/gapCheck.ts` | | The piece Workflow's section of the gap check. |
@@ -230,7 +230,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/piece/researchStep/researchRecord.ts` | | The research step's output schema, its record reader and the record checks. |
 | `Workflow/piece/researchStep/researchWords.ts` | | The research step's prompt, its scratch folder, its first-try and red-quotes sections, handoff comment, closing comment and Research Halt words. |
 | `Workflow/piece/resolveStep.ts` | | The piece resolve step's prompt, pointing at the verdict rules' `## Piece findings` and rerunning the piece checks after its Fixes, and its record checks, which refuse the verdict reasons a piece finding never takes. |
-| `Workflow/piece/reviewInputs.ts` | | Writes the inputs `/review-piece` copies word for word to the review-inputs folder before a piece review, the Images input's image file paths read from the Agent draft's placeholders among them, naming each the spec lacks. |
+| `Workflow/piece/reviewInputs.ts` | | Writes the inputs `/review-piece` copies word for word to the review-inputs folder before a piece review, naming each the spec lacks. |
 | `Workflow/piece/reviewStep.ts` | | The piece review step's prompt, carrying `/review-piece`'s SKILL.md body over the Agent draft, passages folder and supplied inputs, its record schema and its reviewer check. |
 | `WrapUp.ts` | `WrapUp` | `npm run wrap-up`: lands an issue or session workspace, delegating its landing steps and closing the issue to `WrapUp/`; and `npm run research:push`'s push. |
 | `WrapUp/BranchDeleter.ts` | | Deletes a landing's branches on each remote and locally, recording the ones that failed. |
