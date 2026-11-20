@@ -941,8 +941,8 @@ describe("the end of a piece spec", () => {
     draftIssueTitle: "Draft the harbour at dusk",
   };
 
-  // One drafting ticket and the Edit gate, a ready-for-human ticket the developer takes.
-  function addGatedSpec(gateLabels = ["ready-for-human"]): void {
+  // One drafting ticket and the Edit gate, the `edit-gate` ticket the developer takes.
+  function addGatedSpec(gateLabels = ["ready-for-human", "edit-gate"]): void {
     addDraftingSpec();
     github.subIssues.set(spec.number, [1, 2]);
     addIssue(2, { labels: gateLabels });
@@ -982,6 +982,20 @@ describe("the end of a piece spec", () => {
 
     expect(agentStep.requests).toHaveLength(2);
     expect(commentsOn(spec.number, gapCheckMark)).toEqual([]);
+  });
+
+  it("waits on a developer-only step before the Edit gate, holding the spec-end Steps and naming no Edit gate", async () => {
+    addDraftingSpec();
+    github.subIssues.set(spec.number, [1, 2, 3]);
+    addIssue(2, { labels: ["ready-for-human"] });
+    addIssue(3, { labels: ["ready-for-human", "edit-gate"] });
+
+    const { result, agentStep } = await landsThenGapChecks([]);
+
+    expect(agentStep.requests).toHaveLength(2);
+    expect(commentsOn(spec.number, gapCheckMark)).toEqual([]);
+    expect(result.message).toContain("byro-repo #2 waits on you");
+    expect(result.message).not.toContain("Edit gate");
   });
 
   it(`ends with "${judgeThenRerun}" while a review-list item is undecided`, async () => {

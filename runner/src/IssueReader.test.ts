@@ -408,11 +408,17 @@ describe("IssueReader.sessionSkillOf", () => {
     expect(await skillOf(["research"], ["piece"])).toBe("research-piece");
   });
 
-  it("names /close-project and the spec for the ready-for-human ticket under a piece spec", async () => {
-    expect(await pickOf(["ready-for-human"], ["piece"])).toEqual({
+  it("names /close-project and the spec for the Edit gate under a piece spec", async () => {
+    expect(await pickOf(["ready-for-human", "edit-gate"], ["piece"])).toEqual({
       skill: "close-project",
       spec: { repo: "byro-repo", number: 3 },
     });
+  });
+
+  it("names a developer-only step, `ready-for-human` with no `edit-gate`, as any other piece ticket", async () => {
+    expect(await skillOf(["ready-for-human"], ["piece"])).toBe(
+      "implement-piece",
+    );
   });
 
   it("names a Standalone ticket as its own spec", async () => {

@@ -13,6 +13,7 @@ import { gapCheckListOf, ticketReviewListOf } from "./reviewList.ts";
 const developer = "byronbroughten";
 const repo = "byro-repo";
 const parent = 804;
+const editGateLabels = ["ready-for-human", "piece", "edit-gate"];
 
 let github: FakeGitHub;
 let temp: string;
@@ -279,7 +280,7 @@ describe("the Close-out brief's refusals", () => {
 
   it("names an open Edit gate as the gate to close out first instead of refusing", async () => {
     github.edit(810, { labels: ["piece"] });
-    github.edit(811, { isOpen: true, labels: ["ready-for-human"] });
+    github.edit(811, { isOpen: true, labels: editGateLabels });
 
     const brief = await briefOf();
 
@@ -295,6 +296,16 @@ describe("the Close-out brief's refusals", () => {
     expect(await briefOf()).toContain(
       "- Open sub-issues: #811; each closes first.",
     );
+  });
+
+  it("refuses an open developer-only step, a ready-for-human piece ticket with no `edit-gate`, past an open Edit gate", async () => {
+    github.edit(810, { isOpen: true, labels: ["ready-for-human", "piece"] });
+    github.edit(811, { isOpen: true, labels: editGateLabels });
+
+    const brief = await briefOf();
+
+    expect(brief).toContain("- Open sub-issues: #810; each closes first.");
+    expect(brief).not.toContain("#811; each closes first");
   });
 
   it("refuses a repo outside the repo map", async () => {
@@ -362,7 +373,7 @@ describe("the Close-out with --comment-file", () => {
 
   it("refuses an open Edit gate with nothing closed", async () => {
     github.edit(810, { labels: ["piece"] });
-    github.edit(811, { isOpen: true, labels: ["ready-for-human"] });
+    github.edit(811, { isOpen: true, labels: editGateLabels });
 
     const brief = await briefOf("--comment-file", commentFileOf("Done."));
 

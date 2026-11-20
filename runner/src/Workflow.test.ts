@@ -164,6 +164,13 @@ describe("specEndOf", () => {
     ticket: { repo: "byro-repo", number: 3 },
     reason: "developer",
     text: "",
+    labels: ["ready-for-human", "edit-gate", "piece"],
+  };
+  // A developer-only step /project-tickets drafts mid-chain, `ready-for-human` with no `edit-gate`.
+  const developerStep: Wait = {
+    ticket: { repo: "byro-repo", number: 2 },
+    reason: "developer",
+    text: "",
     labels: ["ready-for-human", "piece"],
   };
   const haltedTicket: Wait = {
@@ -192,6 +199,21 @@ describe("specEndOf", () => {
 
   it("is not due while a ticket no Workflow lets stay open waits", () => {
     expect(specEndOf([code, piece]).isDue([haltedTicket])).toBe(false);
+  });
+
+  it("is not due while a piece spec's developer-only step waits before its Edit gate", () => {
+    expect(specEndOf([piece]).isDue([developerStep, editGate])).toBe(false);
+  });
+
+  it("names no Edit gate for a developer-only step's wait", () => {
+    const spec = trackedIssues.issueOf(7, {
+      labels: ["piece"],
+      body: "## Deliverable\n\nThe crossing, doc 1DeliverableCrossingDoc0000000000.\n",
+    });
+
+    expect(specEndOf([piece]).nextLineOf(spec, [developerStep])).toBe(
+      undefined,
+    );
   });
 
   it("has no Steps and is never due for an empty set", () => {

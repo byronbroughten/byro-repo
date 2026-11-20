@@ -45,19 +45,9 @@ export class CloseOutChecker {
   }
 }
 
-// Open while every other sub-issue is closed, on a spec with a piece ticket, since `/close-project` runs its steps first.
-function editGateOf({
-  children,
-  parent,
-}: ReadParent): ReadableIssue | undefined {
-  const hasPieceTicket = children.some(({ labels }) =>
-    labels.includes(closeOutLabels.piece),
+// The open sub-issue carrying `edit-gate`, left open since `/close-project` runs its steps first; any other open one still refuses.
+function editGateOf({ children }: ReadParent): ReadableIssue | undefined {
+  return children.find(
+    ({ isOpen, labels }) => isOpen && labels.includes(closeOutLabels.editGate),
   );
-  const open = children.filter(({ isOpen }) => isOpen);
-  const [only] = open;
-  if (!hasPieceTicket || open.length !== 1 || only === undefined) {
-    return undefined;
-  }
-  if (children.length < parent.subIssues.length) return undefined;
-  return only.labels.includes(closeOutLabels.human) ? only : undefined;
 }

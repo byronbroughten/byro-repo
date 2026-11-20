@@ -33,7 +33,7 @@ describe("a piece-only spec's gap-check prompt", () => {
 
   it("runs past the Edit gate, and never touches the Deliverable's Doc", () => {
     expect(prompt).toContain(
-      "has landed or closed, but the Edit gate, the developer's `ready-for-human` ticket to edit the Deliverable.",
+      "has landed or closed, but the Edit gate, the developer's `edit-gate` ticket to edit the Deliverable.",
     );
     expect(prompt).toContain("Never read or write the Deliverable's Doc.");
   });

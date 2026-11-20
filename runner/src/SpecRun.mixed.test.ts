@@ -61,7 +61,7 @@ describe("a `code` spec with a `piece` ticket", () => {
     );
     github.edit(1, { labels: ["ready-for-agent", "piece"] });
     github.edit(2, { labels: ["ready-for-agent", "code"] });
-    github.edit(3, { labels: ["ready-for-human", "piece"] });
+    github.edit(3, { labels: ["ready-for-human", "edit-gate", "piece"] });
   }
 
   async function runsToItsEnd(

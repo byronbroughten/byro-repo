@@ -11,4 +11,6 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 | `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
 | `wontfix`                  | `wontfix`            | Will not be actioned                     |
 
+A piece spec's Edit gate also carries `edit-gate`, beside `ready-for-human`: it alone tells the gate from the spec's developer-only steps, so the runner gives the gate `/close-project` and `issue:close-parent` leaves it open, and [`/project-tickets`](../../.claude/skills/project-tickets/SKILL.md#draft-the-piece-tickets) creates it.
+
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.

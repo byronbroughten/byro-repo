@@ -15,18 +15,17 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { closeOutWords } from "../../CloseOutBrief/closeOutWords.ts";
+import {
+  closeOutLabels,
+  closeOutWords,
+} from "../../CloseOutBrief/closeOutWords.ts";
 import { Docs } from "../../Docs.ts";
 import type { DocumentsPort } from "../../Docs/googleDocs.ts";
 import type { IssueRef } from "../../IssueWorkspaces.ts";
 import { markdownSectionOf } from "../../markdownSections.ts";
 import { resolveRulesOf } from "../../resolveRecords.ts";
 import type { Command } from "../../runKnobs.ts";
-import {
-  humanLabel,
-  type TrackedIssue,
-  type Wait,
-} from "../../SpecRun/runState.ts";
+import type { TrackedIssue, Wait } from "../../SpecRun/runState.ts";
 import { handoffText } from "../../stepPrompts/handoffText.ts";
 import { inlinedSkill, type ReadText } from "../../stepPrompts/inlinedSkill.ts";
 import {
@@ -85,10 +84,10 @@ import {
   pieceReviewRecordSchema,
 } from "./reviewStep.ts";
 
-// The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's.
+// The labels the Workflow reads on a ticket: a Research ticket's, and the Edit gate's, which the close-out reads too.
 const ticketLabels = {
   research: "research",
-  editGate: humanLabel,
+  editGate: closeOutLabels.editGate,
 } as const;
 const specHeadings = {
   sources: "## Supporting Material",
