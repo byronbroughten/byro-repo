@@ -44,20 +44,24 @@ describe("gateDecision", () => {
   });
 
   it("allows starting, listing and a plain remove of a workspace", () => {
-    [
+    for (const command of [
       "npm run issue:start -- byro-repo 261",
       "npm run issue:start -- --session glossary-fix --claude",
       "npm run issue:list",
       "npm run issue:remove -- byro-repo 261",
       "npm run issue:remove -- --session glossary-fix",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
   });
 
   it("allows releasing a workspace's lease, which issue:start takes back", () => {
-    [
+    for (const command of [
       "npm run issue:release -- byro-repo 484",
       "npm run issue:release -- --session glossary-fix",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
   });
 
   it("allows a backlink in a session and a runner step, beside gh issue edit", () => {
@@ -69,18 +73,20 @@ describe("gateDecision", () => {
   });
 
   it("allows listing the repos and their visibility, refreshed or not, in a session and a runner step", () => {
-    ["npm run repos", "npm run repos -- --refresh"].forEach((command) => {
+    for (const command of ["npm run repos", "npm run repos -- --refresh"]) {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("allow");
-    });
+    }
   });
 
   it("asks for a forced workspace remove, which discards work git can't bring back", () => {
-    [
+    for (const command of [
       "npm run issue:remove -- byro-repo 261 --force",
       "npm run issue:remove -- --session glossary-fix --force",
       "npm run issue:remove --force -- --session glossary-fix",
-    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    ]) {
+      expect(decisionOf(command)).toBe("ask");
+    }
     expect(
       runnerStepDecisionOf(
         "npm run issue:remove -- --session glossary-fix --force",
@@ -109,7 +115,7 @@ describe("gateDecision", () => {
   });
 
   it("denies a chore's send with no dry run of that chore, naming the dry-run command", () => {
-    [[], ["otherChore"]].forEach((dryRuns) => {
+    for (const dryRuns of [[], ["otherChore"]]) {
       const decision = gateDecision({
         command: "npm run app:chore fixRents -- --send",
         mode: "interactive",
@@ -119,7 +125,7 @@ describe("gateDecision", () => {
       expect(decision?.reason).toContain(
         "run `npm run app:chore fixRents` first",
       );
-    });
+    }
   });
 
   it("treats --send before npm's `--` as npm's own flag, so a dry run", () => {
@@ -138,35 +144,39 @@ describe("gateDecision", () => {
   });
 
   it("asks for a raw push and a bare clasp or sheets-framework, naming the command", () => {
-    [
+    for (const command of [
       "git push origin issue-274-gate",
       "git -C packages/framework push",
       "clasp deploy",
       "npx clasp push",
       "npx sheets-framework gen:configs",
-    ].forEach((command) => {
+    ]) {
       const decision = modeDecisionOf(command);
       expect(decision?.permissionDecision).toBe("ask");
       expect(decision?.reason).toContain(`\`${command}\``);
-    });
+    }
   });
 
   it("asks for a clasp or sheets-framework run by version, path or npm exec", () => {
-    [
+    for (const command of [
       "npx clasp@2.4.2 deploy",
       "npx @google/clasp@latest deploy",
       "./node_modules/.bin/clasp deploy",
       "npm exec clasp deploy",
       "npm exec -- sheets-framework probe",
-    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    ]) {
+      expect(decisionOf(command)).toBe("ask");
+    }
   });
 
   it("asks for a clasp or sheets-framework installed by npx's --package, whatever program it runs", () => {
-    [
+    for (const command of [
       "npx -p @google/clasp clasp deploy",
       "npx --package=@google/clasp sh -c 'clasp deploy'",
       "npm exec --package sheets-framework -- sh -c 'sheets-framework probe'",
-    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    ]) {
+      expect(decisionOf(command)).toBe("ask");
+    }
   });
 
   it("allows nothing whose words hide a command substitution", () => {
@@ -190,27 +200,31 @@ describe("gateDecision", () => {
   });
 
   it("decides `npm run -s` and `timeout` on what they wrap", () => {
-    [
+    for (const command of [
       "npm run -s check",
       "npm run -s issue:read -- byro-repo 447 --body --hide-others",
       "timeout 60 npm test",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
     expect(decisionOf("timeout 60 git push")).toBe("ask");
   });
 });
 
 describe("heredocs and substitutions", () => {
   it("reads a heredoc behind a quoted delimiter as plain text, since bash expands nothing in its body", () => {
-    [
+    for (const command of [
       "gh issue create --title T --body-file - <<'EOF'\nA `code` span, a | pipe and $(rm -rf dist)\nEOF",
       'gh issue create --title T --body-file - <<"EOF"\n# Title; with a ( paren\nEOF',
       "gh label list <<'EOF'\nx\nEOF\ngh label list",
       "gh label list <<'EOF' \\\n> /tmp/s372/a.md\nbody\nEOF",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
   });
 
   it("allows no heredoc bash may expand, nor a `<<` that isn't a heredoc beside a command", () => {
-    [
+    for (const command of [
       "gh label list <<EOF\nhi\nEOF",
       "gh issue create --title T --body-file - <<EOF\nok\nEOF",
       "gh label list <<< y\ngit push",
@@ -219,23 +233,29 @@ describe("heredocs and substitutions", () => {
       'gh label list "$(gh label list " <<\'X\'")"\ngit push\nX',
       'gh label list "${a:-" <<\'X\'"}"\ngit push\nX',
       'gh label list $((1<<"2"))\ngit push\n2',
-    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).not.toBe("allow");
+    }
   });
 
   it("allows a free call whose substitutions hold only free calls, quoted or not", () => {
-    [
+    for (const command of [
       'gh issue create --title T --body "#488: $(gh label list)"',
       "gh issue create --title `gh label list`",
       'gh issue create --title "$(gh label list "$(gh label list)")"',
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
   });
 
   it("gives a call the tier of the strictest command in its substitutions", () => {
-    [
+    for (const command of [
       'gh issue create --title "$(git push origin master)"',
       "gh label list `git push`",
       'gh label list "$(gh label list "$(git push)")"',
-    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    ]) {
+      expect(decisionOf(command)).toBe("ask");
+    }
     expect(decisionOf('gh label list "$(make notes)"')).toBeUndefined();
   });
 
@@ -244,27 +264,33 @@ describe("heredocs and substitutions", () => {
   });
 
   it("allows no call whose substitution it can't read", () => {
-    [
+    for (const command of [
       'gh label list "$(gh label list"',
       "gh label list `gh label list",
       'gh label list "$(gh label list # )\nrm -rf dist\n)"',
       "gh issue create --title T --body-file - <<EOF\n$(git push)\nEOF",
       "gh label list $'\\'' $(git push) $'\\''",
       'gh label list "$(case a in a) rm -rf dist;; esac)"',
-    ].forEach((command) => expect(decisionOf(command)).not.toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).not.toBe("allow");
+    }
   });
 
   it("reads a substitution beside a `${…}` or a comment as bash does", () => {
-    [
+    for (const command of [
       "echo $(echo ${x#) #} ; git push)",
       'echo "$(echo "${x#")"}" ; git push)"',
       "echo ${y:-a #} $(git push)",
       'gh label list "$(gh label list # )\ngit push\n)"',
-    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
-    [
+    ]) {
+      expect(decisionOf(command)).toBe("ask");
+    }
+    for (const command of [
       "echo $(echo ${x#) #} ; rm -rf x)",
       'gh label list "$(gh label list # )\nrm -rf dist\n)"',
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+    ]) {
+      expect(decisionOf(command)).toBeUndefined();
+    }
   });
 
   it("reads a substitution inside a `${…}`", () => {
@@ -285,11 +311,13 @@ describe("heredocs and substitutions", () => {
   });
 
   it("refuses an arithmetic `((` bash rejects", () => {
-    [
+    for (const command of [
       "(( # )) ; $(git push)",
       'echo "$( (( #)) ; git push\n)))"',
       "echo $(( #))",
-    ].forEach((command) => expect(decisionOf(command)).toBe("deny"));
+    ]) {
+      expect(decisionOf(command)).toBe("deny");
+    }
   });
 });
 
@@ -329,7 +357,7 @@ describe("a gate whose bash parser won't run", () => {
     async (_kind, shSyntax) => {
       const reloadedDecision = await gateDecisionWith(shSyntax);
       const modes: SessionMode[] = ["interactive", "runnerStep"];
-      modes.forEach((mode) => {
+      for (const mode of modes) {
         const decision = reloadedDecision({
           command: "gh label list",
           mode,
@@ -337,7 +365,7 @@ describe("a gate whose bash parser won't run", () => {
         });
         expect(decision?.permissionDecision).toBe("deny");
         expect(decision?.reason).toContain("npm install");
-      });
+      }
     },
   );
 });
@@ -352,24 +380,28 @@ describe("a runner step's unclassified call", () => {
   });
 
   it("leaves a call naming gh or a live alias to Claude Code's allow rules in an Interactive session", () => {
-    [
+    for (const command of [
       "gh issue edit 447 --body-file /tmp/body.md",
       "gh issue close 447",
       "gh pr view 12",
       "npm run app:gen:configs",
       "npm run -s dev:push",
-    ].forEach((command) => expect(modeDecisionOf(command)).toBeUndefined());
+    ]) {
+      expect(modeDecisionOf(command)).toBeUndefined();
+    }
   });
 });
 
 describe("a runner step's gh calls", () => {
   it("allows an issue edit or comment on any issue", () => {
-    [
+    for (const command of [
       "gh issue edit 447 --body-file /tmp/body.md",
       "gh issue edit 341 -R byronbroughten/byro-repo --add-label needs-triage",
       "gh issue edit 341 --remove-label ready-for-agent",
       "gh issue comment 447 -b done",
-    ].forEach((command) => expect(runnerStepDecisionOf(command)).toBe("allow"));
+    ]) {
+      expect(runnerStepDecisionOf(command)).toBe("allow");
+    }
   });
 
   it.each(readyLabelEdits)(
@@ -406,33 +438,33 @@ describe("a runner step's gh calls", () => {
   });
 
   it("denies every other gh call as unclassified, reads included", () => {
-    [
+    for (const command of [
       "gh api repos/x/y/issues/1/comments",
       "gh pr create --fill",
       "gh issue view 389",
       "gh issue list",
       "gh issue reopen 447",
-    ].forEach((command) => {
+    ]) {
       const decision = modeDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain("doesn't classify");
-    });
+    }
   });
 
   it("denies a write whose body could hide a command, naming --body-file instead of a blocker", () => {
-    [
+    for (const command of [
       "gh issue comment 447 --body-file - <<EOF\nok\nEOF",
       "gh issue comment 447 --body-file - <<'EOF'\nok\nEOF",
       'gh issue comment 447 --body "Fails at `Api.ts`"',
       'gh issue edit 447 --body "$(cat notes.md)"',
       "gh issue comment 447 --body `cat notes.md`",
       'gh issue edit 447 --body "$(git push)"',
-    ].forEach((command) => {
+    ]) {
       const decision = modeDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain("--body-file");
       expect(decision?.reason).not.toContain(blockerInstead);
-    });
+    }
   });
 
   it("leaves an Interactive session's write with a backtick to Claude Code", () => {
@@ -455,12 +487,14 @@ describe("an Interactive session's gh calls", () => {
   });
 
   it("leaves an edit removing a label, or adding any other, to Claude Code", () => {
-    [
+    for (const command of [
       "gh issue edit 341 --remove-label ready-for-agent",
       "gh issue edit 341 --add-label needs-triage --remove-label ready-for-human",
       "gh issue edit 341 --add-label ready-for-agentish",
       "gh issue edit 341 --title ready-for-agent",
-    ].forEach((command) => expect(modeDecisionOf(command)).toBeUndefined());
+    ]) {
+      expect(modeDecisionOf(command)).toBeUndefined();
+    }
   });
 
   it("allows creating an issue, and refuses it in a runner step", () => {
@@ -496,41 +530,41 @@ describe("an Interactive session's gh calls", () => {
   });
 
   it("allows a gh api read, and refuses it in a runner step", () => {
-    [
+    for (const command of [
       "gh api repos/x/y/issues/475 --jq .id",
       "gh api -X GET search/issues -f q=repo:x/y",
       "gh api --method=get repos/x/y/issues/476/sub_issues --paginate",
       "gh api repos/x/y/issues/476/dependencies/blocked_by --jq '.[].number'",
-    ].forEach((command) => {
+    ]) {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("deny");
-    });
+    }
   });
 
   it("allows adding or removing a blocked-by link or a sub-issue, and refuses it in a runner step", () => {
-    [
+    for (const command of [
       "gh api --method POST repos/x/y/issues/477/dependencies/blocked_by -F issue_id=123",
       "gh api -X DELETE /repos/x/y/issues/477/dependencies/blocked_by/123",
       "gh api -XPOST repos/x/y/issues/476/sub_issues -F sub_issue_id=456",
       "gh api --method=DELETE repos/x/y/issues/476/sub_issue -F sub_issue_id=456",
-    ].forEach((command) => {
+    ]) {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("deny");
-    });
+    }
   });
 
   it("allows editing an issue comment, and refuses it in a runner step", () => {
-    [
+    for (const command of [
       "gh api --method PATCH repos/x/y/issues/comments/987 -F body=@/tmp/body.md",
       "gh api -X patch /repos/x/y/issues/comments/987 -f body=Fixed",
-    ].forEach((command) => {
+    ]) {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("deny");
-    });
+    }
   });
 
   it("allows a variable issue number or comment id, and refuses it in a runner step", () => {
-    [
+    for (const command of [
       "gh api --method POST repos/o/r/issues/$n/dependencies/blocked_by -F issue_id=$id",
       "gh api --method POST repos/o/r/issues/${n}/dependencies/blocked_by -F issue_id=$id",
       "gh api --method POST repos/o/r/issues/$1/dependencies/blocked_by -F issue_id=$2",
@@ -538,34 +572,36 @@ describe("an Interactive session's gh calls", () => {
       "gh api --method POST repos/o/r/issues/$n/sub_issues -F sub_issue_id=$id",
       "gh api --method PATCH repos/o/r/issues/comments/$c -f body=x",
       "e(){ gh api --method POST repos/o/r/issues/$1/dependencies/blocked_by -F issue_id=$2; }; e 547 1",
-    ].forEach((command) => {
+    ]) {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("deny");
-    });
+    }
   });
 
   it("leaves a variable owner or repo to Claude Code", () => {
-    [
+    for (const command of [
       "gh api --method POST repos/$o/r/issues/1/dependencies/blocked_by -F issue_id=2",
       "gh api --method POST repos/o/$r/issues/$n/sub_issues -F sub_issue_id=2",
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+    ]) {
+      expect(decisionOf(command)).toBeUndefined();
+    }
   });
 
   it("allows the runner's decide, and refuses it in a runner step", () => {
-    [
+    for (const command of [
       'npm run runner -- decide ByronBroughten/byro-repo 372 R159.1 "accepted"',
       'npm run runner -- decide ByronBroughten/byro-repo 372 R159.1 --handled "filed #490"',
-    ].forEach((command) => {
+    ]) {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("deny");
-    });
+    }
     expect(
       decisionOf("npm run runner -- ByronBroughten/byro-repo 372"),
     ).toBeUndefined();
   });
 
   it("leaves any other gh api write to Claude Code", () => {
-    [
+    for (const command of [
       "gh api -X DELETE repos/x/y/issues/comments/987",
       "gh api repos/x/y/issues/comments/987 -f body=Fixed",
       "gh api -X PATCH repos/x/y/pulls/comments/987 -f body=Fixed",
@@ -581,15 +617,19 @@ describe("an Interactive session's gh calls", () => {
       "gh api --unknown-flag repos/x/y/issues/1",
       "gh api -iX DELETE repos/x/y/issues/1/sub_issue",
       "gh api -X",
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+    ]) {
+      expect(decisionOf(command)).toBeUndefined();
+    }
   });
 
   it("leaves a create or api call hiding a command to Claude Code", () => {
-    [
+    for (const command of [
       'gh issue create --title T --body "$(make notes)"',
       "gh issue create --title T --body-file - <<EOF\nok\nEOF",
       "gh api repos/x/y/issues/`id`",
-    ].forEach((command) => expect(decisionOf(command)).toBeUndefined());
+    ]) {
+      expect(decisionOf(command)).toBeUndefined();
+    }
   });
 });
 
@@ -709,7 +749,7 @@ describe("an Interactive session's scripts", () => {
 
 describe("loops, conditionals, groups and functions", () => {
   it("allows one made only of free commands in an Interactive session", () => {
-    [
+    for (const command of [
       "for id in 1 2; do gh api --method POST repos/o/r/issues/519/sub_issues -F sub_issue_id=$id; done",
       "e(){ gh api --method POST repos/o/r/issues/519/sub_issues -F sub_issue_id=$1; }; e 1",
       "function e { gh api repos/o/r/issues/$1; }\ne 1\ne 2",
@@ -725,11 +765,13 @@ describe("loops, conditionals, groups and functions", () => {
       "for f in $(gh label list); do npm run lint; done",
       "for f in a; do gh label list done; done",
       "{ npm run lint; } 2>&1",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
   });
 
   it("asks for one holding a command that asks, a function's call included", () => {
-    [
+    for (const command of [
       "for i in 1; do git push; done",
       "{ git push; }",
       "if npm run lint; then git push; fi",
@@ -740,7 +782,9 @@ describe("loops, conditionals, groups and functions", () => {
       "for i\ndo git push\ndone",
       "select i do git push; done",
       "f(){ for i do git push; done; }; f 1",
-    ].forEach((command) => expect(decisionOf(command)).toBe("ask"));
+    ]) {
+      expect(decisionOf(command)).toBe("ask");
+    }
   });
 
   it("refuses a runner step's loop as it refuses the command inside", () => {
@@ -753,7 +797,7 @@ describe("loops, conditionals, groups and functions", () => {
   });
 
   it("refuses one it can't read as bash would", () => {
-    [
+    for (const command of [
       "for i in 1; do npm run lint",
       "{ npm run lint",
       "npm run lint; }",
@@ -767,7 +811,9 @@ describe("loops, conditionals, groups and functions", () => {
       "case x in a) npm run lint;; esac; ;;",
       "for; do npm run lint; done",
       "for i x; do npm run lint; done",
-    ].forEach((command) => expect(decisionOf(command)).toBe("deny"));
+    ]) {
+      expect(decisionOf(command)).toBe("deny");
+    }
   });
 
   it("leaves a function whose argument it can't follow to Claude Code", () => {
@@ -842,7 +888,7 @@ describe("a call the gate can't parse", () => {
         },
       },
     ];
-    sandboxes.forEach((sandbox) => {
+    for (const sandbox of sandboxes) {
       const decision = gateDecision({
         command,
         mode: "interactive",
@@ -851,7 +897,7 @@ describe("a call the gate can't parse", () => {
       });
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain("a quote left open");
-    });
+    }
   });
 
   it("leaves a call it parses to its tier", () => {
@@ -862,7 +908,7 @@ describe("a call the gate can't parse", () => {
 
 describe("free reads and standing yeses in both modes", () => {
   it("allows gh label list, Jev, the session probe, the outline, the doc section printer and the image render in a session and a runner step", () => {
-    [
+    for (const command of [
       "gh label list -R ByronBroughten/byro-repo",
       "npm run jev -- /tmp/request.json",
       "npm run -s jev -- /tmp/request.json",
@@ -876,24 +922,29 @@ describe("free reads and standing yeses in both modes", () => {
       "npm run ws:rm -- .claude/hooks/old.ts .claude/skills/old/SKILL.md",
       "npm run map:next -- byro-repo 804",
       "npm run -s map:next -- byro-repo 804 813",
-    ].forEach((command) => {
+    ]) {
       expect(decisionOf(command)).toBe("allow");
       expect(runnerStepDecisionOf(command)).toBe("allow");
-    });
+    }
   });
 
   it("allows the outcome summary as a read", () => {
-    [
+    for (const command of [
       "npm run outcome:summary -- byro-repo-480",
       "npm run outcome:summary -- --recent 3",
       "npm run -s outcome:summary -- --all",
-    ].forEach((command) => expect(decisionOf(command)).toBe("allow"));
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
   });
 
   it("allows the prompt scan as a read", () => {
-    ["npm run prompt:scan", "npm run -s prompt:scan -- --sessions 20"].forEach(
-      (command) => expect(decisionOf(command)).toBe("allow"),
-    );
+    for (const command of [
+      "npm run prompt:scan",
+      "npm run -s prompt:scan -- --sessions 20",
+    ]) {
+      expect(decisionOf(command)).toBe("allow");
+    }
   });
 
   it("leaves other gh label calls to Claude Code", () => {
@@ -913,21 +964,21 @@ describe("a runner step's live aliases", () => {
   }
 
   it("allows the aliases a spreadsheet target gives", () => {
-    [
+    for (const command of [
       "npm run app:probe -- --sheet Units",
       "npm run -s app:configs:diff",
       "npm run app:chore fixRents",
       "npm run app:gen:configs",
-    ].forEach((command) =>
+    ]) {
       expect(targetedDecisionOf(command, ["app"])?.permissionDecision).toBe(
         "allow",
-      ),
-    );
-    ["npm run dev:push", "npm run dev:run fixtures"].forEach((command) =>
+      );
+    }
+    for (const command of ["npm run dev:push", "npm run dev:run fixtures"]) {
       expect(targetedDecisionOf(command, ["dev"])?.permissionDecision).toBe(
         "allow",
-      ),
-    );
+      );
+    }
   });
 
   it("denies a spreadsheet the ticket doesn't target, with the blocker text", () => {
@@ -936,20 +987,23 @@ describe("a runner step's live aliases", () => {
       ["npm run app:deploy", ["dev"]],
       ["npm run -s dev:push", ["app"]],
     ];
-    untargeted.forEach(([command, targets]) => {
+    for (const [command, targets] of untargeted) {
       const decision = targetedDecisionOf(command, targets);
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain(blockerInstead);
-    });
+    }
   });
 
   it("denies an alias no target gives", () => {
-    ["npm run app:push", "npm run app:run x", "npm run dev:clean"].forEach(
-      (command) =>
-        expect(
-          targetedDecisionOf(command, ["app", "dev"])?.permissionDecision,
-        ).toBe("deny"),
-    );
+    for (const command of [
+      "npm run app:push",
+      "npm run app:run x",
+      "npm run dev:clean",
+    ]) {
+      expect(
+        targetedDecisionOf(command, ["app", "dev"])?.permissionDecision,
+      ).toBe("deny");
+    }
   });
 
   it("still needs a dry run before an app chore's send", () => {
@@ -986,10 +1040,12 @@ describe("spreadsheetTargetsOf", () => {
 describe("a Supervisor's gh writes", () => {
   // The gate takes no supervision input, so a session holding a record gets the same call as one without.
   it("leaves a gh issue comment and edit to the allow rules, as for any interactive session", () => {
-    [
+    for (const command of [
       'gh issue comment 331 --body "Approved reply"',
       "gh issue edit 341 -R byronbroughten/byro-repo --add-label needs-triage",
-    ].forEach((command) => expect(modeDecisionOf(command)).toBeUndefined());
+    ]) {
+      expect(modeDecisionOf(command)).toBeUndefined();
+    }
   });
 });
 
@@ -1057,37 +1113,37 @@ describe("a sandboxed call", () => {
   });
 
   it("still refuses an edit adding a ready-* label in both modes", () => {
-    modes.forEach((mode) =>
+    for (const mode of modes) {
       expect(
         sandboxedDecisionOf(
           "gh issue edit 341 --add-label ready-for-agent",
           mode,
         )?.permissionDecision,
-      ).toBe("deny"),
-    );
+      ).toBe("deny");
+    }
   });
 
   it("allows the map's next-ticket read in the box in both modes", () => {
-    modes.forEach((mode) =>
+    for (const mode of modes) {
       expect(
         sandboxedDecisionOf("npm run map:next -- byro-repo 804", mode)
           ?.permissionDecision,
-      ).toBe("allow"),
-    );
+      ).toBe("allow");
+    }
   });
 
   it("allows an issue read beside other commands in the box in both modes, as the map's read", () => {
     const command =
       "cd . && npm run issue:read -- byro-repo 851 --body --hide-others | head -50";
-    modes.forEach((mode) =>
+    for (const mode of modes) {
       expect(sandboxedDecisionOf(command, mode)?.permissionDecision).toBe(
         "allow",
-      ),
-    );
+      );
+    }
   });
 
   it("is allowed, naming the box, in both modes", () => {
-    [
+    for (const command of [
       "node .scratch/x.ts",
       "node -e 'console.log(1)'",
       "python3 -c 'print(1)'",
@@ -1096,17 +1152,17 @@ describe("a sandboxed call", () => {
       "git reset --hard HEAD~1",
       "git commit -m x",
       "git status && grep -n x AGENTS.md | sort",
-    ].forEach((command) =>
-      modes.forEach((mode) => {
+    ]) {
+      for (const mode of modes) {
         const decision = sandboxedDecisionOf(command, mode);
         expect(decision?.permissionDecision).toBe("allow");
         expect(decision?.reason).toContain("sandbox");
-      }),
-    );
+      }
+    }
   });
 
   it("gets the tier rows' decision when it holds gh or a git push, or can't be parsed", () => {
-    [
+    for (const command of [
       "cd x && git push",
       "git -C x push",
       "git --git-dir=x/.git push",
@@ -1131,13 +1187,13 @@ describe("a sandboxed call", () => {
       "npm run app:deploy",
       "{gh,issue} close 5",
       "git{,} push",
-    ].forEach((command) =>
-      modes.forEach((mode) =>
+    ]) {
+      for (const mode of modes) {
         expect(sandboxedDecisionOf(command, mode)).toEqual(
           decisionUnder(command, mode, false),
-        ),
-      ),
-    );
+        );
+      }
+    }
   });
 
   it("keeps the asks and refusals the ticket names", () => {
@@ -1167,11 +1223,11 @@ describe("a sandboxed call", () => {
 
   it("gives a free command piped into a gh call the gh row's decision", () => {
     const gh = "gh issue comment 5 --body-file b.md";
-    modes.forEach((mode) =>
+    for (const mode of modes) {
       expect(
         sandboxedDecisionOf(`grep x | ${gh}`, mode)?.permissionDecision,
-      ).toBe(sandboxedDecisionOf(gh, mode)?.permissionDecision),
-    );
+      ).toBe(sandboxedDecisionOf(gh, mode)?.permissionDecision);
+    }
     expect(
       sandboxedDecisionOf(`grep x | ${gh}`, "runnerStep")?.permissionDecision,
     ).toBe("allow");
@@ -1337,38 +1393,38 @@ describe("a call with the sandbox off", () => {
   ];
 
   it("asks for any other call in an Interactive session, naming the off state and its fix", () => {
-    unsandboxed.forEach((command) => {
+    for (const command of unsandboxed) {
       const decision = offDecisionOf(command, "interactive");
       expect(decision?.permissionDecision).toBe("ask");
       expect(decision?.reason).toContain("the sandbox is off");
       expect(decision?.reason).toContain(off.cause);
       expect(decision?.reason).toContain(off.fix);
-    });
+    }
   });
 
   it("refuses it in a runner step with the blocker text", () => {
-    unsandboxed.forEach((command) => {
+    for (const command of unsandboxed) {
       const decision = offDecisionOf(command, "runnerStep");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain(off.cause);
       expect(decision?.reason).toContain("`denied-tool` blocker");
-    });
+    }
   });
 
   it("gives a call of excluded commands only its tier rows", () => {
-    [
+    for (const command of [
       "npm test",
       "timeout 60 npm test",
       "npm run -s check",
       "npm run issue:start -- byro-repo 548",
       "npm test && npm run check",
-    ].forEach((command) =>
-      modes.forEach((mode) =>
+    ]) {
+      for (const mode of modes) {
         expect(offDecisionOf(command, mode)).toEqual(
           modeDecisionOf(command, mode),
-        ),
-      ),
-    );
+        );
+      }
+    }
     expect(
       offDecisionOf("npm run issue:start -- byro-repo 548", "interactive")
         ?.permissionDecision,
@@ -1376,25 +1432,28 @@ describe("a call with the sandbox off", () => {
   });
 
   it("asks for a call mixing an excluded command with another", () => {
-    ["npm test | tail", "cd x && npm test", "echo $(npm test)"].forEach(
-      (command) =>
-        expect(offDecisionOf(command, "interactive")?.permissionDecision).toBe(
-          "ask",
-        ),
-    );
+    for (const command of [
+      "npm test | tail",
+      "cd x && npm test",
+      "echo $(npm test)",
+    ]) {
+      expect(offDecisionOf(command, "interactive")?.permissionDecision).toBe(
+        "ask",
+      );
+    }
   });
 
   it("asks for every call when no entry is readable", () => {
-    [
+    for (const command of [
       "npm test",
       "npm run check",
       "ls",
       "git status",
       "npm test | tail",
       "timeout 60 npm test",
-    ].forEach((command) =>
-      expect(unreadableDecisionOf(command)?.permissionDecision).toBe("ask"),
-    );
+    ]) {
+      expect(unreadableDecisionOf(command)?.permissionDecision).toBe("ask");
+    }
   });
 });
 
@@ -1402,29 +1461,30 @@ describe("runnerStep mode", () => {
   const asks = ["git push origin master", "npx clasp push"];
 
   it("turns every ask into a deny that says to record a blocker", () => {
-    asks.forEach((command) => {
+    for (const command of asks) {
       const ask = modeDecisionOf(command);
       const decision = modeDecisionOf(command, "runnerStep");
       expect(ask?.permissionDecision).toBe("ask");
       expect(decision?.permissionDecision).toBe("deny");
       expect(decision?.reason).toContain(ask?.reason);
       expect(decision?.reason).toContain("`denied-tool` blocker");
-    });
+    }
   });
 
   it("leaves allow and deny alone", () => {
-    ["npm run lint", "npm run app:chore fixRents -- --send"].forEach(
-      (command) => {
-        expect(
-          gateDecision({
-            command,
-            mode: "runnerStep",
-            dryRuns: [],
-            spreadsheetTargets: ["app"],
-          }),
-        ).toEqual(modeDecisionOf(command));
-      },
-    );
+    for (const command of [
+      "npm run lint",
+      "npm run app:chore fixRents -- --send",
+    ]) {
+      expect(
+        gateDecision({
+          command,
+          mode: "runnerStep",
+          dryRuns: [],
+          spreadsheetTargets: ["app"],
+        }),
+      ).toEqual(modeDecisionOf(command));
+    }
   });
 
   it("turns a gworkspace ask into a deny too", () => {
