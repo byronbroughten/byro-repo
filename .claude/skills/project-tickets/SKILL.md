@@ -155,7 +155,7 @@ A piece spec follows the Piece rules in the root's `docs/pieces/`: [`rules.md`](
 
 ### Read the fields
 
-Read the spec's Research, Final pass, Form and Outline fields, and the steps its Solution says only the developer takes, with what each waits on. Done when the four fields are found; a missing one is asked for, never inferred.
+Read the spec's Research, Final pass, Form and Outline fields, its Images field when it has one, and the steps its Solution says only the developer takes, with what each waits on. Done when the four fields are found; a missing one is asked for, never inferred.
 
 **A `## Split` field, which a spec filed before the field was dropped may hold, is a suggestion**: weigh it against your own grouping below, and never refuse a spec without one or ask for it.
 
@@ -186,7 +186,7 @@ Order them Research first, drafting tickets in reading order with the final pass
 
 ### Draft the piece tickets
 
-Draft each as in step 5, in the [piece-ticket template](#piece-ticket-template), `kind: agent`; a Research ticket's `labels` hold `research`, and the final-pass or whole-draft ticket's `final-pass`: the run picks each ticket's Steps and scope by them. Draft each developer-only step with `kind: human`, its body a `## Parent` and a `## What to do` naming the step, what it waits on, and what the developer runs. Draft the Edit gate last with `kind: human`, never `interactive`, which a run's Supervisor would take, in the [Edit gate template](#edit-gate-template). Copy each ticket's facts and the parent's shared rules in verbatim, so the implementer works from the ticket alone. Before step 7, run `gh label create <label> -R <owner>/<repo> --force` for `research` and `final-pass`. Leave the spec's body unchanged.
+Draft each as in step 5, in the [piece-ticket template](#piece-ticket-template), `kind: agent`; a Research ticket's `labels` hold `research`, and the final-pass or whole-draft ticket's `final-pass`: the run picks each ticket's Steps and scope by them. Draft each developer-only step with `kind: human`, its body a `## Parent` and a `## What to do` naming the step, what it waits on, and what the developer runs. Draft the Edit gate last with `kind: human`, never `interactive`, which a run's Supervisor would take, in the [Edit gate template](#edit-gate-template). Copy each ticket's facts and the parent's shared rules in verbatim, so the implementer works from the ticket alone, and each image's Images entry into the drafting ticket for the Section the Outline introduces it in, under its Facts as the image's. Before step 7, run `gh label create <label> -R <owner>/<repo> --force` for `research` and `final-pass`. Leave the spec's body unchanged.
 
 Step 8's read-back lists the Edit gate last, and ends by recommending `/runner` on the spec, or for an interactive session `/implement-piece <repo> <n>` on the first ticket, or `/start-issue <repo> <n>` when a mixed spec's first ticket is code.
 
@@ -209,6 +209,10 @@ Copied from the parent: the Deliverable, the Supporting Material this ticket rea
 ## Facts
 
 The facts this ticket uses, including any of the developer's own text named as given.
+
+### Images
+
+Each image its Sections introduce, its spec Images entry copied verbatim: the image's facts, outside the list above. Left out when its Sections introduce none.
 
 ## Acceptance criteria
 
@@ -239,6 +243,10 @@ The spec's issue reference.
 ## What to do
 
 This is the developer's ticket; the runner never launches it. Once the run ends and has pushed the Agent draft into the Deliverable, edit the Deliverable in its Doc, then close out this issue and its spec with `/close-project <repo> <spec>`.
+
+## Images
+
+Each image file, by its path in the image folder, `writing/agent-drafts/<spec>/` in the spec's repo, and the Image placeholder it replaces as the Deliverable shows it, one per line: `<path>: [Image <n>: <file or facts>]`. In your edit, replace each placeholder with its image. Left out when the spec has no Images field.
 
 </edit-gate-template>
 
