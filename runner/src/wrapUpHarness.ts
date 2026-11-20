@@ -98,8 +98,8 @@ export function workspacesConfig(): IssueWorkspacesConfig {
   };
 }
 
-// No-ops, for a test whose landing installs nothing worth recording.
-const noWrapUpCommands: WrapUpCommands = {
+// No-ops, for a test whose landing installs nothing worth recording; the SpecRun harness passes them too.
+export const noWrapUpCommands: WrapUpCommands = {
   async afterFastForward() {},
   async installDependencies() {},
 };

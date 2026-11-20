@@ -50,6 +50,7 @@ import type { StepSession } from "./transcriptFacts.ts";
 import type { Workflows } from "./Workflow.ts";
 import { codeWorkflowOf } from "./Workflow/code/codeWorkflow.ts";
 import { pieceWorkflowOf } from "./Workflow/piece/pieceWorkflow.ts";
+import { noWrapUpCommands } from "./wrapUpHarness.ts";
 
 export type { StepScript } from "./specRunHarness/stepResults.ts";
 
@@ -299,10 +300,7 @@ export function specRun(
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: [],
     async installDependencies() {},
-    wrapUpCommands: {
-      async afterFastForward() {},
-      async installDependencies() {},
-    },
+    wrapUpCommands: noWrapUpCommands,
     promoteCommandOf: () => "npm run issue:promote -- byro-repo 1",
     removeCommand: "npm run issue:remove",
     mergeChecks: [greenUnlessRed],

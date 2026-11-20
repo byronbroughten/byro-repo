@@ -43,7 +43,7 @@ function recordingCommands(): RecordedCommands {
 }
 
 describe("run's landing installs", () => {
-  it("installs wrap-up's dependencies in the primary root and runs the after-fast-forward hook when the branch adds a dependency", async () => {
+  it("installs wrap-up's dependencies in the primary root when the branch adds a dependency", async () => {
     addSpec([1]);
     addIssue(1, {
       body: "## What to build\n\nA thing.\n\n## New dependencies\n\n- sh-syntax\n\n## Model fit\n\nOpus high\nA reason.\n",
@@ -61,14 +61,15 @@ describe("run's landing installs", () => {
     expect(afterFastForwards).toEqual([primaryRoot]);
   });
 
-  it("installs nothing when the branch changes no dependency", async () => {
+  it("installs nothing but still runs the after-fast-forward hook when the branch changes no dependency", async () => {
     addSpec([1]);
-    const { installs, wrapUpCommands } = recordingCommands();
+    const { installs, afterFastForwards, wrapUpCommands } = recordingCommands();
     const agentStep = FakeAgentStep.init(implemented("one.ts"), reviewed());
 
     const result = await specRun(agentStep, { wrapUpCommands }).run(spec);
 
     expect(result.landed).toEqual([refOf(1)]);
     expect(installs).toEqual([]);
+    expect(afterFastForwards).toEqual([primaryRoot]);
   });
 });
