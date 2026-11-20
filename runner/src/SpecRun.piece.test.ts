@@ -352,6 +352,36 @@ describe("implement on a piece spec's drafting ticket", () => {
     ]);
   });
 
+  it("launches with Drive reads of the developer's image files beside the spec's sources", async () => {
+    addDraftingSpec();
+    github.edit(spec.number, {
+      body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Supporting Material\n\n- The lighthouse logbook, ${logbookId}: the storm.\n\n## Images\n\n1. The quay at dawn, by the developer, file ${quayPhotoId}: the empty quay.\n`,
+    });
+    const agentStep = FakeAgentStep.init(drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.targets).toEqual([
+      { kind: "source", id: logbookId },
+      { kind: "source", id: quayPhotoId },
+    ]);
+  });
+
+  it("launches with one Drive read of a file the spec names twice", async () => {
+    addDraftingSpec();
+    github.edit(spec.number, {
+      body: `## Deliverable\n\nThe crossing, doc ${deliverableId}.\n\n## Supporting Material\n\n- The lighthouse logbook, ${logbookId}: the storm.\n\n## Images\n\n1. The logbook's storm page, by the developer, file ${logbookId}: the storm.\n2. The quay at dawn, by the developer, file ${quayPhotoId}: the empty quay.\n3. The quay at dusk, by the developer, file ${quayPhotoId}: the empty quay.\n`,
+    });
+    const agentStep = FakeAgentStep.init(drafted());
+
+    await specRun(agentStep).run(spec);
+
+    expect(agentStep.requests[0]?.targets).toEqual([
+      { kind: "source", id: logbookId },
+      { kind: "source", id: quayPhotoId },
+    ]);
+  });
+
   it("resumes a ticket halted in implement in its own session, without pulling again", async () => {
     addDraftingSpec();
     await specRun(FakeAgentStep.init(blockedDraft)).run(spec);
@@ -2182,6 +2212,7 @@ function addResearchedSpec(): void {
 
 const logbookId = "1LighthouseLogbook000000000000000";
 const timetableId = "1FerryTimetable_2-0000000000000000";
+const quayPhotoId = "1QuayAtDawnPhoto00000000000000000";
 
 // The harness's quote check is red on a comment holding MISQUOTE.
 function scratchFolder(fact = "The ferry ran."): string {

@@ -9,7 +9,7 @@
 // Once every ticket but the Edit gate has landed or closed, the spec-end Steps run: the gap check, gapCheck.ts, then the judge Step,
 // which ends a run holding an undecided review-list item with "judge, then rerun", then the push, which writes the Agent draft's
 // agent Sections into the Deliverable once; the run then ends at the Edit gate, and no agent writes the Piece after it.
-// Every step reads the Drive files the spec's Supporting Material lists, as source targets, and no others.
+// Every step reads the Drive files the spec's Supporting Material and Images fields list, as source targets, and no others.
 // A repo's runner config builds it with its commands and Docs port, and ../../Workflow.ts registers it.
 
 import { readFileSync } from "node:fs";
@@ -92,6 +92,7 @@ const ticketLabels = {
 } as const;
 const specHeadings = {
   sources: "## Supporting Material",
+  images: "## Images",
   deliverable: "## Deliverable",
 } as const;
 // A Drive file ID, bare or inside a Drive URL; the spec names each source and its Deliverable by one.
@@ -334,9 +335,14 @@ function draftIn(specClone: string, spec: TrackedIssue): string {
   return readFileSync(join(specClone, draftPathOf(spec.issue)), "utf8");
 }
 
-// Each ID once, in the order the spec lists them; a spec with no Supporting Material lists none.
+// Each ID once, in the order the spec lists them; a spec with neither field lists none.
 function sourceTargetsOf({ body }: TrackedIssue): Target[] {
-  const ids = [...new Set(driveIdsOf(body, specHeadings.sources))];
+  const ids = [
+    ...new Set([
+      ...driveIdsOf(body, specHeadings.sources),
+      ...driveIdsOf(body, specHeadings.images),
+    ]),
+  ];
   return ids.map((id) => ({ kind: "source", id }));
 }
 
