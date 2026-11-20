@@ -1,14 +1,16 @@
 // Run by .githooks/pre-commit in the root or a package clone: checks the staged files' formatting and lint, however they were edited.
 import { execFileSync } from "node:child_process";
 import { lstatSync } from "node:fs";
-import { basename, join } from "node:path";
+import { join, relative } from "node:path";
 
 import {
   type Command,
+  eslintFixOf,
   eslintOf,
   failedCommandsOf,
   isCode,
   prettierCheckOf,
+  prettierWriteOf,
   repoRoot,
   rootPathsOf,
 } from "./lintCommands.ts";
@@ -27,15 +29,34 @@ const staged = rootPathsOf(
 )
   // Prettier refuses a symlink, such as a runner skill's link in `.claude/skills/`.
   .filter((path) => !lstatSync(join(repoRoot, path)).isSymbolicLink());
-const commands: Command[] = [];
-if (staged.length > 0) commands.push(prettierCheckOf(staged));
+// Each check beside the command that fixes what it flags.
+const checks: [Command, Command][] = [];
+if (staged.length > 0) {
+  checks.push([prettierCheckOf(staged), prettierWriteOf(staged)]);
+}
 const code = staged.filter(isCode);
-if (code.length > 0) commands.push(eslintOf(code));
+if (code.length > 0) checks.push([eslintOf(code), eslintFixOf(code)]);
 
-const failed = failedCommandsOf(commands);
-if (failed.length > 0) {
+const failed = failedCommandsOf(checks.map(([check]) => check));
+const fixes = checks
+  .filter(([check]) => failed.includes(check))
+  .map(([, fix]) => rootRelativeLabelOf(fix));
+if (fixes.length > 0) {
   console.error(
-    `\npre-commit: ${failed.map(([file]) => basename(file)).join(" and ")} failed on the staged files. Fix them (npx prettier --write, npx eslint --fix), stage the fix and commit again.`,
+    [
+      "\npre-commit: the staged files failed. From the byro-repo root, run:",
+      ...fixes.map((fix) => `  ${fix}`),
+      "then stage the fix and commit again.",
+    ].join("\n"),
   );
   process.exitCode = 1;
+}
+
+// The staged paths are root-relative, so the whole line reads as run from the root.
+function rootRelativeLabelOf(command: Command): string {
+  return command
+    .map((part) =>
+      part.startsWith(`${repoRoot}/`) ? relative(repoRoot, part) : part,
+    )
+    .join(" ");
 }

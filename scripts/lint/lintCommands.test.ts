@@ -6,8 +6,12 @@ import type { CheckPackage } from "../runner/checkPackages.ts";
 import {
   type Command,
   commandLabelOf,
+  eslintFixOf,
+  eslintOf,
   failedCommandsOf,
   packageLintCommandsOf,
+  prettierCheckOf,
+  prettierWriteOf,
   repoRoot,
   rootPathsOf,
 } from "./lintCommands.ts";
@@ -95,6 +99,22 @@ describe("rootPathsOf", () => {
     expect(rootPathsOf(repoRoot, ["scripts/lint/lint.ts"])).toEqual([
       "scripts/lint/lint.ts",
     ]);
+  });
+});
+
+describe("the fix commands", () => {
+  const paths = ["packages/framework/src/Sheet.ts", "README.md"];
+
+  it("writes over the files and ignore path prettierCheckOf checks", () => {
+    expect(commandLabelOf(prettierWriteOf(paths))).toBe(
+      commandLabelOf(prettierCheckOf(paths)).replace("--check", "--write"),
+    );
+  });
+
+  it("fixes with the flags eslintOf lints with", () => {
+    expect(commandLabelOf(eslintFixOf(paths))).toBe(
+      commandLabelOf(eslintOf(paths)).replace("eslint", "eslint --fix"),
+    );
   });
 });
 

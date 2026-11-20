@@ -10,6 +10,8 @@ export const repoRoot = join(import.meta.dirname, "../..");
 
 const codeExtensions = [".ts", ".js", ".mjs"];
 
+const rootPrettierIgnore = join(repoRoot, ".prettierignore");
+
 // Each package's own eslint.config.mjs is found by the lookup flag.
 export function eslintOf(paths: string[]): Command {
   return [
@@ -21,9 +23,23 @@ export function eslintOf(paths: string[]): Command {
   ];
 }
 
+export function eslintFixOf(paths: string[]): Command {
+  const [file, ...args] = eslintOf(paths);
+  return [file, "--fix", ...args];
+}
+
 // Only .prettierignore: Prettier's default also reads .gitignore, whose `packages/*` would skip every clone's files.
 export function prettierCheckOf(paths: string[]): Command {
-  return prettierCheckIgnoringOf([join(repoRoot, ".prettierignore")], paths);
+  return prettierCheckIgnoringOf([rootPrettierIgnore], paths);
+}
+
+// The write that fixes what prettierCheckOf flags: the same files and ignore path.
+export function prettierWriteOf(paths: string[]): Command {
+  return [
+    binOf("prettier"),
+    "--write",
+    ...prettierFileArgsOf([rootPrettierIgnore], paths),
+  ];
 }
 
 // ESLint, lint-docs and Prettier over the selected packages' files; lint.ts runs these when CHECK_PACKAGES names some.
@@ -115,7 +131,7 @@ function rootPrettierCheckOf({ excludedPaths }: CheckPackage): Command {
 // The root's .gitignore skips every clone, so a package reads its own .gitignore instead.
 function packagePrettierCheckOf({ path }: CheckPackage): Command {
   return prettierCheckIgnoringOf(
-    [join(repoRoot, ".prettierignore"), `${path}/.gitignore`],
+    [rootPrettierIgnore, `${path}/.gitignore`],
     [path],
   );
 }
@@ -127,6 +143,12 @@ function prettierCheckIgnoringOf(
   return [
     binOf("prettier"),
     "--check",
+    ...prettierFileArgsOf(ignorePaths, paths),
+  ];
+}
+
+function prettierFileArgsOf(ignorePaths: string[], paths: string[]): string[] {
+  return [
     "--ignore-unknown",
     ...ignorePaths.flatMap((ignorePath) => ["--ignore-path", ignorePath]),
     ...paths,
