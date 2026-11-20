@@ -86,7 +86,7 @@ export function workspaces(
     clonePaths,
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: ["sheets.config.json", ".clasp.json"],
-    async installDependencies(workspaceRoot) {
+    async installSeedDependencies(workspaceRoot) {
       installs.push(workspaceRoot);
     },
     async issueTitle() {

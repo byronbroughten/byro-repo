@@ -158,7 +158,7 @@ describe("run's master check", () => {
     const result = await specRun(
       FakeAgentStep.init(implemented("RED"), reviewed()),
       {
-        async installDependencies() {
+        async installSeedDependencies() {
           builds += 1;
           if (builds > 1) throw new Error("npm install failed");
         },

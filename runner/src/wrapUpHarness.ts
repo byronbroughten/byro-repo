@@ -90,7 +90,7 @@ export function workspacesConfig(): IssueWorkspacesConfig {
     clonePaths: testFileClonePaths,
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: [],
-    async installDependencies() {},
+    async installSeedDependencies() {},
     async issueTitle() {
       return "Wrap-up script";
     },

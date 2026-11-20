@@ -91,8 +91,8 @@ export interface SpecRunConfig {
   primaryRoot: string;
   workspaceFolder: string;
   symlinkedFiles: string[];
-  // Seeds a new workspace; wrap-up's own install, a different command, is in wrapUpCommands.
-  installDependencies(workspaceRoot: string): Promise<void>;
+  // Installs a new workspace's dependencies, when the copy from the primary can't be used.
+  installSeedDependencies(workspaceRoot: string): Promise<void>;
   // The install and after-fast-forward commands npm run wrap-up lands with, so a runner landing runs the same ones.
   wrapUpCommands: WrapUpCommands;
   // The command an implement step runs to promote a repo, taking the repo as its last argument.
@@ -232,7 +232,7 @@ export class SpecRunBase {
       knobs,
       workspaceFolder,
       symlinkedFiles,
-      installDependencies,
+      installSeedDependencies,
       github,
       removeCommand,
     } = this.config;
@@ -241,7 +241,7 @@ export class SpecRunBase {
       clonePaths: knobs.clonePaths,
       workspaceFolder,
       symlinkedFiles,
-      installDependencies,
+      installSeedDependencies,
       issueTitle: async (issue) => (await github.issueOf(issue)).title,
       removeCommand,
     };

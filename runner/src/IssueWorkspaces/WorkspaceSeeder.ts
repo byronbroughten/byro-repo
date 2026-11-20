@@ -38,7 +38,7 @@ export class WorkspaceSeeder extends IssueWorkspacesBase {
     }
     this._copyLockfile(path);
     if (copyFailed || this._primaryIsStale || !this._lockfileMatches(path)) {
-      await this.config.installDependencies(path);
+      await this.config.installSeedDependencies(path);
     }
   }
 

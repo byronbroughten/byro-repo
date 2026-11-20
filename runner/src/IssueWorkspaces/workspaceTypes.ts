@@ -32,7 +32,7 @@ export interface IssueWorkspacesConfig {
   workspaceFolder: string;
   // Gitignored files symlinked from each primary clone that has them.
   symlinkedFiles: string[];
-  installDependencies(workspaceRoot: string): Promise<void>;
+  installSeedDependencies(workspaceRoot: string): Promise<void>;
   issueTitle(issue: IssueRef): Promise<string>;
   // The command that removes a workspace, before its key's arguments; a refused removal names it.
   removeCommand: string;
