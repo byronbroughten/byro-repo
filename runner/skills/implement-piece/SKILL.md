@@ -27,14 +27,16 @@ disable-model-invocation: true
 ## What you draft
 
 - The Agent draft is `writing/agent-drafts/<spec n>.md` in the `<spec repo>` clone. `piece:pull` brought the Deliverable's Doc into it and committed it on the ticket's branch. Its file format is in `docs/pieces/agent-draft.md`.
-- The ticket's spec is <spec repo>#<spec n>; read its body for the Deliverable, the Reader, the Outline and the Supporting Material.
+- The ticket's spec is <spec repo>#<spec n>; read its body for the Deliverable, the Reader, the Outline, the Supporting Material and the Images.
 - Draft by the rules under "Implementing a piece spec" in `docs/pieces/rules.md`, writing to the Agent draft and never the Deliverable's Doc.
-- Draft only the Sections this ticket names, by their full heading paths (on a `final-pass` ticket, every Section marked `<!-- agent -->` or `<!-- agent <headingId> -->`, whichever ticket drafted it), each under its heading as the draft holds it, with its mark on the line under the heading: `<!-- agent -->`, or `<!-- agent <headingId> -->` where the draft's mark holds an ID. Copy a mark unchanged, its ID included. Change no other Section, never one marked `<!-- developer -->`, and no other file. A Section never needs a renamed or invented heading: keep every heading as the draft holds it, and a heading repeated under another H1 is told apart by its path.
+- Draft only the Sections this ticket names, by their full heading paths (on a `final-pass` ticket, every Section marked `<!-- agent -->` or `<!-- agent <headingId> -->`, whichever ticket drafted it), each under its heading as the draft holds it, with its mark on the line under the heading: `<!-- agent -->`, or `<!-- agent <headingId> -->` where the draft's mark holds an ID. Copy a mark unchanged, its ID included. Change no other Section, never one marked `<!-- developer -->`, and no file outside the Agent draft and its image folder. A Section never needs a renamed or invented heading: keep every heading as the draft holds it, and a heading repeated under another H1 is told apart by its path.
 - Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.
 - Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.
+- The image folder is `writing/agent-drafts/<spec n>/`. For each image the spec's Images field gives a Section you draft: draw an agent image as SVG source in the image folder and render it to PNG with `npm run image:render`; download a developer image through the Drive read tools, by the file ID the Images field gives, save it in the image folder, and never edit it.
+- Write each such image's Image placeholder in its Section by the File format in `docs/pieces/agent-draft.md`, naming its PNG, or listing its facts while it has no file yet. Its facts are outside the Facts field: use in your prose only the values the Outline names for it.
 - Save each passage you read once, as a text file in the passages folder, `.runner/passages/<repo>-<n>`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.
 - Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.
-- Commit only the Agent draft, in the `<spec repo>` clone on the ticket's branch: `git -C <clone> add writing/agent-drafts/<spec n>.md`, then `git -C <clone> commit`. Never amend.
+- Commit only the Agent draft and its image folder's files, in the `<spec repo>` clone on the ticket's branch: `git -C <clone> add writing/agent-drafts/<spec n>.md`, `git -C <clone> add writing/agent-drafts/<spec n>/` when you added or changed an image there, then `git -C <clone> commit`. Never amend.
 
 ## How you work
 

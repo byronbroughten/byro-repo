@@ -31,7 +31,7 @@ describe("pieceResolvePrompt", () => {
 
   it("commits the image folder's files beside the Agent draft", () => {
     expect(prompt).toContain(
-      "Commit the Fixes, to the Agent draft and the image folder's files only, on the ticket's branch, separate from the implement commit: `git -C <clone> add writing/agent-drafts/10.md` in the `personal` clone, `git -C <clone> add writing/agent-drafts/10/` when you changed an image there, then `git -C <clone> commit`.",
+      "Commit the Fixes, to the Agent draft and the image folder's files only, on the ticket's branch, separate from the implement commit: `git -C <clone> add writing/agent-drafts/10.md` in the `personal` clone, `git -C <clone> add writing/agent-drafts/10/` when you added or changed an image there, then `git -C <clone> commit`.",
     );
   });
 
