@@ -246,7 +246,7 @@ This is the developer's ticket; the runner never launches it. Once the run ends 
 
 ## Images
 
-Each image file, by its path in the image folder, `writing/agent-drafts/<spec>/` in the spec's repo, and the Image placeholder it replaces as the Deliverable shows it, one per line: `<path>: [Image <n>: <file or facts>]`. In your edit, replace each placeholder with its image. Left out when the spec has no Images field.
+Each image file, by its path in the image folder, `writing/agent-drafts/<spec>/` in the spec's repo, and the Image placeholder it replaces as the Deliverable shows it, one per line: `<path>: [Image <n>: <file or facts>]`; for an image with no file yet, its placeholder alone, the image you supply in the edit. In your edit, replace each placeholder with its image. Left out when the spec has no Images field.
 
 </edit-gate-template>
 
