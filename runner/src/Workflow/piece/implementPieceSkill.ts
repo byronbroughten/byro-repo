@@ -38,6 +38,7 @@ const onlyWritesLine =
 const placeholders = {
   draftPath: agentDraft.pathOf("<spec n>"),
   specRepo: "<spec repo>",
+  specNumber: "<spec n>",
   passagesFolder: passagesFolderOf({ repo: "<repo>", number: "<n>" }),
 } as const;
 
@@ -98,18 +99,19 @@ function pulledDraftSection(piecePullCommand: string): string {
 }
 
 function draftingSection(): string {
-  const { draftPath, specRepo, passagesFolder } = placeholders;
+  const { draftPath, specRepo, specNumber, passagesFolder } = placeholders;
   return sectionOf("What you draft", [
     ...draftingLinesOf({
       draftPath,
       specRepo,
-      specRef: `${specRepo}#<spec n>`,
+      specNumber,
+      specRef: `${specRepo}#${specNumber}`,
       sections: draftingScope.sectionsOfAnyTicket,
       passagesFolder,
       pulled:
         "`piece:pull` brought the Deliverable's Doc into it and committed it on the ticket's branch.",
     }),
-    commitDraftLineOf({ draftPath, specRepo }),
+    commitDraftLineOf({ draftPath, specRepo, specNumber }),
   ]);
 }
 

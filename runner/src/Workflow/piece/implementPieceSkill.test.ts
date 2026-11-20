@@ -45,10 +45,13 @@ describe("implementPieceSkillOf", () => {
     const shared = [
       "Its file format is in `docs/pieces/agent-draft.md`.",
       'Draft by the rules under "Implementing a piece spec" in `docs/pieces/rules.md`, writing to the Agent draft and never the Deliverable\'s Doc.',
-      "with its mark on the line under the heading: `<!-- agent -->`, or `<!-- agent <headingId> -->` where the draft's mark holds an ID. Copy a mark unchanged, its ID included. Change no other Section, never one marked `<!-- developer -->`, and no other file.",
+      "read its body for the Deliverable, the Reader, the Outline, the Supporting Material and the Images.",
+      "with its mark on the line under the heading: `<!-- agent -->`, or `<!-- agent <headingId> -->` where the draft's mark holds an ID. Copy a mark unchanged, its ID included. Change no other Section, never one marked `<!-- developer -->`, and no file outside the Agent draft and its image folder.",
       "A Section never needs a renamed or invented heading",
       "Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.",
       "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
+      "For each image the spec's Images field gives a Section you draft: draw an agent image as SVG source in the image folder and render it to PNG with `npm run image:render -- <svg file>`; download a developer image through the Drive read tools, by the file ID the Images field gives, save it in the image folder, and never edit it.",
+      "Write each such image's Image placeholder in its Section by the File format in `docs/pieces/agent-draft.md`, naming its PNG, or listing its facts while it has no file yet. Its facts are outside the Facts field: use in your prose only the values the Outline names for it.",
       "Review, resolve and any fresh step after a handoff read the same files",
       "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
     ];
@@ -69,8 +72,11 @@ describe("implementPieceSkillOf", () => {
     expect(skill).not.toContain("fix or delete each statement");
   });
 
-  it("names the draft and passages by placeholders a session fills in", () => {
+  it("names the draft, its image folder and passages by placeholders a session fills in", () => {
     expect(skill).toContain("`writing/agent-drafts/<spec n>.md`");
+    expect(skill).toContain(
+      "The image folder is `writing/agent-drafts/<spec n>/`.",
+    );
     expect(skill).toContain("`.runner/passages/<repo>-<n>`");
   });
 
@@ -112,11 +118,21 @@ describe("implementPieceSkillOf", () => {
     );
   });
 
-  it("commits only the Agent draft, as the implement step does", () => {
-    const commit =
-      "`git -C <clone> add writing/agent-drafts/<spec n>.md`, then `git -C <clone> commit`. Never amend.";
-    expect(skill).toContain(`Commit only the Agent draft, in the`);
-    expect(skill).toContain(commit);
+  it("commits only the Agent draft and its image folder, as the implement step does", () => {
+    const commitOf = (specNumber: string) =>
+      `\`git -C <clone> add writing/agent-drafts/${specNumber}.md\`, \`git -C <clone> add writing/agent-drafts/${specNumber}/\` when you added or changed an image there, then \`git -C <clone> commit\`. Never amend.`;
+    const opening =
+      "Commit only the Agent draft and its image folder's files, in the";
+    expect(skill).toContain(opening);
+    expect(skill).toContain(commitOf("<spec n>"));
+    expect(stepPrompt).toContain(opening);
+    expect(stepPrompt).toContain(commitOf("10"));
+  });
+
+  it("gives the run's implement step its spec's image folder", () => {
+    expect(stepPrompt).toContain(
+      "The image folder is `writing/agent-drafts/10/`.",
+    );
   });
 
   it("gives the ending the overlap check as its check command", () => {

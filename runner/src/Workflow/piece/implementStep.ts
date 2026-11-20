@@ -86,7 +86,8 @@ export function draftMaterialsLineOf({
   return `The Agent draft is \`${draftPath}\` in the \`${spec.repo}\` clone, the passages folder is \`${passagesFolderIn(workspacePath, issue)}\`, and the ticket's spec is ${spec.repo}#${spec.number}.`;
 }
 
-// The resolve and red-checks prompts' words for the images a fix may change and how it commits them.
+// The resolve and red-checks prompts' words for the images a fix may change, and every drafting step's for how it
+// commits them.
 export const draftImageWords = {
   developerImage: "an image with no SVG source beside it",
 
@@ -94,14 +95,15 @@ export const draftImageWords = {
     return `the agent's own images in the image folder, \`${agentDraft.imageFolderOf(specNumber)}\`, those with an SVG source beside them`;
   },
 
-  commitOf(specNumber: number): string {
-    return `\`git -C <clone> add ${agentDraft.imageFolderOf(specNumber)}\` when you changed an image there`;
+  commitOf(specNumber: NumberOrPlaceholder): string {
+    return `\`git -C <clone> add ${agentDraft.imageFolderOf(specNumber)}\` when you added or changed an image there`;
   },
 };
 
 export interface DraftingWords {
   draftPath: string;
   specRepo: string;
+  specNumber: NumberOrPlaceholder;
   // Fits after "The ticket's spec is".
   specRef: string;
   // Fits after "Draft only".
@@ -114,6 +116,7 @@ export interface DraftingWords {
 export function draftingLinesOf({
   draftPath,
   specRepo,
+  specNumber,
   specRef,
   sections,
   passagesFolder,
@@ -121,11 +124,13 @@ export function draftingLinesOf({
 }: DraftingWords): string[] {
   return [
     `The Agent draft is \`${draftPath}\` in the \`${specRepo}\` clone. ${pulled} Its file format is in \`${paths.agentDraft}\`.`,
-    `The ticket's spec is ${specRef}; read its body for the Deliverable, the Reader, the Outline and the Supporting Material.`,
+    `The ticket's spec is ${specRef}; read its body for the Deliverable, the Reader, the Outline, the Supporting Material and the Images.`,
     `Draft by the rules under "Implementing a piece spec" in \`${paths.pieceRules}\`, writing to the Agent draft and never the Deliverable's Doc.`,
-    `Draft only ${sections}, each under its heading as the draft holds it, with its mark on the line under the heading: \`<!-- agent -->\`, or \`<!-- agent <headingId> -->\` where the draft's mark holds an ID. Copy a mark unchanged, its ID included. Change no other Section, never one marked \`<!-- developer -->\`, and no other file. A Section never needs a renamed or invented heading: keep every heading as the draft holds it, and a heading repeated under another H1 is told apart by its path.`,
+    `Draft only ${sections}, each under its heading as the draft holds it, with its mark on the line under the heading: \`<!-- agent -->\`, or \`<!-- agent <headingId> -->\` where the draft's mark holds an ID. Copy a mark unchanged, its ID included. Change no other Section, never one marked \`<!-- developer -->\`, and no file outside the Agent draft and its image folder. A Section never needs a renamed or invented heading: keep every heading as the draft holds it, and a heading repeated under another H1 is told apart by its path.`,
     `Read \`${paths.voice}\` and \`${paths.craft}\` in full before your first prose edit.`,
     "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
+    `The image folder is \`${agentDraft.imageFolderOf(specNumber)}\`. For each image the spec's Images field gives a Section you draft: draw an agent image as SVG source in the image folder and render it to PNG with \`npm run image:render -- <svg file>\`; download a developer image through the Drive read tools, by the file ID the Images field gives, save it in the image folder, and never edit it.`,
+    `Write each such image's Image placeholder in its Section by the File format in \`${paths.agentDraft}\`, naming its PNG, or listing its facts while it has no file yet. Its facts are outside the Facts field: use in your prose only the values the Outline names for it.`,
     `Save each passage you read once, as a text file in the passages folder, \`${passagesFolder}\`, named for its source and range. Review, resolve and any fresh step after a handoff read the same files, so read a source again only for a passage the folder lacks. The folder is gitignored; never copy a passage into the repo.`,
     implementBody.batching,
   ];
@@ -134,12 +139,9 @@ export function draftingLinesOf({
 export function commitDraftLineOf({
   draftPath,
   specRepo,
-}: Pick<DraftingWords, "draftPath" | "specRepo">): string {
-  return `Commit only the Agent draft, in the \`${specRepo}\` clone on the ticket's branch: ${draftCommitCommandsOf(draftPath)}. Never amend.`;
-}
-
-function draftCommitCommandsOf(draftPath: string): string {
-  return `\`git -C <clone> add ${draftPath}\`, then \`git -C <clone> commit\``;
+  specNumber,
+}: Pick<DraftingWords, "draftPath" | "specRepo" | "specNumber">): string {
+  return `Commit only the Agent draft and its image folder's files, in the \`${specRepo}\` clone on the ticket's branch: \`git -C <clone> add ${draftPath}\`, ${draftImageWords.commitOf(specNumber)}, then \`git -C <clone> commit\`. Never amend.`;
 }
 
 export const noGitHubWriteLine = "Make no GitHub write.";
@@ -175,6 +177,7 @@ function draftingSection({
     draftingLinesOf({
       draftPath,
       specRepo: spec.repo,
+      specNumber: spec.number,
       specRef: `${spec.repo}#${spec.number}`,
       sections: draftingScope.sectionsOf(labels),
       passagesFolder: passagesFolderIn(workspacePath, issue),
@@ -199,7 +202,7 @@ function finishingSection({
 }: PieceImplementPromptInput): string {
   return `## When you're done
 
-- ${commitDraftLineOf({ draftPath, specRepo: spec.repo })}
+- ${commitDraftLineOf({ draftPath, specRepo: spec.repo, specNumber: spec.number })}
 - That commit is your only write outside the workspace's files: never push, merge, rebase or reset, never close an issue, and never run the wrap-up. Don't call a review; the runner reviews after you.
 - ${doneLines.implement}
   - \`status\`: \`committed\`; or \`blocked\` when a blocker stopped you before any commit.

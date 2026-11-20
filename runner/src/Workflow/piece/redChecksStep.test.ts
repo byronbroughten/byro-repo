@@ -17,7 +17,7 @@ describe("pieceRedChecksPrompt", () => {
 
   it("commits only the Agent draft and its image folder's files", () => {
     expect(prompt).toContain(
-      "Commit only the Agent draft and the image folder's files, on the ticket's branch: `git -C <clone> add writing/agent-drafts/10.md` in the `personal` clone, `git -C <clone> add writing/agent-drafts/10/` when you changed an image there, then `git -C <clone> commit`.",
+      "Commit only the Agent draft and the image folder's files, on the ticket's branch: `git -C <clone> add writing/agent-drafts/10.md` in the `personal` clone, `git -C <clone> add writing/agent-drafts/10/` when you added or changed an image there, then `git -C <clone> commit`.",
     );
   });
 });
