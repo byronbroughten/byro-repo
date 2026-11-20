@@ -1,9 +1,8 @@
 // The piece review step: the prompt that runs a review of a drafting ticket's Agent draft on the spec, standards and
 // reader axes, by the implementer in a run or an interactive session from its brief, over the Agent draft, its image
 // folder and the passages folder, with `/review-piece`'s SKILL.md body inlined and the files reviewInputs.ts wrote
-// named before it, the review record it returns: code's, on these
-// axes, plus the overlap hits it judged no copy, and the check that it spawned its three reviewer subagents, with the
-// resume that sends back one that didn't.
+// named before it, the review record it returns: code's, on these axes, plus the overlap hits it judged no copy, and
+// the check that it spawned its three reviewer subagents, with the resume that sends back one that didn't.
 // pieceWorkflow.ts registers it, reading the skill from the workspace through ../../stepPrompts/inlinedSkill.ts;
 // ../../SpecRun/ReviewStepper.ts launches it and ../../SpecRun/SessionReviewer.ts prints it.
 

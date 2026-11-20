@@ -46,8 +46,8 @@ A piece spec's drafting ticket's findings take the four verdicts above under the
 - **A Fix changes a claim only to bring it back to the fact list**: reword it, delete an unsupported claim, correct it to a listed fact, or add a fact the Outline gives that Section; never an unlisted fact.
 - **A finding about how a source is described is a Fix when a saved passage settles it**, its evidence quoting that passage, and a Propose `decision` otherwise.
 - **A Reader finding is a Fix when rewording agent text answers it with no new fact**, citing the Craft rule or quoting the spec's Reader line.
-- **A gap between parts of the draft is a Propose `decision` naming it**, unless a listed fact closes it in an agent Section or agent image, when it is a Fix.
-- **A sentence that accounts for a gap stays a standards Fix that deletes it**; the gap reaches the developer through its own finding.
+- **A gap between parts of the draft is a Propose `decision` naming it, even when it quotes agent text**, unless a listed fact closes it in an agent Section or agent image, when it is a Fix.
+- **A sentence that accounts for a gap is a standards Fix that deletes it**; the gap reaches the developer through its own finding.
 - **A finding against a developer image is a Propose `decision`.**
 - **A Propose `decision` is for a finding in the developer's text, an inference the drafter made, a fact the list lacks or two rules in conflict**; a missing fact names its Unverified one.
 - **Propose `ticket`, Dismiss `kept` and Dismiss `tooling-enforced` never apply**; the record checks refuse them.
