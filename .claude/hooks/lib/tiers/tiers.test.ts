@@ -10,6 +10,7 @@ import {
   sessionModeOf,
   spreadsheetTargetsOf,
 } from "./tiers.ts";
+import { sandboxedCalls } from "./tiers/sandboxedCalls.ts";
 
 function decisionOf(command: string, dryRuns: string[] = []) {
   return gateDecision({ command, mode: "interactive", dryRuns })
@@ -1110,6 +1111,15 @@ describe("a sandboxed call", () => {
     expect(sandboxedDecisionOf(command, "runnerStep")?.permissionDecision).toBe(
       "deny",
     );
+  });
+
+  it("counts an Interactive-only script as a GitHub call only when its row writes to GitHub", () => {
+    expect(
+      sandboxedCalls.holdsGitHubCall(["npm", "run", "issue:file", "--", "x"]),
+    ).toBe(true);
+    expect(
+      sandboxedCalls.holdsGitHubCall(["npm", "run", "doc:print", "--", "x"]),
+    ).toBe(false);
   });
 
   it("still refuses an edit adding a ready-* label in both modes", () => {
