@@ -37,8 +37,7 @@ const onlyWritesLine =
 
 const placeholders = {
   draftPath: agentDraft.pathOf("<spec n>"),
-  specRepo: "<spec repo>",
-  specNumber: "<spec n>",
+  spec: { repo: "<spec repo>", number: "<spec n>" },
   passagesFolder: passagesFolderOf({ repo: "<repo>", number: "<n>" }),
 } as const;
 
@@ -48,10 +47,10 @@ export function implementPieceSkillOf({
   piecePullCommand,
   ...ending
 }: ImplementPieceSkillInput): string {
-  const { specRepo, passagesFolder } = placeholders;
+  const { spec, passagesFolder } = placeholders;
   const overlapRun = pieceChecks.overlapRunOf({
     overlapCommand,
-    specRepo,
+    specRepo: spec.repo,
     passagesFolder,
   });
   return interactiveSkillOf({
@@ -99,19 +98,17 @@ function pulledDraftSection(piecePullCommand: string): string {
 }
 
 function draftingSection(): string {
-  const { draftPath, specRepo, specNumber, passagesFolder } = placeholders;
+  const { draftPath, spec, passagesFolder } = placeholders;
   return sectionOf("What you draft", [
     ...draftingLinesOf({
       draftPath,
-      specRepo,
-      specNumber,
-      specRef: `${specRepo}#${specNumber}`,
+      spec,
       sections: draftingScope.sectionsOfAnyTicket,
       passagesFolder,
       pulled:
         "`piece:pull` brought the Deliverable's Doc into it and committed it on the ticket's branch.",
     }),
-    commitDraftLineOf({ draftPath, specRepo, specNumber }),
+    commitDraftLineOf({ draftPath, spec }),
   ]);
 }
 

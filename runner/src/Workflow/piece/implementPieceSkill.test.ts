@@ -50,7 +50,7 @@ describe("implementPieceSkillOf", () => {
       "A Section never needs a renamed or invented heading",
       "Read `docs/writing-voice.md` and `docs/writing-craft.md` in full before your first prose edit.",
       "Read the spec's Supporting Material only through the Drive read tools you were given, by the file IDs the spec lists.",
-      "For each image the spec's Images field gives a Section you draft: draw an agent image as SVG source in the image folder and render it to PNG with `npm run image:render -- <svg file>`; download a developer image through the Drive read tools, by the file ID the Images field gives, save it in the image folder, and never edit it.",
+      "For each image the spec's Images field gives a Section you draft: draw an agent image as SVG source in the image folder and render it to PNG with `npm run image:render`; download a developer image through the Drive read tools, by the file ID the Images field gives, save it in the image folder, and never edit it.",
       "Write each such image's Image placeholder in its Section by the File format in `docs/pieces/agent-draft.md`, naming its PNG, or listing its facts while it has no file yet. Its facts are outside the Facts field: use in your prose only the values the Outline names for it.",
       "Review, resolve and any fresh step after a handoff read the same files",
       "- Send the reads and greps you've already decided on together in one turn, and don't add a call to fill a batch.",
