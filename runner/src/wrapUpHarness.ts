@@ -25,7 +25,7 @@ import {
 } from "./IssueWorkspaces.ts";
 import { writeOutcomeRow } from "./outcomeRowWriter.ts";
 import { type Command } from "./runKnobs.ts";
-import { WrapUp, type WrapUpConfig } from "./WrapUp.ts";
+import { WrapUp, type WrapUpCommands, type WrapUpConfig } from "./WrapUp.ts";
 import { WrapUpFailure, type WrapUpFailureKind } from "./WrapUpFailure.ts";
 
 // Each class's tests pick their own fixture repos and checks; matching SpecRun's is a coincidence, not a shared fact.
@@ -98,6 +98,12 @@ export function workspacesConfig(): IssueWorkspacesConfig {
   };
 }
 
+// No-ops, for a test whose landing installs nothing worth recording.
+const noWrapUpCommands: WrapUpCommands = {
+  async afterFastForward() {},
+  async installDependencies() {},
+};
+
 export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
   return WrapUp.init({
     workspaces: workspacesConfig(),
@@ -108,6 +114,7 @@ export function wrapUp(overrides: Partial<WrapUpConfig> = {}): WrapUp {
     outcomeFolder,
     stateFolder: join(temp, "state"),
     knobs: { backoffMs: 100, lockPollMs: 1 },
+    ...noWrapUpCommands,
     async sleep(ms) {
       sleeps.push(ms);
     },

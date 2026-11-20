@@ -53,7 +53,12 @@ import {
   type Workflow,
   type Workflows,
 } from "../Workflow.ts";
-import { WrapUp, type WrapUpGitHub, type WrapUpKnobs } from "../WrapUp.ts";
+import {
+  WrapUp,
+  type WrapUpCommands,
+  type WrapUpGitHub,
+  type WrapUpKnobs,
+} from "../WrapUp.ts";
 import { AccountHold } from "./AccountHold.ts";
 import {
   type Heads,
@@ -86,7 +91,10 @@ export interface SpecRunConfig {
   primaryRoot: string;
   workspaceFolder: string;
   symlinkedFiles: string[];
+  // Seeds a new workspace; wrap-up's own install, a different command, is in wrapUpCommands.
   installDependencies(workspaceRoot: string): Promise<void>;
+  // The install and after-fast-forward commands npm run wrap-up lands with, so a runner landing runs the same ones.
+  wrapUpCommands: WrapUpCommands;
   // The command an implement step runs to promote a repo, taking the repo as its last argument.
   promoteCommandOf(issue: IssueRef): string;
   removeCommand: string;
@@ -198,8 +206,10 @@ export class SpecRunBase {
       mergeChecks,
       outcomeFolder,
       stateFolder,
+      wrapUpCommands,
     } = this.config;
     return WrapUp.init({
+      ...wrapUpCommands,
       workspaces: this._workspacesConfig,
       github,
       githubOwner,

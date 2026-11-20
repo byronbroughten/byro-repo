@@ -299,6 +299,10 @@ export function specRun(
     workspaceFolder: join(temp, "workspaces"),
     symlinkedFiles: [],
     async installDependencies() {},
+    wrapUpCommands: {
+      async afterFastForward() {},
+      async installDependencies() {},
+    },
     promoteCommandOf: () => "npm run issue:promote -- byro-repo 1",
     removeCommand: "npm run issue:remove",
     mergeChecks: [greenUnlessRed],
