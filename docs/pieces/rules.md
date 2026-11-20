@@ -16,6 +16,7 @@ The rules every piece spec follows, in whichever repo files it as a GitHub issue
 - **For an Academic Piece, also read [`academic-writing-style.md`](../academic-writing-style.md).**
 - **Apply the Voice rules tagged with the spec's Evidence and Formality values, every Craft rule, then the spec's Style overrides on top.** An override wins where it conflicts.
 - **Draft from a Research comment's facts, never their quoted passages**; `## Unverified` is outside the fact list, per `/research-piece`.
+- **Draft each image the spec's Images field gives a Section as an Image placeholder in that Section** ([agent-draft.md](./agent-draft.md#file-format)): an agent image as SVG source in the image folder, rendered to PNG with `npm run image:render`; a developer image downloaded from Drive by the file ID the field gives, saved there and never edited.
 - **Before drafting a Section, read the spec's Outline, and open an earlier Section in the Deliverable only for a fact or term the Outline says it sets out.**
 - **A Piece has an `issue-<n>-<slug>` branch, because its Agent draft is a repo file.** It is implemented in an issue workspace (`npm run issue:start -- <repo> <n>`) and lands as code does, per [`git-workflow.md`](../agents/git-workflow.md#landing-a-spec).
 - **A Research spec is run with `/research-piece`.** It has no branch, and lands as [`git-workflow.md`](../agents/git-workflow.md#landing-a-spec) says.
@@ -24,7 +25,7 @@ The rules every piece spec follows, in whichever repo files it as a GitHub issue
 
 A Piece is done when all four hold:
 
-1. Every factual claim traces to a fact listed in the spec, with nothing invented.
+1. Every factual claim traces to a fact listed in the spec, the Images field's included, with nothing invented.
 2. The Piece meets the spec's length limit.
 3. It follows [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md), apart from the style overrides the spec lists.
 4. It copies no wording from the Reference or Supporting Material passages read for it, per [`writing-voice.md`](../writing-voice.md), apart from the developer's own text the spec names. `npm run overlap` lists the shared four-word runs; judge each one.

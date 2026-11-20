@@ -1,6 +1,7 @@
 // The piece review step: the prompt that runs a review of a drafting ticket's Agent draft on the spec, standards and
-// reader axes, by the implementer in a run or an interactive session from its brief, with `/review-piece`'s SKILL.md
-// body inlined and the files reviewInputs.ts wrote named before it, the review record it returns: code's, on these
+// reader axes, by the implementer in a run or an interactive session from its brief, over the Agent draft, its image
+// folder and the passages folder, with `/review-piece`'s SKILL.md body inlined and the files reviewInputs.ts wrote
+// named before it, the review record it returns: code's, on these
 // axes, plus the overlap hits it judged no copy, and the check that it spawned its three reviewer subagents, with the
 // resume that sends back one that didn't.
 // pieceWorkflow.ts registers it, reading the skill from the workspace through ../../stepPrompts/inlinedSkill.ts;
@@ -27,6 +28,7 @@ import type {
   ReviewPromptInput,
   SuppliedInput,
 } from "../../Workflow.ts";
+import { agentDraft } from "./agentDraft.ts";
 import { draftingScope } from "./draftingScope.ts";
 import { draftingTicketKind, passagesFolderIn } from "./implementStep.ts";
 
@@ -60,7 +62,7 @@ export function pieceReviewPrompt({
   );
   return `${framing.opening}
 
-Review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes, by the \`${skillName}\` skill below. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
+Review ${issue.repo}#${issue.number}, "${title}", on the ${codeListOf(pieceAxes, "and")} axes, by the \`${skillName}\` skill below. Your working directory is the ticket's issue workspace root, on the ticket's branch, \`${branch}\`. The draft input is the Agent draft, \`${draftPath}\` in the \`${spec.repo}\` clone, its image folder, \`${agentDraft.imageFolderOf(spec.number)}\` in the same clone, and the passages folder, \`${passagesFolder}\`; the ticket's spec is ${spec.repo}#${spec.number}. The in-scope text is ${scope}. ${stepReadLine}
 
 ${heldTicket.join("")}${suppliedInputsLinesOf(suppliedInputs, skillName)}${inlinedSkill.sectionOf(skillText, skillName)}
 

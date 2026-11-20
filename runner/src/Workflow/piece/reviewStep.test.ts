@@ -46,14 +46,14 @@ describe("pieceReviewPrompt", () => {
     expect(prompt).not.toContain("by that path");
   });
 
-  it("keeps the Agent draft, passages folder, scope and return lines", () => {
+  it("keeps the Agent draft, image folder, passages folder, scope and return lines", () => {
     const prompt = pieceReviewPrompt(input);
 
     expect(prompt).toContain(
       'Review byro-repo#12, "Draft the harbour", on the `spec`, `standards` and `reader` axes, by the `review-piece` skill below.',
     );
     expect(prompt).toContain(
-      "The draft input is the Agent draft, `docs/pieces/drafts/10.md` in the `byro-repo` clone, and the passages folder, `/workspaces/byro-repo-issue-12/.runner/passages/byro-repo-12`; the ticket's spec is byro-repo#10.",
+      "The draft input is the Agent draft, `docs/pieces/drafts/10.md` in the `byro-repo` clone, its image folder, `writing/agent-drafts/10/` in the same clone, and the passages folder, `/workspaces/byro-repo-issue-12/.runner/passages/byro-repo-12`; the ticket's spec is byro-repo#10.",
     );
     expect(prompt).toContain("The in-scope text is");
     expect(prompt).toContain("`dismissedOverlaps`: each overlap hit");

@@ -46,7 +46,7 @@ The words for the repo's prose, which file holds which fact, what the root AGENT
 | `docs/agents/specs.md` | The rules for planning and writing a spec, code, piece or mixed. |
 | `docs/agents/tickets.md` | Every ticketing judgment: the ticket split test, work packages, sizing and grouping, repos, `## Where` and Model fit. |
 | `docs/agents/handoffs.md` | When a session writes a handoff, what it holds, and when it proposes a split. |
-| `docs/agents/verdicts.md` | How any review finding is judged, one line per rule, rule only: the four verdicts and their reasons, the Standards and Spec rules, Halt, overruling a suggested verdict, and the approved exceptions. |
+| `docs/agents/verdicts.md` | How any review finding is judged, one line per rule, rule only: the four verdicts and their reasons, the Standards, Spec and Piece findings rules, Halt, overruling a suggested verdict, and the approved exceptions. |
 | `docs/agents/codebase-priorities.md` | What every Recommendation about the codebase or agent tooling is weighed against, one line per rule, rule only: scope, the Tier 1 gate, the floor, Tier 2's ranked priorities with their definitions, and explaining a tradeoff. |
 | `docs/agents/codebase-priorities/*.md` | Each priority's pointers to the rules that express it, why fewer concepts help and the floor's reason, and the Estimates, the observation index of measured costs, indexed by `docs/agents/codebase-priorities.md`'s "When \| File" table. |
 | `docs/agents/git-workflow/wrap-up.md` | What the wrap-up script does when a spec lands: its facts file, branch order, closing flags, session facts, Standalone close and failures; and the dependency name check and installs a session's landing shares. Disclosed from `docs/agents/git-workflow.md`'s Landing a spec and Landing a session. |
@@ -106,7 +106,7 @@ The rules for writing any Piece, whichever repo files its spec. The Pieces' text
 
 | File | Holds |
 | --- | --- |
-| `rules.md` | The pointers to `/plan-project` and the outlining guide, and how to implement a piece spec: the Agent draft as the text's working home, Drive IDs and long PDFs, creating files, the style sheets to apply, a Piece's branch and landing, the pointer to the Agent draft doc, and the four done checks. |
+| `rules.md` | The pointers to `/plan-project` and the outlining guide, and how to implement a piece spec: the Agent draft as the text's working home, Drive IDs and long PDFs, creating files, the style sheets to apply, how each image is drafted, a Piece's branch and landing, the pointer to the Agent draft doc, and the four done checks. |
 | `GLOSSARY.md` | The writing context's words: Piece, Deliverable, Section, Outline, Stage, Agent draft, Edit gate, Supporting Material and Reference. |
 | `grilling.md` | The questions a grill asks before a piece spec is filed, one per spec field it settles, each with an example from a past spec, its private details replaced by neutral stand-ins. `/plan-project`'s piece branch asks them; `/revise-workflows` adds to them. |
 | `outlining.md` | How a spec's Outline is written: what each entry holds, a template's fixed Sections, and when Research revises it. |
