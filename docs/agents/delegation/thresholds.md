@@ -27,6 +27,6 @@ The inputs:
 | Review step | 9 | 24K | 25K |
 | Gap check | 6 | 47K | inline |
 
-Each row rounds its kinds' break-evens up to one figure, so a session delegates only where it clearly saves. The gap check's 47K is past any sweep it makes, so its row is inline. Kinds with 3 or fewer measured sessions fall under the default: `/code-spec`, `/wayfinder`, `/piece-tickets`, `/to-writing-style`, `/project-tickets`, `/review-tickets` and the red-checks step. Their medians, 13 to 54.5, mostly sit near the default's.
+Each row rounds its kinds' break-evens up to one figure. `/runner` and `/judge-findings` round to the default's 5K, so `delegation.md` lists them under it. The gap check's 47K is past any sweep it makes, so its row is inline. Kinds with 3 or fewer measured sessions are too few to set a row and fall under the default: `/code-spec`, `/wayfinder`, `/piece-tickets`, `/to-writing-style`, `/project-tickets`, `/review-tickets` and the red-checks step.
 
 Agreed with the developer on byro-repo#859, 2026-11-19.
