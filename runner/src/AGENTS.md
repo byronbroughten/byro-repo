@@ -218,7 +218,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `Workflow/code/redChecksStep.ts` | | The red-checks step's prompt and record. |
 | `Workflow/code/resolveStep.ts` | `resolveStep` | The code resolve step's prompt. |
 | `Workflow/code/reviewStep.ts` | `reviewStep` | The review step's prompt, record schema and reviewer check. |
-| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path and its image folder's, its H1 and H2 lines, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
+| `Workflow/piece/agentDraft.ts` | | The Agent draft file's path and its image folder's, the image files its placeholders name, its H1 and H2 lines, Sections by heading path and author marks, pull's merge of a Doc's Sections into them, the agent Sections the push writes and the ones its `keep mine` answers mark as the developer's. |
 | `Workflow/piece/agentDraft/imagePlaceholders.ts` | | The Image placeholders in an Agent draft Section's body, each with its number and its file or facts, and the body's prose without them. |
 | `Workflow/piece/draftingScope.ts` | `draftingScope` | A drafting ticket's scope, its named Sections or every agent Section on a `final-pass` ticket, read from its labels and worded for the prompts. |
 | `Workflow/piece/gapCheck.ts` | | The piece Workflow's section of the gap check. |

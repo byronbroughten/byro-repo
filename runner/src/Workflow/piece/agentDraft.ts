@@ -10,6 +10,7 @@ import {
 } from "../../Docs/markdownDialect.ts";
 import type { NumberOrPlaceholder } from "../../promptText.ts";
 import type { AgentSection } from "../../Workflow.ts";
+import { imagePlaceholders } from "./agentDraft/imagePlaceholders.ts";
 
 export type SectionAuthor = "developer" | "agent";
 
@@ -38,6 +39,16 @@ export const agentDraft = {
   // Each image's PNG, and an agent-made image's SVG source of the same name.
   imageFolderOf(specNumber: NumberOrPlaceholder): string {
     return `writing/agent-drafts/${specNumber}/`;
+  },
+
+  // The file each Image placeholder names, in draft order; one that lists facts names none.
+  imageFilesOf(draft: string): string[] {
+    return agentDraft
+      .sectionsOf(draft)
+      .flatMap(({ markdown }) => imagePlaceholders.of(markdown))
+      .flatMap((placeholder) =>
+        "file" in placeholder ? [placeholder.file] : [],
+      );
   },
 
   sectionsOf(draft: string): DraftSection[] {
