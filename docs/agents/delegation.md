@@ -2,6 +2,8 @@
 
 A dispatched agent starts **cold**: it re-pays the root instructions plus every doc it opens. Delegate when an agent will read a lot and return a little, as in a sweep across many files, a review, or research. Do single-file edits, and anything already in context, inline.
 
+## Delegation rules
+
 - **Sweeps go to `repo-explorer` when the files they open total more than [the session's threshold](#sweep-thresholds) by `npm run size -- <paths|globs|dirs> --total`, or can't be named in advance.** Do a single lookup inline. What it returns, and how much, is in [its definition](../../.claude/agents/repo-explorer.md#what-to-return).
 - **The gates stay in the main session.** A dispatched agent has no one to ask, so it reports the command it would run and the plan behind it. The main session gets the yes and runs the command. The same goes for commits and `gh` writes.
 - **Name the doc in the prompt.** Quote the Read-by-task row from `AGENTS.md` plus the exact file and block. A cold agent handed only a topic re-reads the map. Tell it to grep `columnConfigs.ts` by Table key (`repo-explorer` already knows to).
