@@ -70,6 +70,28 @@ describe("TicketReadier", () => {
     expect(labelsOf(github)).toEqual(["needs-triage"]);
   });
 
+  it("refuses a body with a malformed Targets line, naming it", async () => {
+    const github = githubWith(
+      `## What to build\n\nA check.\n\n${where}\n\n## Targets\n\napp spreadsheet\n\n${modelFit}`,
+      ["needs-triage"],
+    );
+    const message = await refusalOf(github, "ready-for-agent");
+
+    expect(message).toContain("## Targets");
+    expect(message).toContain("`app spreadsheet`");
+    expect(labelsOf(github)).toEqual(["needs-triage"]);
+  });
+
+  it("passes a body whose Targets lines are well formed", async () => {
+    const github = githubWith(
+      `## What to build\n\nA check.\n\n${where}\n\n## Targets\n\n- app spreadsheet\n- doc abc_1\n\n${modelFit}`,
+      ["needs-triage"],
+    );
+    await TicketReadier.init(github).ready(issue, "ready-for-agent");
+
+    expect(labelsOf(github)).toEqual(["ready-for-agent"]);
+  });
+
   it("relabels a ready-for-human ticket with no check", async () => {
     const github = githubWith("## What to build\n\nBy hand.", ["needs-triage"]);
     await TicketReadier.init(github).ready(issue, "ready-for-human");

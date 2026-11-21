@@ -355,6 +355,21 @@ describe("TicketFiler", () => {
       expect(message).not.toContain("6-sound.md");
     });
 
+    it("a draft with a malformed Targets line, naming the line, beside one whose Targets pass", async () => {
+      const message = await refusalOf([
+        draftOf("1-bare-target.md", {
+          sections: `## Targets\n\ndev spreadsheet\n\n${readySections}`,
+        }),
+        draftOf("2-sound-targets.md", {
+          sections: `## Targets\n\n- dev spreadsheet\n\n${readySections}`,
+        }),
+      ]);
+      expect(message).toMatch(
+        /1-bare-target\.md.*## Targets.*`dev spreadsheet`/,
+      );
+      expect(message).not.toContain("2-sound-targets.md");
+    });
+
     it("no drafts at all", async () => {
       expect(await refusalOf([])).toContain("no drafts");
     });
