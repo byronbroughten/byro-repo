@@ -16,7 +16,7 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 
 | Action | Tier |
 | --- | --- |
-| A sandboxed call, one the sandbox runs | free: the box keeps its writes in the workspaces, the git folders, temp and the gworkspace server's attachments folder of downloaded copies, and hides the credential files. A GitHub write keeps its own row, as nothing undoes it, so in one holding `gh` or `git push` only those commands' rows decide and the rest are free |
+| A sandboxed call, one the sandbox runs | free: the box keeps its writes in the workspaces, the git folders, temp and the gworkspace server's attachments folder of downloaded copies, and hides the credential files. A GitHub write keeps its own row, as nothing undoes it, so in one holding `gh` or `git push` only those commands' rows decide and the rest are free. So do the live rows that ask or refuse: an `app:*` `--confirm`, any `--force`, an app `--send` with no dry run, a runner step's live-alias rows, and a bare `clasp`, `npx sheets-framework` or `node packages/framework/scripts/…`; a live alias behind a wrapper the gate can't read, such as `sh -c`, keeps its row when it holds `--confirm`, `--force` or `--send`. Every other live alias is free |
 | Editing repo files; `npm run check`, `npm run tsc`, `npm test`, `npm run lint` | 1 |
 | `WebFetch` on `developers.google.com`, `support.google.com` or `docs.anthropic.com`; `WebSearch` | free: reads, a runner step's included. Listed by host, since the risk is the outgoing URL: an injected instruction could make a step fetch an attacker's host with something it read in the query, and a step can read files outside its workspace. A listed host's request goes only to that host, as WebFetch returns a cross-host redirect rather than following it, and a search's query goes only to the search provider. A fetch of any other host asks, and a runner step's is refused (`docHosts` in `.claude/hooks/lib/tiers/webTools.ts`) |
 | `npm run issue:start`, `issue:list`, `issue:release`, whose lease `issue:start` takes back, and `issue:remove` without `--force`, which refuses unlanded work | 1 |
@@ -57,7 +57,7 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 | `npm run logs -- sync \| restore --sheet <id>`, which copies the friction and outcome folders to the agent account's Sheet, or back, with the agent account's token from `AgentTokenMinter` | as `doc:print`'s row: a standing yes in an Interactive session; a runner step's is refused. The weakening is `doc:print`'s: editable repo code outside the box holding the agent token. |
 | A raw `git push` | 3 |
 | `npm publish` | 3, [below](#npm-publish) |
-| A bare `clasp …` or `npx sheets-framework …` | 3: it names no target |
+| A bare `clasp …`, `npx sheets-framework …` or `node packages/framework/scripts/…` | 3: it names no target |
 | Any other script that opens the `clasp` credential | 3 |
 | Spending money; touching credentials | 3; no tool does either yet, so the first one lands gated |
 | `npm run jev` | a standing yes, a runner step's included: Deliverable text and repo docs, never secrets, `.env` files or credential files ([the Jev doc](./agents/jev.md#what-may-be-sent)) |
@@ -104,7 +104,7 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 
 The threat model is accidents, with tampering made visible. Both clasp credentials cover the whole Google account, so OAuth can't isolate the two spreadsheets; the aliases and hooks do.
 
-- **Bare `npx sheets-framework …`, `node packages/framework/scripts/sheets-framework.js …`, a package-level `npm run chore …` and `npm run … -w …` match no allow rule, so they ask.**
+- **Bare `npx sheets-framework …` and `node packages/framework/scripts/sheets-framework.js …` ask by [their row](#which-tier-an-action-is-in); a package-level `npm run chore …` and `npm run … -w …` match no allow rule, so they ask.**
 - **`dev:build`, `dev:push` and `dev:deploy` run the framework package's `build`, `push` and `deploy` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs/dev-project.md)); `app:build` and `app:deploy` run the app's.
 - **Both targets' Node-host credential comes from GCP project `real-estate-manager-sheets`**, whose consent screen is published to production ([why, and the assumption it rests on](../packages/framework/docs/how-it-runs/auth.md)).
 - **Never read `~/.clasprc.json` or the Docs module's `~/.clasprc-docs.json` by hand, or print either one's token.** Settings deny the read of both too, to the Read tool and to sandboxed Bash ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).

@@ -10,6 +10,7 @@ const untargetedPrograms = new Set([
   "sheets-framework",
   "@byronbroughten/sheets-framework",
 ]);
+const frameworkScriptPath = /(^|\/)packages\/framework\/scripts\//;
 // A free script's flag that takes it out of its free row.
 const askingFlags = [
   {
@@ -50,19 +51,22 @@ export const npmVerdicts = {
     return liveFlagVerdictOf(words, heldSends) ?? sendVerdict;
   },
   untargetedVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-    const run = npmCommands.programRunOf(words);
-    if (!run) return undefined;
-    if (
-      ![run.program, ...run.packages].some((name) =>
-        untargetedPrograms.has(name),
-      )
-    ) {
-      return undefined;
-    }
+    if (!npmVerdicts.namesNoTarget(words)) return undefined;
     return {
       permissionDecision: "ask",
       why: "names no target; use a `dev:*` or `app:*` script",
     };
+  },
+  // A bare clasp or framework bin, through npx or a framework script run with node.
+  namesNoTarget(words: string[]): boolean {
+    const run = npmCommands.programRunOf(words);
+    if (!run) return false;
+    if (run.program === "node") {
+      return run.args.some((word) => frameworkScriptPath.test(word));
+    }
+    return [run.program, ...run.packages].some((name) =>
+      untargetedPrograms.has(name),
+    );
   },
   // npmCommands.scriptOf drops flags, so the raw words are searched for the flag.
   askingFlagVerdictOf({ words }: SimpleCommand): Verdict | undefined {

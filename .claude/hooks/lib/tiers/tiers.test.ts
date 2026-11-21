@@ -1502,6 +1502,152 @@ describe("a sandboxed call", () => {
   });
 });
 
+// The live aliases once off `excludedCommands`, so the box runs them.
+describe("a live call in the sandbox", () => {
+  interface BoxCall {
+    mode?: SessionMode;
+    dryRuns?: string[];
+    heldSends?: HeldSends;
+    spreadsheetTargets?: string[];
+  }
+
+  function boxDecisionOf(command: string, call: BoxCall = {}) {
+    return gateDecision({
+      command,
+      mode: call.mode ?? "interactive",
+      dryRuns: call.dryRuns ?? [],
+      heldSends: call.heldSends ?? "confirm",
+      spreadsheetTargets: call.spreadsheetTargets,
+      sandbox: { isOn: true, excludedCommands: ["npm run check"] },
+    });
+  }
+
+  it("asks for an app `--confirm` and any `--force`, refusing them in a runner step", () => {
+    for (const command of [
+      "npm run app:sync -- --confirm abc",
+      "npm run app:chore fixRents -- --send --force",
+      "npm run dev:sync -- --send --force",
+      "timeout 60 npm run app:sync -- --confirm abc",
+    ]) {
+      expect(boxDecisionOf(command, { dryRuns: ["fixRents"] })).toMatchObject({
+        permissionDecision: "ask",
+      });
+      expect(
+        boxDecisionOf(command, {
+          mode: "runnerStep",
+          dryRuns: ["fixRents"],
+          spreadsheetTargets: ["app", "dev"],
+        })?.permissionDecision,
+      ).toBe("deny");
+    }
+  });
+
+  it("frees an app `--confirm` under agentDiscretion, as outside the box, but not a `--force`", () => {
+    expect(
+      boxDecisionOf("npm run app:sync -- --confirm abc", {
+        heldSends: "agentDiscretion",
+      })?.permissionDecision,
+    ).toBe("allow");
+    expect(
+      boxDecisionOf("npm run app:sync -- --confirm abc --force", {
+        heldSends: "agentDiscretion",
+      })?.permissionDecision,
+    ).toBe("ask");
+  });
+
+  it("refuses an app send with no dry run this session, naming the dry run", () => {
+    for (const mode of ["interactive", "runnerStep"] as const) {
+      const decision = boxDecisionOf("npm run app:chore fixRents -- --send", {
+        mode,
+        spreadsheetTargets: ["app"],
+      });
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("npm run app:chore fixRents");
+    }
+    expect(
+      boxDecisionOf("npm run app:sync -- --send")?.permissionDecision,
+    ).toBe("deny");
+  });
+
+  it("asks for a bare framework or clasp call, which names no target", () => {
+    for (const command of [
+      "npx sheets-framework sync",
+      "npx @byronbroughten/sheets-framework sync --send",
+      "clasp push",
+      "npx @google/clasp push",
+      "node packages/framework/scripts/sheets-framework.js sync",
+      "node ./packages/framework/scripts/sheets-framework.js probe",
+      "cd x && node /repo/packages/framework/scripts/sheets-framework.js sync",
+    ]) {
+      expect(boxDecisionOf(command)?.permissionDecision).toBe("ask");
+    }
+  });
+
+  it("frees every other live alias by the sandboxed-call row", () => {
+    for (const command of [
+      "npm run app:probe",
+      "npm run app:sync",
+      "npm run app:sync -- --send",
+      "npm run app:chore fixRents -- --send",
+      "npm run dev:sync -- --send",
+      "npm run dev:sync -- --send --confirm abc",
+      "npm run dev:push",
+      "npm run app:deploy",
+      "npm run app:probe | head -20",
+    ]) {
+      const decision = boxDecisionOf(command, {
+        dryRuns: ["fixRents", "app:sync"],
+      });
+      expect(decision?.permissionDecision).toBe("allow");
+      expect(decision?.reason).toContain("runs in the sandbox");
+    }
+  });
+
+  it("is decided by its kept live row beside a free command", () => {
+    const decision = boxDecisionOf(
+      "npm run app:probe && npm run app:sync -- --confirm abc",
+    );
+    expect(decision?.permissionDecision).toBe("ask");
+    expect(decision?.reason).toContain("holds `--confirm`");
+    expect(decision?.reason).not.toContain("runs in the sandbox");
+  });
+
+  it("keeps the row of a live send or flag behind a wrapper the rows can't read", () => {
+    for (const command of [
+      "sh -c 'npm run app:sync -- --confirm abc'",
+      "echo x | xargs npm run app:chore fixRents -- --send",
+      "bash -c 'npm run dev:sync -- --force'",
+    ]) {
+      expect(boxDecisionOf(command)?.permissionDecision).not.toBe("allow");
+      expect(
+        boxDecisionOf(command, { mode: "runnerStep" })?.permissionDecision,
+      ).toBe("deny");
+    }
+    expect(boxDecisionOf("sh -c 'npm run app:probe'")?.permissionDecision).toBe(
+      "allow",
+    );
+  });
+
+  it("keeps a runner step's target rows in the box", () => {
+    expect(
+      boxDecisionOf("npm run app:probe", { mode: "runnerStep" })
+        ?.permissionDecision,
+    ).toBe("deny");
+    expect(
+      boxDecisionOf("npm run dev:sync -- --send --confirm abc", {
+        mode: "runnerStep",
+        spreadsheetTargets: ["dev"],
+      })?.permissionDecision,
+    ).toBe("deny");
+    expect(
+      boxDecisionOf("npm run app:probe", {
+        mode: "runnerStep",
+        spreadsheetTargets: ["app"],
+      })?.permissionDecision,
+    ).toBe("allow");
+  });
+});
+
 // #594's misreads, each call as its session's transcript holds it, under settings.json's entries.
 describe("a call the gate once misread", () => {
   const entries = [
