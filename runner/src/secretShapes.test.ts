@@ -30,6 +30,7 @@ describe("secretShapeOf", () => {
       "Access tokens start with ya29. and refresh ones with 1//.",
     ],
     ["a URL with a double slash", "see https://example.com//path"],
+    ["a short `1//` run", `"refresh_token": "1//0gAbc"`],
     ["a short GitHub-prefixed name", "const ghp_count = 3;"],
     ["a public key block", "-----BEGIN PUBLIC KEY-----"],
     ["a client secret field name", "clientSecret: config.client_secret,"],

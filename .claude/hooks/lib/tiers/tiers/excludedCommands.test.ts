@@ -14,8 +14,6 @@ const entries = [
   "npm run issue:promote *",
   "npm run issue:release *",
   "npm run issue:remove *",
-  "npm run app*",
-  "npm run dev*",
   "npm run runner*",
   "npm run session:probe *",
   "npm run check",
@@ -45,15 +43,58 @@ const settingsPath = fileURLToPath(
   new URL("../../../../settings.json", import.meta.url),
 );
 
-// A command the entry matches: its `*` filled in, as `npm run app*` takes `app:probe` and `npm run wrap-up *` takes `wrap-up x`.
+// A command the entry matches: its `*` filled in, as `npm run runner*` takes `runner:x` and `npm run wrap-up *` takes `wrap-up x`.
 function commandMatching(entry: string): string {
   return entry.replace(/ \*$/, " x").replace(/\*$/, ":x");
 }
 
-describe("the project settings' `npm` entries", () => {
-  const settings = JSON.parse(readFileSync(settingsPath, "utf8")) as {
-    sandbox: { excludedCommands: string[] };
+const settings = JSON.parse(readFileSync(settingsPath, "utf8")) as {
+  env: Record<string, string>;
+  permissions: { deny: string[] };
+  sandbox: {
+    excludedCommands: string[];
+    network: { allowedDomains: string[] };
   };
+};
+
+describe("the live aliases, run in the box on the agent-account credential", () => {
+  it("leaves no `app` or `dev` entry in `excludedCommands`", () => {
+    expect(
+      settings.sandbox.excludedCommands.filter((entry) =>
+        /^npm run (app|dev)\b/.test(entry),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([
+    "sheets.googleapis.com",
+    "oauth2.googleapis.com",
+    "script.googleapis.com",
+  ])("lets the box reach `%s`", (host) => {
+    expect(settings.sandbox.network.allowedDomains).toContain(host);
+  });
+
+  it("points `clasp_config_auth` at the agent credential's absolute path", () => {
+    expect(settings.env.clasp_config_auth).toMatch(
+      /^\/.+\/\.config\/sheets-framework\/agent-auth\.json$/,
+    );
+  });
+
+  it("keeps the read deny on `~/.clasprc.json`", () => {
+    expect(settings.permissions.deny).toContain("Read(~/.clasprc.json)");
+  });
+
+  it.each(["cd . && npm run app:probe -- x", "npm run dev:probe | head -50"])(
+    "refuses no boxed `%s` under the settings' entries",
+    (command) => {
+      expect(
+        excludedCommands.refusalOf(command, settings.sandbox.excludedCommands),
+      ).toBeUndefined();
+    },
+  );
+});
+
+describe("the project settings' `npm` entries", () => {
   const npmEntries = settings.sandbox.excludedCommands.filter((entry) =>
     entry.startsWith("npm "),
   );
@@ -77,12 +118,12 @@ describe("the project settings' `npm` entries", () => {
 
 describe("an excluded command the call keeps in the box", () => {
   it.each([
-    ["npm run app:probe -- x | head -50", "npm run app:probe -- x"],
+    ["npm run runner -- status | head -50", "npm run runner -- status"],
     ["cd . && npm test", "npm test"],
-    ["npm run -s app:probe -- x", "npm run app:probe -- x"],
-    ["echo $(npm run dev:configs:diff)", "npm run dev:configs:diff"],
+    ["npm run -s runner -- status", "npm run runner -- status"],
+    ["echo $(npm run runner -- status)", "npm run runner -- status"],
     ["timeout 60 npm test", "npm test"],
-    ["timeout -k 5 60 npm run app:probe -- x", "npm run app:probe -- x"],
+    ["timeout -k 5 60 npm run runner -- status", "npm run runner -- status"],
     ["for i in 1; do npm test; done", "npm test"],
     ["{ npm test; }", "npm test"],
   ])("refuses `%s`, naming `%s`", (command, form) => {
@@ -92,9 +133,11 @@ describe("an excluded command the call keeps in the box", () => {
   });
 
   it.each([
-    ["npm run app:probe -- x | head -50", "can't reach Google"],
-    ["npm --prefix packages/framework run dev:probe", "can't reach Google"],
     ["cd . && npm run runner -- status", "can't launch `claude`"],
+    [
+      "npm --prefix packages/framework run runner -- status",
+      "can't launch `claude`",
+    ],
     ["cd . && npm run issue:list", "can't run `ps`"],
     ["cd . && npm run issue:start -- byro-repo 5", "can't run `ps`"],
     ["cd . && npm run issue:promote -- byro-repo 5 utils", "can't run `ps`"],
