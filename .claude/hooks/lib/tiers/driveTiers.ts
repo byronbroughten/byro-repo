@@ -34,7 +34,7 @@ export interface DriveCall {
   mode: SessionMode;
   // Checked only in a runner step, which may write nothing else.
   targets: StepTarget[];
-  // Undefined when the app's sheets config names none.
+  // Undefined when the app's sheets config names none or can't be read.
   appSpreadsheetId: string | undefined;
 }
 
@@ -258,6 +258,16 @@ async function writeDecision({
   if (sheetsWrites.has(toolName) && fileId === appSpreadsheetId) {
     return needsYes(
       `${tool} writes to the app spreadsheet \`${fileId}\` around the framework's entered-data hold, and can overwrite entered data or tick an action-row checkbox`,
+    );
+  }
+  // With no app ID the check above can't match, so an Interactive Sheets write asks rather than fall to the owner rule; a step's app target matches no file either.
+  if (
+    sheetsWrites.has(toolName) &&
+    appSpreadsheetId === undefined &&
+    mode !== "runnerStep"
+  ) {
+    return needsYes(
+      `${tool} writes to file \`${fileId}\` while the app spreadsheet's ID can't be read from its \`sheets.config.json\`, so the gate can't tell it isn't the app spreadsheet`,
     );
   }
   const writable = targets.filter(({ isReadOnly }) => !isReadOnly);

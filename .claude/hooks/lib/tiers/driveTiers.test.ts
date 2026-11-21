@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   cachedOwnerLookup,
+  type DriveCall,
   driveGateDecision,
   type OwnerCache,
   type OwnerLookup,
@@ -245,6 +246,31 @@ describe("driveGateDecision", () => {
       { mode: "runnerStep", targets: [{ label: "doc", id: "doc1" }] },
     );
     expect(decision?.permissionDecision).toBe("deny");
+  });
+
+  it("asks for an Interactive Sheets write on the developer's file while the app spreadsheet's ID can't be read", async () => {
+    const ownersOf = ownersFrom({ sheet1: [mine] });
+    const unknownApp: Omit<DriveCall, "toolName" | "input"> = {
+      ownersOf,
+      mode: "interactive",
+      targets: [],
+      appSpreadsheetId: undefined,
+    };
+    const sheetsWrite = await driveGateDecision({
+      ...unknownApp,
+      toolName: "mcp__gworkspace__modify_sheet_values",
+      input: { spreadsheet_id: "sheet1" },
+    });
+    const docsWrite = await driveGateDecision({
+      ...unknownApp,
+      toolName: "mcp__gworkspace__modify_doc_text",
+      input: { document_id: "sheet1" },
+    });
+    expect(sheetsWrite?.permissionDecision).toBe("ask");
+    expect(sheetsWrite?.reason).toContain(
+      "the app spreadsheet's ID can't be read",
+    );
+    expect(docsWrite?.permissionDecision).toBe("allow");
   });
 
   it("decides a write to the dev spreadsheet by owner as before, in either mode", async () => {
