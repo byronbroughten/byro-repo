@@ -3,7 +3,7 @@
 import { callOfItsOwn } from "@byronbroughten/spec-runner/callOfItsOwn";
 
 import { ShellParser, type SimpleCommand } from "../ShellParser.ts";
-import { timeoutWrappedOf } from "../timeoutWrapped.ts";
+import { timeoutUnwrappedOf } from "../timeoutWrapped.ts";
 import { npmCommands } from "./npmCommands.ts";
 
 // Why a boxed entry is refused: what the box can't do, or for the research push, that the box would free its push.
@@ -126,23 +126,18 @@ export const excludedCommands = {
 };
 
 function boxFormOf(words: string[]): string {
-  return npmCommands.unflaggedFormOf(unwrappedOf(words));
+  return npmCommands.unflaggedFormOf(timeoutUnwrappedOf(words));
 }
 
 // A vitest test run fails in the box as `npm test` does, so it's read as `npm test -- <args>`; undefined for any other command.
 function vitestFormOf(words: string[]): string | undefined {
-  const run = npmCommands.programRunOf(unwrappedOf(words));
+  const run = npmCommands.programRunOf(timeoutUnwrappedOf(words));
   if (run?.program !== "vitest") return undefined;
   const [first, ...rest] = run.args;
   if (otherVitestSubcommands.has(first ?? "")) return undefined;
   const args = first === "run" ? rest : run.args;
   if (args.length === 0) return "npm test";
   return ["npm", "test", "--", ...args].join(" ");
-}
-
-// A timed command keeps the box as its wrapped command does.
-function unwrappedOf(words: string[]): string[] {
-  return timeoutWrappedOf(words) ?? words;
 }
 
 function entryOf(command: string, entries: string[]): string | undefined {

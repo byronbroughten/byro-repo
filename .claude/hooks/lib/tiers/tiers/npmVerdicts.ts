@@ -4,12 +4,16 @@ import type { CallContext, Verdict } from "../tiers.ts";
 import type { HeldSends } from "./heldSends.ts";
 import { npmCommands } from "./npmCommands.ts";
 
-const untargetedPrograms = new Set([
-  "clasp",
-  "@google/clasp",
-  "sheets-framework",
-  "@byronbroughten/sheets-framework",
-]);
+// The calls that name no target: a clasp or framework bin, and a framework script run with node from any folder.
+const untargetedRuns = {
+  programs: new Set([
+    "clasp",
+    "@google/clasp",
+    "sheets-framework",
+    "@byronbroughten/sheets-framework",
+  ]),
+  frameworkScript: /(^|\/)framework\/scripts\/|(^|\/)sheets-framework\.js$/,
+} as const;
 // A free script's flag that takes it out of its free row.
 const askingFlags = [
   {
@@ -23,10 +27,11 @@ const askingFlags = [
     why: "runs each listed command an `excludedCommands` entry matches outside the sandbox, in a session no hook gates",
   },
 ] as const;
-// The flags that take a live alias out of its row: the framework sends a held deletion or overwrite only under `--confirm`, and `--force` overwrites a person's edit.
+// The flags that can take a live alias out of its row: the framework sends a held deletion or overwrite only under `--confirm`, `--force` overwrites a person's edit, and an app `--send` needs its dry run.
 export const liveFlags = {
   confirm: "--confirm",
   force: "--force",
+  send: "--send",
 } as const;
 const liveFlagWhys = {
   force:
@@ -50,19 +55,25 @@ export const npmVerdicts = {
     return liveFlagVerdictOf(words, heldSends) ?? sendVerdict;
   },
   untargetedVerdictOf({ words }: SimpleCommand): Verdict | undefined {
-    const run = npmCommands.programRunOf(words);
-    if (!run) return undefined;
-    if (
-      ![run.program, ...run.packages].some((name) =>
-        untargetedPrograms.has(name),
-      )
-    ) {
-      return undefined;
-    }
+    if (!npmVerdicts.namesNoTarget(words)) return undefined;
     return {
       permissionDecision: "ask",
       why: "names no target; use a `dev:*` or `app:*` script",
     };
+  },
+  // A node test run of a framework script's tests reaches no spreadsheet.
+  namesNoTarget(words: string[]): boolean {
+    const run = npmCommands.programRunOf(words);
+    if (!run) return false;
+    if (run.program === "node") {
+      return (
+        !run.args.includes("--test") &&
+        run.args.some((word) => untargetedRuns.frameworkScript.test(word))
+      );
+    }
+    return [run.program, ...run.packages].some((name) =>
+      untargetedRuns.programs.has(name),
+    );
   },
   // npmCommands.scriptOf drops flags, so the raw words are searched for the flag.
   askingFlagVerdictOf({ words }: SimpleCommand): Verdict | undefined {

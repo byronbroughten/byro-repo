@@ -1,5 +1,5 @@
 // Decides the gate for a Bash call by tier: 1 and 2 are free (git or Google's version history undoes them), 3 asks. Pure; tierGate.ts does the I/O, and driveTiers.ts decides gworkspace calls.
-// The classifiers live in tiers/, a file per subject: the raw push, a `gh issue edit` adding a `ready-*` label, `gh label list`, `ps` and `pgrep`, `open`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh` or `git push`, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box, and ghIssue.ts reads a `gh issue` call's verb for the classifiers that need it.
+// The classifiers live in tiers/, a file per subject: the raw push, a `gh issue edit` adding a `ready-*` label, `gh label list`, `ps` and `pgrep`, `open`, npm verdicts, and the verdicts only a runner step or an Interactive session gets. Each matches an `excludedCommands` entry, `gh`, `git push` or a live call, as the box frees any other command. excludedCommands.ts there refuses a call that keeps an excluded command in the box, and ghIssue.ts reads a `gh issue` call's verb for the classifiers that need it.
 import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
@@ -93,7 +93,7 @@ type Classifier = (
   context: CallContext,
 ) => Verdict | undefined;
 
-// A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier; one the box runs is then free unless it reaches GitHub, and then only its `gh` and `git push` commands' rows decide.
+// A call keeping an excluded command in the box is refused before any tier row, since it would fail there whatever its tier; one the box runs is then free unless it reaches GitHub or holds a live call whose row asks or refuses, and then only those commands' rows decide.
 // With the box off, only a call of excluded commands gets the rows, so a misconfigured box shows up as asks, never as silent freedom.
 export function gateDecision(call: ShellCall): Decision | undefined {
   const { isOn, excludedCommands: entries, off } = call.sandbox ?? noSandbox;
@@ -107,16 +107,13 @@ export function gateDecision(call: ShellCall): Decision | undefined {
   const boxCommands = isOn
     ? sandboxedCalls.boxCommandsOf(call.command, entries)
     : undefined;
-  const isBoxRun = boxCommands !== undefined;
-  if (
-    isBoxRun &&
-    !boxCommands.some(({ words }) => sandboxedCalls.holdsGitHubCall(words))
-  ) {
+  const boxVerdicts = boxCommands && verdictsOf(boxCommands, call);
+  if (boxVerdicts && !boxVerdicts.some(sandboxedCalls.keepsItsRow)) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
   }
   const rowsDecision = inlineSettingDecisionOf(
     call.command,
-    isBoxRun ? gitHubDecisionOf(call) : baseDecision(call),
+    boxVerdicts ? keptRowsDecisionOf(call, boxVerdicts) : baseDecision(call),
   );
   const decision =
     offDecisionOf(call.command, off) ?? rowsDecision ?? undecidedDecision(call);
@@ -134,17 +131,16 @@ function parseRefusalOf({ command, mode }: ShellCall): string | undefined {
   return `the gate can't parse this call, which holds ${failure}, so it is refused, not asked. Rewrite it: ${parseWayThrough}.`;
 }
 
-// A box-run call holding `gh` or `git push` gets only those commands' rows; an allow names the box for the rest.
-function gitHubDecisionOf(call: ShellCall): Decision | undefined {
-  const commandVerdicts = commandVerdictsOf(call);
-  if (!commandVerdicts) return undefined;
-  const gitHubVerdicts = commandVerdicts.filter(({ words }) =>
-    sandboxedCalls.holdsGitHubCall(words),
-  );
-  const decision = decisionAmong(call, gitHubVerdicts);
+// A box-run call holding `gh`, `git push` or a live call whose row asks or refuses gets only those commands' rows; an allow names the box for the rest.
+function keptRowsDecisionOf(
+  call: ShellCall,
+  boxVerdicts: CommandVerdict[],
+): Decision | undefined {
+  const keptVerdicts = boxVerdicts.filter(sandboxedCalls.keepsItsRow);
+  const decision = decisionAmong(call, keptVerdicts);
   if (
     decision?.permissionDecision !== "allow" ||
-    gitHubVerdicts.length === commandVerdicts.length
+    keptVerdicts.length === boxVerdicts.length
   ) {
     return decision;
   }
@@ -154,7 +150,7 @@ function gitHubDecisionOf(call: ShellCall): Decision | undefined {
   };
 }
 
-// Env assignments drop out of a command's words, so the whole call's text is searched; a call the box frees can't send, so it's left free, and a row's refusal stays a refusal.
+// Env assignments drop out of a command's words, so the whole call's text is searched; a call the box frees holds no row the setting loosens, so it's left free, and a row's refusal stays a refusal.
 function inlineSettingDecisionOf(
   command: string,
   rowsDecision: Decision | undefined,
@@ -283,16 +279,23 @@ function decisionAmong(
 }
 
 // Each simple command's own verdict, undefined when the gate can't parse the call; the prompt scan reads them to name the part that asked.
-export function commandVerdictsOf({
-  command,
-  mode,
-  dryRuns,
-  spreadsheetTargets = [],
-  places,
-  heldSends = "confirm",
-}: ShellCall): CommandVerdict[] | undefined {
-  const commands = ShellParser.init(command).parsedCommands;
-  if (!commands) return undefined;
+export function commandVerdictsOf(
+  call: ShellCall,
+): CommandVerdict[] | undefined {
+  const commands = ShellParser.init(call.command).parsedCommands;
+  return commands && verdictsOf(commands, call);
+}
+
+function verdictsOf(
+  commands: SimpleCommand[],
+  {
+    mode,
+    dryRuns,
+    spreadsheetTargets = [],
+    places,
+    heldSends = "confirm",
+  }: ShellCall,
+): CommandVerdict[] {
   const context = { mode, dryRuns, spreadsheetTargets, places, heldSends };
   return commands.map((simple) => ({
     words: simple.words,

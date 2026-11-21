@@ -13,3 +13,9 @@ export function timeoutWrappedOf(words: string[]): string[] | undefined {
   const wrapped = words.slice(at + 1);
   return wrapped.length > 0 ? wrapped : undefined;
 }
+
+// The command under every `timeout`, or the words themselves when there's none.
+export function timeoutUnwrappedOf(words: string[]): string[] {
+  const wrapped = timeoutWrappedOf(words);
+  return wrapped ? timeoutUnwrappedOf(wrapped) : words;
+}
