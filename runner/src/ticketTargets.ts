@@ -1,13 +1,13 @@
-// Reads a ticket's `## Targets` section, placed before `## Model fit`: one target outside the repo per line that the ticket's steps may write.
+// Reads a ticket's `## Targets` section, placed before `## Model fit`: one `- <target>` line per target outside the repo that the ticket's steps may write.
 // SpecRun.ts reads them with the pair just before each launch; ClaudeAgentStep.ts turns them into tools, and the tier gate checks writes against them.
 
 import { markdownSectionOf } from "./markdownSections.ts";
 
 const sectionHeading = "## Targets";
-const docLine = /^doc ([A-Za-z0-9_-]+)$/;
+const docLine = /^- doc ([A-Za-z0-9_-]+)$/;
 // The line shapes targetOf() reads, for a refusal to name.
 export const targetLineShapes =
-  "`app spreadsheet`, `dev spreadsheet` or `doc <id>`";
+  "`- app spreadsheet`, `- dev spreadsheet` or `- doc <id>`";
 
 // A source is a Drive file the spec lists for its steps to read, never a ticket line, and never written.
 export type Target =
@@ -22,8 +22,8 @@ export type TargetsReading =
   | { status: "malformed"; line: string };
 
 const spreadsheetLines: Record<string, SpreadsheetName> = {
-  "app spreadsheet": "app",
-  "dev spreadsheet": "dev",
+  "- app spreadsheet": "app",
+  "- dev spreadsheet": "dev",
 };
 
 // A body with no section names no targets.

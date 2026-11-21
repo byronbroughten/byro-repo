@@ -187,8 +187,12 @@ export function bodyWith(pairLine = "Opus high"): string {
   return `## What to build\n\nA thing.\n\n## Model fit\n\n${pairLine}\nA reason.\n`;
 }
 
-export function bodyWithTargets(...targetLines: string[]): string {
-  return `## What to build\n\nA thing.\n\n## Targets\n\n${targetLines.join("\n")}\n\n## Model fit\n\nOpus high\nA reason.\n`;
+export function bodyWithTargets(...targets: string[]): string {
+  return bodyWithTargetLines(...targets.map((target) => `- ${target}`));
+}
+
+export function bodyWithTargetLines(...lines: string[]): string {
+  return `## What to build\n\nA thing.\n\n## Targets\n\n${lines.join("\n")}\n\n## Model fit\n\nOpus high\nA reason.\n`;
 }
 
 export function addIssue(

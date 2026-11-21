@@ -12,6 +12,7 @@ import {
   addSpec,
   applied,
   bodyWith,
+  bodyWithTargetLines,
   bodyWithTargets,
   github,
   haltComments,
@@ -171,11 +172,12 @@ describe("run's Model fit refusal", () => {
     expect(noticeKinds()).toEqual(["refused"]);
   });
 
-  it("refuses a malformed ## Targets line beside the Model fit check, naming the ticket and the line", async () => {
-    addSpec([1, 2]);
+  it("refuses a malformed or bare ## Targets line beside the Model fit check, naming the ticket and the line", async () => {
+    addSpec([1, 2, 3]);
     github.edit(2, {
       body: bodyWithTargets("app spreadsheet", "the live sheet"),
     });
+    github.edit(3, { body: bodyWithTargetLines("dev spreadsheet") });
     const agentStep = FakeAgentStep.init();
 
     const result = await specRun(agentStep).run(spec);
@@ -184,7 +186,7 @@ describe("run's Model fit refusal", () => {
       kind: "refused",
       landed: [],
       message:
-        "Each ## Targets line must be `app spreadsheet`, `dev spreadsheet` or `doc <id>`; malformed in byro-repo #2 (`the live sheet`).",
+        "Each ## Targets line must be `- app spreadsheet`, `- dev spreadsheet` or `- doc <id>`; malformed in byro-repo #2 (`- the live sheet`), byro-repo #3 (`dev spreadsheet`).",
     });
     expect(agentStep.requests).toEqual([]);
   });
