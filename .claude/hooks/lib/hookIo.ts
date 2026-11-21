@@ -40,6 +40,11 @@ export function readJsonFile(path: string): unknown {
   }
 }
 
+// A JSON object, as a settings file holds, and not an array.
+export function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 // Every guardrail fails open: an unreadable input allows the call.
 export function readHookInput(): HookInput | undefined {
   try {

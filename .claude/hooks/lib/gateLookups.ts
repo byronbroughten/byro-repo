@@ -1,13 +1,17 @@
 // The file-system lookups the tier gate's Bash decision reads, shared by tierGate.ts and stepPermission.ts so both decide a call alike.
 import { lstatSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 
+import { primaryRootOf } from "./branchRecords.ts";
 import {
   type HookInput,
+  isObject,
   projectDirOf,
   readJsonFile,
   sessionStatePath,
 } from "./hookIo.ts";
+import { type HeldSends, heldSendsSetting } from "./tiers/tiers/heldSends.ts";
 import type { ShellPlaces } from "./tiers/WritePathResolver.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
@@ -53,6 +57,25 @@ export const dryRuns = {
     writeFileSync(
       sessionStatePath(sessionId, dryRunSuffix),
       JSON.stringify([...recorded]),
+    );
+  },
+};
+
+// The primary's file, whichever root the session started in: a workspace has no copy, and a runner step may write its own workspace's.
+export const heldSendsFile = {
+  read(projectDir: string): HeldSends {
+    const primaryRoot = primaryRootOf(projectDir);
+    if (primaryRoot === undefined) return "confirm";
+    return heldSendsFile.at(primaryRoot);
+  },
+  // A missing or malformed file holds the send.
+  at(primaryRoot: string): HeldSends {
+    const settings = readJsonFile(
+      join(primaryRoot, ".claude", "settings.local.json"),
+    );
+    const env = isObject(settings) ? settings.env : undefined;
+    return heldSendsSetting.valueOf(
+      isObject(env) ? env[heldSendsSetting.settingKey] : undefined,
     );
   },
 };
