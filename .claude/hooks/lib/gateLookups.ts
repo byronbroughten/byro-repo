@@ -11,7 +11,7 @@ import {
   readJsonFile,
   sessionStatePath,
 } from "./hookIo.ts";
-import { type HeldSends, heldSends } from "./tiers/tiers/heldSends.ts";
+import { type HeldSends, heldSendsSetting } from "./tiers/tiers/heldSends.ts";
 import type { ShellPlaces } from "./tiers/WritePathResolver.ts";
 
 const dryRunSuffix = "chore-dry-runs.json";
@@ -62,11 +62,11 @@ export const dryRuns = {
 };
 
 // The primary's file, whichever root the session started in: a workspace has no copy, and a runner step may write its own workspace's.
-export const heldSendsSetting = {
+export const heldSendsFile = {
   read(projectDir: string): HeldSends {
     const primaryRoot = primaryRootOf(projectDir);
     if (primaryRoot === undefined) return "confirm";
-    return heldSendsSetting.at(primaryRoot);
+    return heldSendsFile.at(primaryRoot);
   },
   // A missing or malformed file holds the send.
   at(primaryRoot: string): HeldSends {
@@ -74,8 +74,8 @@ export const heldSendsSetting = {
       join(primaryRoot, ".claude", "settings.local.json"),
     );
     const env = isObject(settings) ? settings.env : undefined;
-    return heldSends.valueOf(
-      isObject(env) ? env[heldSends.settingKey] : undefined,
+    return heldSendsSetting.valueOf(
+      isObject(env) ? env[heldSendsSetting.settingKey] : undefined,
     );
   },
 };

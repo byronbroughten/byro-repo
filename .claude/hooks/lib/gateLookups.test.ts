@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { heldSendsSetting } from "./gateLookups.ts";
+import { heldSendsFile } from "./gateLookups.ts";
 import { folderWith } from "./settingsLayersFixture.ts";
 
 function localSettingsWith(content: unknown): string {
   return folderWith({ "settings.local.json": content });
 }
 
-describe("heldSendsSetting.at", () => {
+describe("heldSendsFile.at", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -16,7 +16,7 @@ describe("heldSendsSetting.at", () => {
     const root = localSettingsWith({
       env: { BYRO_HELD_SENDS: "agentDiscretion" },
     });
-    expect(heldSendsSetting.at(root)).toBe("agentDiscretion");
+    expect(heldSendsFile.at(root)).toBe("agentDiscretion");
   });
 
   it("reads confirm for confirm, no value, an unknown value or a top-level key", () => {
@@ -28,29 +28,18 @@ describe("heldSendsSetting.at", () => {
       { BYRO_HELD_SENDS: "agentDiscretion" },
       { env: "BYRO_HELD_SENDS=agentDiscretion" },
     ]) {
-      expect(heldSendsSetting.at(localSettingsWith(settings))).toBe("confirm");
+      expect(heldSendsFile.at(localSettingsWith(settings))).toBe("confirm");
     }
   });
 
   it("reads confirm for a missing or malformed file", () => {
-    expect(heldSendsSetting.at(folderWith({}))).toBe("confirm");
-    expect(heldSendsSetting.at(localSettingsWith("{ not json"))).toBe(
-      "confirm",
-    );
-    expect(heldSendsSetting.at(localSettingsWith("[]"))).toBe("confirm");
+    expect(heldSendsFile.at(folderWith({}))).toBe("confirm");
+    expect(heldSendsFile.at(localSettingsWith("{ not json"))).toBe("confirm");
+    expect(heldSendsFile.at(localSettingsWith("[]"))).toBe("confirm");
   });
 
   it("ignores the process environment's value", () => {
     vi.stubEnv("BYRO_HELD_SENDS", "agentDiscretion");
-    expect(heldSendsSetting.at(localSettingsWith({}))).toBe("confirm");
-  });
-});
-
-describe("heldSendsSetting.read", () => {
-  it("reads confirm from a folder in no git checkout, which has no primary", () => {
-    const root = localSettingsWith({
-      env: { BYRO_HELD_SENDS: "agentDiscretion" },
-    });
-    expect(heldSendsSetting.read(root)).toBe("confirm");
+    expect(heldSendsFile.at(localSettingsWith({}))).toBe("confirm");
   });
 });

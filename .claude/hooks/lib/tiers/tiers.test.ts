@@ -10,7 +10,7 @@ import {
   sessionModeOf,
   spreadsheetTargetsOf,
 } from "./tiers.ts";
-import { type HeldSends, heldSends } from "./tiers/heldSends.ts";
+import { type HeldSends, heldSendsSetting } from "./tiers/heldSends.ts";
 
 function decisionOf(command: string, dryRuns: string[] = []) {
   return gateDecision({ command, mode: "interactive", dryRuns })
@@ -1187,6 +1187,17 @@ describe("the heldSends setting", () => {
     }
   });
 
+  it("keeps a row's refusal for a call naming the setting inline", () => {
+    const decision = gateDecision({
+      command: "BYRO_HELD_SENDS=agentDiscretion npm run app:sync -- --send",
+      mode: "interactive",
+      dryRuns: [],
+      heldSends: "agentDiscretion",
+    });
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain("run `npm run app:sync` first");
+  });
+
   it("refuses a runner step's call naming the setting inline", () => {
     expect(
       heldDecisionOf(
@@ -1198,11 +1209,11 @@ describe("the heldSends setting", () => {
   });
 });
 
-describe("heldSends.valueOf", () => {
+describe("heldSendsSetting.valueOf", () => {
   it("reads agentDiscretion and holds every other value as confirm", () => {
-    expect(heldSends.valueOf("agentDiscretion")).toBe("agentDiscretion");
+    expect(heldSendsSetting.valueOf("agentDiscretion")).toBe("agentDiscretion");
     for (const value of ["confirm", undefined, "", "AgentDiscretion", 1]) {
-      expect(heldSends.valueOf(value)).toBe("confirm");
+      expect(heldSendsSetting.valueOf(value)).toBe("confirm");
     }
   });
 });

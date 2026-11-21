@@ -4,7 +4,7 @@ export type HeldSends = "confirm" | "agentDiscretion";
 // A key in the settings file's `env` block, which Claude Code accepts, unlike an unknown top-level one.
 const settingKey = "BYRO_HELD_SENDS";
 
-export const heldSends = {
+export const heldSendsSetting = {
   settingKey,
   // A missing or unknown value holds the send.
   valueOf(value: unknown): HeldSends {

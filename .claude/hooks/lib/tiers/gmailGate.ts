@@ -1,4 +1,5 @@
 // Decides the gate for a gmail write: free when one signed-off Proposal in the /inbox data covers every label, criterion and id the call names, an ask otherwise. Pure; gmailGate.ts does the I/O.
+import { isObject } from "../hookIo.ts";
 import {
   type Decision,
   decisionInMode,
@@ -103,11 +104,11 @@ function coversFilter(
       proposal.text.includes(input.filter_id)
     );
   }
-  if (proposal.kind !== "filter" || !isRecord(input.criteria)) return false;
+  if (proposal.kind !== "filter" || !isObject(input.criteria)) return false;
   const action = input.filter_action;
   // A forward or any other action the Proposal format can't state stays an ask.
   if (
-    !isRecord(action) ||
+    !isObject(action) ||
     !Object.keys(action).every((key) => labelChangeKeys.has(key))
   ) {
     return false;
@@ -150,7 +151,7 @@ function coversLabelChange(proposal: Proposal, change: LabelChange): boolean {
 }
 
 function labelChangeOf(input: Record<string, unknown>): LabelChange {
-  const filterAction = isRecord(input.filter_action) ? input.filter_action : {};
+  const filterAction = isObject(input.filter_action) ? input.filter_action : {};
   return {
     add: idsOf(input.add_label_ids ?? filterAction.addLabelIds),
     remove: idsOf(input.remove_label_ids ?? filterAction.removeLabelIds),
@@ -220,8 +221,4 @@ function idsOf(value: unknown): string[] {
 
 function squashed(text: string): string {
   return text.replace(/\s+/g, " ").trim();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -33,7 +33,7 @@ const liveFlagWhys = {
     "holds `--force`, which sends a trait over the sheet's value and so overwrites a person's edit",
   appConfirm:
     "holds `--confirm`, which sends the deletions and overwrites of entered data its dry run held",
-  agentDiscretion:
+  appConfirmAtDiscretion:
     "holds `--confirm`, which the developer's `heldSends` setting of `agentDiscretion` leaves to the agent's rule for a held send",
   devConfirm:
     "the dev spreadsheet holds no business data, and Google's version history undoes a `--confirm` send",
@@ -91,10 +91,13 @@ function liveFlagVerdictOf(
     return { permissionDecision: "ask", why: liveFlagWhys.force };
   }
   if (!npmCommands.holdsFlag(words, liveFlags.confirm)) return undefined;
-  if (spreadsheet === "app" && heldSends === "agentDiscretion") {
-    return { permissionDecision: "allow", why: liveFlagWhys.agentDiscretion };
-  }
   if (spreadsheet === "app") {
+    if (heldSends === "agentDiscretion") {
+      return {
+        permissionDecision: "allow",
+        why: liveFlagWhys.appConfirmAtDiscretion,
+      };
+    }
     return { permissionDecision: "ask", why: liveFlagWhys.appConfirm };
   }
   return { permissionDecision: "allow", why: liveFlagWhys.devConfirm };

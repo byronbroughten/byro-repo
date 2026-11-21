@@ -2,7 +2,7 @@
 // The hook reads the session's dry runs, targets, sandbox state and the developer's `heldSends` setting, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 
-import { dryRuns, heldSendsSetting, shellPlacesOf } from "./lib/gateLookups.ts";
+import { dryRuns, heldSendsFile, shellPlacesOf } from "./lib/gateLookups.ts";
 import {
   type HookInput,
   projectDirOf,
@@ -83,7 +83,7 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
     places: shellPlacesOf(input),
     sandbox: callSandboxOf(sessionSandboxStateOf(input)),
-    heldSends: heldSendsSetting.read(projectDirOf(input)),
+    heldSends: heldSendsFile.read(projectDirOf(input)),
   });
 }
 
