@@ -4,7 +4,7 @@ import type { SpreadsheetName, Target } from "./ticketTargets.ts";
 
 const appAliases = [
   "chore",
-  "gen:configs",
+  "sync",
   "probe",
   "build",
   "deploy",
@@ -12,7 +12,7 @@ const appAliases = [
 ];
 const liveAliases = {
   app: appAliases,
-  dev: [...appAliases, "push", "run"],
+  dev: [...appAliases, "push"],
 } satisfies Record<SpreadsheetName, string[]>;
 
 interface GworkspaceKindTools {

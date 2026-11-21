@@ -103,7 +103,7 @@ describe("gateDecision", () => {
 
   it("has no opinion on a command it doesn't list, alone or beside an allowed one", () => {
     expect(decisionOf("make build")).toBeUndefined();
-    expect(decisionOf("npm run app:gen:configs")).toBeUndefined();
+    expect(decisionOf("npm run app:sync")).toBeUndefined();
     expect(decisionOf("git commit -m wip")).toBeUndefined();
     expect(decisionOf("npm run lint && make build")).toBeUndefined();
   });
@@ -149,7 +149,7 @@ describe("gateDecision", () => {
       "git -C packages/framework push",
       "clasp deploy",
       "npx clasp push",
-      "npx sheets-framework gen:configs",
+      "npx sheets-framework sync",
     ]) {
       const decision = modeDecisionOf(command);
       expect(decision?.permissionDecision).toBe("ask");
@@ -384,7 +384,7 @@ describe("a runner step's unclassified call", () => {
       "gh issue edit 447 --body-file /tmp/body.md",
       "gh issue close 447",
       "gh pr view 12",
-      "npm run app:gen:configs",
+      "npm run app:sync",
       "npm run -s dev:push",
     ]) {
       expect(modeDecisionOf(command)).toBeUndefined();
@@ -968,13 +968,13 @@ describe("a runner step's live aliases", () => {
       "npm run app:probe -- --sheet Units",
       "npm run -s app:configs:diff",
       "npm run app:chore fixRents",
-      "npm run app:gen:configs",
+      "npm run app:sync",
     ]) {
       expect(targetedDecisionOf(command, ["app"])?.permissionDecision).toBe(
         "allow",
       );
     }
-    for (const command of ["npm run dev:push", "npm run dev:run fixtures"]) {
+    for (const command of ["npm run dev:push", "npm run dev:sync"]) {
       expect(targetedDecisionOf(command, ["dev"])?.permissionDecision).toBe(
         "allow",
       );

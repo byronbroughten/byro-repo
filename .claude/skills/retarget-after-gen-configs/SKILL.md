@@ -1,15 +1,15 @@
 ---
 name: retarget-after-gen-configs
-description: Retarget hand-written Table and column names onto the last generated-config cache. Use when gen:configs tsc fails; when hand-written keys disagree with generated configs; or when the developer asks to retarget after regen.
+description: Retarget hand-written Table and column names onto the last generated-config cache. Use when sync tsc fails; when hand-written keys disagree with generated configs; or when the developer asks to retarget after regen.
 ---
 
 Point the same live column or Table (same column ID or `tableId`) at the new generated key. The live spreadsheet is the source of truth; the four generated config files from the last successful regen are the cache; hand-written names follow identity in that cache.
 
-Open [`docs/generated-data.md`](../../../packages/framework/docs/generated-data.md) now (reading by block, the one regen path), plus [`column-configs.md`](../../../packages/framework/docs/generated-data/column-configs.md) for sampled vs declared and [`config-sheet-floor.md`](../../../packages/framework/docs/generated-data/config-sheet-floor.md) for the floor. Leave regen-run permission, the floor report, and the untyped-column count with whoever ran `gen:configs`.
+Open [`docs/generated-data.md`](../../../packages/framework/docs/generated-data.md) now (reading by block, the one regen path), plus [`column-configs.md`](../../../packages/framework/docs/generated-data/column-configs.md) for sampled vs declared and [`config-sheet-floor.md`](../../../packages/framework/docs/generated-data/config-sheet-floor.md) for the floor. Leave regen-run permission, the floor report, and the untyped-column count with whoever ran `sync`.
 
 ## Guardrails
 
-**Retarget** identity literals: tests, Table-name groups, named Table/column calls, operators, endpoints, chores. Names only. Leave the live spreadsheet as it is. Leave generated literals as regen wrote them (floor included). Leave `gen:configs` unrun — the last successful regen is the cache.
+**Retarget** identity literals: tests, Table-name groups, named Table/column calls, operators, endpoints, chores. Names only. Leave the live spreadsheet as it is. Leave generated literals as regen wrote them (floor included). Leave `sync` unrun — the last successful regen is the cache.
 
 Operator, endpoint, and chore logic stay as they are. A leftover pin stays a leftover `tsc` error: keep `IsExactly` / `assertType` / `assertNotType`.
 

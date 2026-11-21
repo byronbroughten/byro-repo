@@ -6,7 +6,7 @@ import { npmCommands } from "./npmCommands.ts";
 
 const targetAliases = [
   "chore",
-  "gen:configs",
+  "sync",
   "probe",
   "build",
   "deploy",
@@ -15,7 +15,7 @@ const targetAliases = [
 // The live aliases each spreadsheet target gives a runner step; runner/src/targetTools.ts mirrors them, as it can't import across the hooks boundary.
 const liveAliases = new Map([
   ["app", targetAliases],
-  ["dev", [...targetAliases, "push", "run"]],
+  ["dev", [...targetAliases, "push"]],
 ]);
 // A runner step's gh writes; a further edit or comment undoes either.
 const ghStepWrites = new Set(["edit", "comment"]);
