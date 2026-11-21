@@ -1,4 +1,4 @@
-// PreToolUse on Bash, WebFetch, WebSearch, the gworkspace write and create tools and its two Drive file reads applies the tier gate; PostToolUse on Bash records each app chore dry run that ran, for a later --send.
+// PreToolUse on Bash, WebFetch, WebSearch, the gworkspace write and create tools and its two Drive file reads applies the tier gate; PostToolUse on Bash records each app chore and sync dry run that ran, for a later --send.
 // The hook reads the session's dry runs, targets and sandbox state, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 
@@ -23,7 +23,7 @@ import {
 } from "./lib/tiers/driveTiers.ts";
 import {
   type Decision,
-  dryRunChoresOf,
+  dryRunsOf,
   gateDecision,
   sessionModeOf,
   spreadsheetTargetsOf,
@@ -73,7 +73,7 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
   const command = input.tool_input?.command;
   if (typeof command !== "string") return undefined;
   if (input.hook_event_name === "PostToolUse") {
-    dryRuns.record(input.session_id, dryRunChoresOf(command));
+    dryRuns.record(input.session_id, dryRunsOf(command));
     return undefined;
   }
   return gateDecision({

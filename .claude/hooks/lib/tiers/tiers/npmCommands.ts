@@ -13,10 +13,21 @@ export interface ProgramRun {
   args: string[];
 }
 
-interface AppChore {
-  name: string;
+// An app chore's or sync's run: the name its dry run is recorded under and the command that dry-runs it.
+interface AppRun {
+  kind: "chore" | "sync";
+  dryRun: string;
+  dryRunCommand: string;
   isSend: boolean;
 }
+
+interface LiveAlias {
+  spreadsheet: string;
+  alias: string;
+}
+
+// A chore's name is an identifier, so no chore's dry run can be recorded under this one.
+const syncDryRun = "app:sync";
 
 const freeWhys = {
   deploy: "a deployment can be rolled back to an earlier version",
@@ -118,22 +129,52 @@ export const npmCommands = {
     const scriptName = npmCommands.scriptOf(words)?.name ?? npmTestOf(words);
     return scriptName && freeScripts.get(scriptName);
   },
-  // npm keeps a `--send` before its `--` as its own config, so only one after it reaches the chore.
-  appChoreOf(words: string[]): AppChore | undefined {
+  appRunOf(words: string[]): AppRun | undefined {
     const script = npmCommands.scriptOf(words);
+    if (script?.name === "app:sync") {
+      return {
+        kind: "sync",
+        dryRun: syncDryRun,
+        dryRunCommand: "npm run app:sync",
+        isSend: isSendOf(script.args),
+      };
+    }
     if (script?.name !== "app:chore") return undefined;
     const name = script.args.find((arg) => !arg.startsWith("-"));
     if (!name) return undefined;
-    const separator = script.args.indexOf("--");
-    const isSend =
-      separator >= 0 && script.args.slice(separator).includes("--send");
-    return { name, isSend };
+    return {
+      kind: "chore",
+      dryRun: name,
+      dryRunCommand: `npm run app:chore ${name}`,
+      isSend: isSendOf(script.args),
+    };
   },
-  // An app chore's send, or undefined for any other command.
-  choreSendVerdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
-    const chore = npmCommands.appChoreOf(words);
-    if (!chore?.isSend) return undefined;
-    return sendVerdictOf(chore.name, dryRuns);
+  // An app chore's or sync's send: refused with no dry run of it this session; after one a chore's is allowed and a sync's left to its alias's row.
+  sendVerdictOf(words: string[], dryRuns: string[]): Verdict | undefined {
+    const run = npmCommands.appRunOf(words);
+    if (!run?.isSend) return undefined;
+    if (!dryRuns.includes(run.dryRun)) {
+      return {
+        permissionDecision: "deny",
+        why: `this session has no dry run of \`${run.dryRun}\` to preview the send; run \`${run.dryRunCommand}\` first`,
+      };
+    }
+    if (run.kind === "sync") return undefined;
+    return {
+      permissionDecision: "allow",
+      why: `this session dry-ran \`${run.dryRun}\` before sending it`,
+    };
+  },
+  // The spreadsheet and alias a live `app:*` or `dev:*` script names.
+  liveAliasOf(words: string[]): LiveAlias | undefined {
+    const name = npmCommands.scriptOf(words)?.name ?? "";
+    const [, spreadsheet, alias] = /^(app|dev):(.+)$/.exec(name) ?? [];
+    if (!spreadsheet || !alias) return undefined;
+    return { spreadsheet, alias };
+  },
+  // The raw words are searched, as scriptOf drops flags; one before npm's `--` counts too, being stricter.
+  holdsFlag(words: string[], flag: string): boolean {
+    return words.some((word) => word === flag || word.startsWith(`${flag}=`));
   },
   isNpm(words: string[]): boolean {
     return words[0] === "npm" || words[0] === "npm.cmd";
@@ -166,17 +207,10 @@ function afterFlagsOf(words: string[], at: number): number {
   return index;
 }
 
-function sendVerdictOf(name: string, dryRuns: string[]): Verdict {
-  if (dryRuns.includes(name)) {
-    return {
-      permissionDecision: "allow",
-      why: `this session dry-ran \`${name}\` before sending it`,
-    };
-  }
-  return {
-    permissionDecision: "deny",
-    why: `this session has no dry run of \`${name}\` to preview the send; run \`npm run app:chore ${name}\` first`,
-  };
+// npm keeps a `--send` before its `--` as its own config, so only one after it reaches the chore or sync.
+function isSendOf(args: string[]): boolean {
+  const separator = args.indexOf("--");
+  return separator >= 0 && args.slice(separator).includes("--send");
 }
 
 function nonFlagsOf(words: string[]): string[] {

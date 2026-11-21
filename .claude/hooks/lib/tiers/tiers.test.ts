@@ -4,7 +4,7 @@ import {
   blockerInstead,
   type CallSandbox,
   decisionInMode,
-  dryRunChoresOf,
+  dryRunsOf,
   gateDecision,
   type SessionMode,
   sessionModeOf,
@@ -130,7 +130,7 @@ describe("gateDecision", () => {
 
   it("treats --send before npm's `--` as npm's own flag, so a dry run", () => {
     expect(decisionOf("npm run app:chore fixRents --send")).toBeUndefined();
-    expect(dryRunChoresOf("npm run app:chore fixRents --send")).toEqual([
+    expect(dryRunsOf("npm run app:chore fixRents --send")).toEqual([
       "fixRents",
     ]);
   });
@@ -953,16 +953,20 @@ describe("free reads and standing yeses in both modes", () => {
   });
 });
 
-describe("a runner step's live aliases", () => {
-  function targetedDecisionOf(command: string, spreadsheetTargets: string[]) {
-    return gateDecision({
-      command,
-      mode: "runnerStep",
-      dryRuns: [],
-      spreadsheetTargets,
-    });
-  }
+function targetedDecisionOf(
+  command: string,
+  spreadsheetTargets: string[],
+  dryRuns: string[] = [],
+) {
+  return gateDecision({
+    command,
+    mode: "runnerStep",
+    dryRuns,
+    spreadsheetTargets,
+  });
+}
 
+describe("a runner step's live aliases", () => {
   it("allows the aliases a spreadsheet target gives", () => {
     for (const command of [
       "npm run app:probe -- --sheet Units",
@@ -1020,6 +1024,99 @@ describe("a runner step's live aliases", () => {
   });
 });
 
+describe("a live alias's --confirm and --force", () => {
+  const appConfirms = [
+    "npm run app:sync -- --send --confirm 3f9a",
+    "npm run app:chore fixRents -- --send --confirm 3f9a",
+    "npm run app:chore fixRents -- --send --confirm=3f9a",
+  ];
+  const devConfirms = [
+    "npm run dev:sync -- --send --confirm 3f9a",
+    "npm run dev:chore buildFixtures -- --send --confirm 3f9a",
+  ];
+  const forces = [
+    "npm run app:sync -- --force Units/rent/format",
+    "npm run dev:sync -- --send --force Units/rent/format --confirm 3f9a",
+  ];
+  const dryRanBoth = ["app:sync", "fixRents"];
+
+  function runnerStepOf(command: string) {
+    return targetedDecisionOf(command, ["app", "dev"], dryRanBoth);
+  }
+
+  it("asks for an app alias holding --confirm in an Interactive session", () => {
+    for (const command of appConfirms) {
+      expect(decisionOf(command, dryRanBoth)).toBe("ask");
+    }
+  });
+
+  it("allows a dev alias holding --confirm in an Interactive session", () => {
+    for (const command of devConfirms) {
+      expect(decisionOf(command)).toBe("allow");
+    }
+  });
+
+  it("asks for an alias holding --force on either target in an Interactive session", () => {
+    for (const command of forces) {
+      expect(decisionOf(command, dryRanBoth)).toBe("ask");
+    }
+  });
+
+  it("refuses an alias holding --confirm, naming the blocker to record, in a runner step", () => {
+    for (const command of [...appConfirms, ...devConfirms, forces[1] ?? ""]) {
+      const decision = runnerStepOf(command);
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("`denied-tool` blocker");
+      expect(decision?.reason).toContain("held list");
+      expect(decision?.reason).toContain("`--confirm <token>` command");
+    }
+  });
+
+  it("refuses an alias holding --force in a runner step", () => {
+    const decision = runnerStepOf(forces[0] ?? "");
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain(blockerInstead);
+  });
+
+  it("refuses an app sync's send with no sync dry run, naming it, in both modes", () => {
+    for (const mode of ["interactive", "runnerStep"] as const) {
+      for (const dryRuns of [[], ["fixRents"]]) {
+        const decision = gateDecision({
+          command: "npm run app:sync -- --send --confirm 3f9a",
+          mode,
+          dryRuns,
+          spreadsheetTargets: ["app"],
+        });
+        expect(decision?.permissionDecision).toBe("deny");
+        expect(decision?.reason).toContain("run `npm run app:sync` first");
+      }
+    }
+  });
+
+  it("decides an app sync's send as before once its dry run is recorded, in both modes", () => {
+    const send = "npm run app:sync -- --send";
+    expect(decisionOf(send, ["app:sync"])).toBeUndefined();
+    expect(
+      targetedDecisionOf(send, ["app"], ["app:sync"])?.permissionDecision,
+    ).toBe("allow");
+  });
+
+  it("keeps the tier of an alias with neither flag, in both modes", () => {
+    expect(decisionOf("npm run app:sync")).toBeUndefined();
+    expect(decisionOf("npm run dev:sync -- --send")).toBeUndefined();
+    expect(decisionOf("npm run app:chore fixRents -- --send", dryRanBoth)).toBe(
+      "allow",
+    );
+    for (const command of [
+      "npm run app:sync",
+      "npm run dev:sync -- --send",
+      "npm run app:chore fixRents -- --send",
+    ]) {
+      expect(runnerStepOf(command)?.permissionDecision).toBe("allow");
+    }
+  });
+});
+
 describe("spreadsheetTargetsOf", () => {
   it("names each spreadsheet target, skipping Docs", () => {
     const targets = JSON.stringify([
@@ -1049,18 +1146,25 @@ describe("a Supervisor's gh writes", () => {
   });
 });
 
-describe("dryRunChoresOf", () => {
+describe("dryRunsOf", () => {
   it("names each app chore a command runs without sending", () => {
-    expect(dryRunChoresOf("npm run app:chore fixRents")).toEqual(["fixRents"]);
+    expect(dryRunsOf("npm run app:chore fixRents")).toEqual(["fixRents"]);
     expect(
-      dryRunChoresOf("npm run app:chore fixRents -- --json | tail; npm test"),
+      dryRunsOf("npm run app:chore fixRents -- --json | tail; npm test"),
     ).toEqual(["fixRents"]);
   });
 
-  it("names nothing for a send, a dev chore or a chore with no name", () => {
-    expect(dryRunChoresOf("npm run app:chore fixRents -- --send")).toEqual([]);
-    expect(dryRunChoresOf("npm run dev:chore buildFixtures")).toEqual([]);
-    expect(dryRunChoresOf("npm run app:chore")).toEqual([]);
+  it("names an app sync run without sending", () => {
+    expect(dryRunsOf("npm run app:sync")).toEqual(["app:sync"]);
+    expect(dryRunsOf("npm run app:sync --send")).toEqual(["app:sync"]);
+  });
+
+  it("names nothing for a send, a dev chore or sync, or a chore with no name", () => {
+    expect(dryRunsOf("npm run app:chore fixRents -- --send")).toEqual([]);
+    expect(dryRunsOf("npm run app:sync -- --send")).toEqual([]);
+    expect(dryRunsOf("npm run dev:chore buildFixtures")).toEqual([]);
+    expect(dryRunsOf("npm run dev:sync")).toEqual([]);
+    expect(dryRunsOf("npm run app:chore")).toEqual([]);
   });
 });
 

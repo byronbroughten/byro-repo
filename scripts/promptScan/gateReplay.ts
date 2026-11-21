@@ -4,7 +4,7 @@ import {
   type CommandVerdict,
   commandVerdictsOf,
   type Decision,
-  dryRunChoresOf,
+  dryRunsOf,
   gateDecision,
   type ShellCall,
 } from "../../.claude/hooks/lib/tiers/tiers.ts";
@@ -88,7 +88,7 @@ export function scannedCallsOf(
         replay: replayOf(call, dryRuns, sandbox),
       });
     }
-    if (call.command) dryRuns.push(...dryRunChoresOf(call.command));
+    if (call.command) dryRuns.push(...dryRunsOf(call.command));
   });
   return scanned;
 }

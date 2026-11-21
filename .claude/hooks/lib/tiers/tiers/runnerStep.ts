@@ -3,6 +3,11 @@ import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
 import { ghIssue } from "./ghIssue.ts";
 import { npmCommands } from "./npmCommands.ts";
+import { liveFlags, npmVerdicts } from "./npmVerdicts.ts";
+
+// A step's `--confirm` is refused on either target, ahead of `--force`'s ask.
+const stepConfirmWhy =
+  "a runner step's `--confirm` sends what its dry run held, which only the developer approves, so record a `denied-tool` blocker quoting the held list the dry run printed and the ready `--confirm <token>` command, for the developer to run";
 
 const targetAliases = [
   "chore",
@@ -46,14 +51,16 @@ export const runnerStep = {
   },
   // A runner step runs a live alias only against a spreadsheet its ticket targets.
   liveAliasVerdictOf(
-    { words }: SimpleCommand,
-    { mode, dryRuns, spreadsheetTargets }: CallContext,
+    simple: SimpleCommand,
+    context: CallContext,
   ): Verdict | undefined {
+    const { words } = simple;
+    const { mode, spreadsheetTargets } = context;
     if (mode !== "runnerStep") return undefined;
-    const name = npmCommands.scriptOf(words)?.name ?? "";
-    const [, spreadsheet = "", alias = ""] = /^(\w+):(.+)$/.exec(name) ?? [];
-    const aliases = liveAliases.get(spreadsheet);
-    if (!aliases) return undefined;
+    const liveAlias = npmCommands.liveAliasOf(words);
+    if (!liveAlias) return undefined;
+    const { spreadsheet, alias } = liveAlias;
+    const aliases = liveAliases.get(spreadsheet) ?? [];
     if (npmCommands.isPrefixed(words)) {
       return {
         permissionDecision: "ask",
@@ -72,7 +79,12 @@ export const runnerStep = {
         why: `isn't an alias the \`${spreadsheet}\` spreadsheet target gives a step`,
       };
     }
-    const sendVerdict = npmCommands.choreSendVerdictOf(words, dryRuns);
+    const sendRefusal = npmCommands.sendVerdictOf(words, context.dryRuns);
+    if (sendRefusal?.permissionDecision === "deny") return sendRefusal;
+    if (npmCommands.holdsFlag(words, liveFlags.confirm)) {
+      return { permissionDecision: "deny", why: stepConfirmWhy };
+    }
+    const sendVerdict = npmVerdicts.liveSendVerdictOf(simple, context);
     if (sendVerdict) return sendVerdict;
     return {
       permissionDecision: "allow",
