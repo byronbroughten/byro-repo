@@ -4,7 +4,7 @@ Outside the box, the code a live alias runs, such as a chore an agent wrote, had
 
 Source: byronbroughten/sheets-framework#201, byronbroughten/sheets-framework#207, byronbroughten/byro-repo#564, byronbroughten/byro-repo#886, byronbroughten/byro-repo#887
 
-## What runs where
+## The credential and hosts in the box
 
 - **The credential** is the agent account's, `byronbroughtenai@gmail.com`, at `~/.config/sheets-framework/agent-auth.json`; the developer's `~/.clasprc.json` stays read-denied, a deny that, outside the box, never stopped a chore's own code.
 - **The hosts** are `sheets.googleapis.com`, `oauth2.googleapis.com` and `script.googleapis.com`, the ones the verification found clasp and the Node-host transport need.
