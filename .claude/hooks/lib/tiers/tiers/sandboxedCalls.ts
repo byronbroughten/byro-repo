@@ -70,6 +70,7 @@ function keepsLiveRow({ words, verdict }: CommandVerdict): boolean {
     return verdict !== undefined && verdict.permissionDecision !== "allow";
   }
   const tokens = tokensOf(words);
+  // A bare `clasp` or `sheets-framework` behind a wrapper is freed: matching those words would refuse routine greps of the package name.
   return (
     tokens.some(npmCommands.isLiveAliasName) &&
     Object.values(liveFlags).some((flag) => npmCommands.holdsFlag(tokens, flag))
