@@ -13,7 +13,7 @@ import {
   writeHookOutput,
 } from "./lib/hookIo.ts";
 import { callSandboxOf, sessionSandboxStateOf } from "./lib/sandboxState.ts";
-import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
+import { readSheetsConfigs, sheetsConfigOf } from "./lib/sheetsConfigs.ts";
 import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
 import {
   cachedOwnerLookup,
@@ -43,7 +43,7 @@ await runFailOpen(async () => {
   } else if (webDecisionOf) {
     decision = webDecisionOf({ ...input.tool_input });
   } else {
-    const projectDir = projectDirOf(input);
+    const sheetsConfigs = readSheetsConfigs(projectDirOf(input));
     decision = await driveGateDecision({
       toolName: input.tool_name,
       // A spread copy fits the gate's Record of every argument.
@@ -53,10 +53,8 @@ await runFailOpen(async () => {
         ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
       ),
       mode: sessionModeOf(process.env),
-      targets: stepTargetsOf(
-        process.env[stepTargetsVariable],
-        readSheetsConfigs(projectDir),
-      ),
+      targets: stepTargetsOf(process.env[stepTargetsVariable], sheetsConfigs),
+      appSpreadsheetId: sheetsConfigOf(sheetsConfigs, "app")?.spreadsheetId,
     });
   }
   if (!decision) return;

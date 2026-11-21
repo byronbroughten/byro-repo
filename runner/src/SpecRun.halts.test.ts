@@ -254,7 +254,7 @@ describe("run's Halts", () => {
       spec,
     );
     expect(haltComments()[0]).toContain(
-      "1. Skip the write.\n2. Add it to the ticket's `## Targets`, then resume\n3. `stop spec`",
+      "1. Skip the write.\n2. Add it to the ticket's `## Targets`, then resume; no target lifts a Sheets write to the app spreadsheet\n3. `stop spec`",
     );
     github.edit(1, { body: bodyWithTargets("app spreadsheet") });
     github.reply(213, "H1: 2");

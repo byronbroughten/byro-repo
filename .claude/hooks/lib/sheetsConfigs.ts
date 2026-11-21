@@ -23,6 +23,14 @@ export const sheetsConfigFiles: SheetsConfigFile[] = [
   },
 ];
 
+export function sheetsConfigOf(
+  sheetsConfigs: SheetsConfigEntry[],
+  // Unknown, as a step's targets are read unchecked from the environment.
+  scriptPrefix: unknown,
+): SheetsConfigEntry | undefined {
+  return sheetsConfigs.find((config) => config.scriptPrefix === scriptPrefix);
+}
+
 // Project-relative generatedDir per package; a config that can't be read is skipped.
 export function readSheetsConfigs(projectDir: string): SheetsConfigEntry[] {
   return sheetsConfigFiles.flatMap(({ path, scriptPrefix }) => {

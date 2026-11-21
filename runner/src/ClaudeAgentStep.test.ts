@@ -242,13 +242,14 @@ describe("ClaudeAgentStep's command", () => {
     expect(argv).not.toContain("switch");
   });
 
-  it("adds a spreadsheet target's live aliases and the Sheets tools, with the gworkspace server and the targets in the environment", async () => {
+  it("adds an app target's live aliases and the Sheets reads, with the gworkspace server and the targets in the environment", async () => {
     const { argv, cwd } = await replay("success.ndjson", {
       targets: [{ kind: "spreadsheet", name: "app" }],
     });
     const tools = argv.slice(argv.indexOf("--allowedTools") + 1);
     expect(tools).toContain("Bash(npm run app:chore*)");
-    expect(tools).toContain("mcp__gworkspace__modify_sheet_values");
+    expect(tools).toContain("mcp__gworkspace__read_sheet_values");
+    expect(tools).not.toContain("mcp__gworkspace__modify_sheet_values");
     expect(tools).not.toContain("Bash(npm run dev:chore*)");
     expect(tools).not.toContain("mcp__gworkspace__modify_doc_text");
     expect(JSON.parse(argv[argv.indexOf("--mcp-config") + 1] ?? "")).toEqual({
