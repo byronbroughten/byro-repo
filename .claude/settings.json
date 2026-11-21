@@ -1,7 +1,8 @@
 {
   "env": {
     "TMPDIR": "/tmp/claude-501",
-    "GH_TELEMETRY": "false"
+    "GH_TELEMETRY": "false",
+    "clasp_config_auth": "/Users/byronbroughten/.config/sheets-framework/agent-auth.json"
   },
   "permissions": {
     "allow": [
@@ -114,8 +115,6 @@
       "npm run piece:pull *",
       "npm run logs *",
       "npm run runner*",
-      "npm run app*",
-      "npm run dev*",
       "npm run session:probe *",
       "npm run check",
       "npm run check *",
@@ -177,7 +176,10 @@
         "registry.npmjs.org",
         "github.com",
         "api.github.com",
-        "api.typesafe.ai"
+        "api.typesafe.ai",
+        "sheets.googleapis.com",
+        "oauth2.googleapis.com",
+        "script.googleapis.com"
       ]
     }
   },
