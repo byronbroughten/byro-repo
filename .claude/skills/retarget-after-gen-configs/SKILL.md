@@ -5,7 +5,7 @@ description: Retarget hand-written Table and column names onto the last generate
 
 Point the same live column or Table (same column ID or `tableId`) at the new generated key. The live spreadsheet is the source of truth; the four generated config files from the last successful regen are the cache; hand-written names follow identity in that cache.
 
-Open [`docs/generated-data.md`](../../../packages/framework/docs/generated-data.md) now (reading by block, the one regen path), plus [`column-configs.md`](../../../packages/framework/docs/generated-data/column-configs.md) for sampled vs declared and [`config-sheet-floor.md`](../../../packages/framework/docs/generated-data/config-sheet-floor.md) for the floor. Leave regen-run permission, the floor report, and the untyped-column count with whoever ran `sync`.
+Open [`docs/generated-data.md`](../../../packages/framework/docs/generated-data.md) now (reading by block, the one regen path), plus [`column-configs.md`](../../../packages/framework/docs/generated-data/column-configs.md) for sampled vs declared and [`config-sheet-floor.md`](../../../packages/framework/docs/generated-data/config-sheet-floor.md) for the floor. Leave the sync's [workflow obligations](../../../docs/targets-and-gates.md#syncs-workflow-obligations) and the floor report with whoever ran `sync`.
 
 ## Guardrails
 

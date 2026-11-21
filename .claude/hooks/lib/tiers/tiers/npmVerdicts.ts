@@ -23,13 +23,11 @@ const askingFlags = [
   },
 ] as const;
 // The flags that take a live alias out of its row: the framework sends a held deletion or overwrite only under `--confirm`, and `--force` overwrites a person's edit.
-const liveFlags = {
+export const liveFlags = {
   confirm: "--confirm",
   force: "--force",
 } as const;
 const liveFlagWhys = {
-  stepConfirm:
-    "a runner step's `--confirm` sends what its dry run held, which only the developer approves, so record a `denied-tool` blocker quoting the held list the dry run printed and the ready `--confirm <token>` command, for the developer to run",
   force:
     "holds `--force`, which sends a trait over the sheet's value and so overwrites a person's edit",
   appConfirm:
@@ -42,11 +40,11 @@ export const npmVerdicts = {
   // A live alias's send needs its dry run before any flag is weighed, and a chore's send after one is otherwise allowed.
   liveSendVerdictOf(
     { words }: SimpleCommand,
-    { mode, dryRuns }: CallContext,
+    { dryRuns }: CallContext,
   ): Verdict | undefined {
     const sendVerdict = npmCommands.sendVerdictOf(words, dryRuns);
     if (sendVerdict?.permissionDecision === "deny") return sendVerdict;
-    return liveFlagVerdictOf(words, mode) ?? sendVerdict;
+    return liveFlagVerdictOf(words) ?? sendVerdict;
   },
   untargetedVerdictOf({ words }: SimpleCommand): Verdict | undefined {
     const run = npmCommands.programRunOf(words);
@@ -79,29 +77,15 @@ export const npmVerdicts = {
   },
 };
 
-// The raw words are searched, as npmCommands.scriptOf drops flags; one before npm's `--` counts too, being stricter.
-function liveFlagVerdictOf(
-  words: string[],
-  mode: CallContext["mode"],
-): Verdict | undefined {
-  const spreadsheet = /^(app|dev):/.exec(
-    npmCommands.scriptOf(words)?.name ?? "",
-  )?.[1];
+function liveFlagVerdictOf(words: string[]): Verdict | undefined {
+  const spreadsheet = npmCommands.liveAliasOf(words)?.spreadsheet;
   if (!spreadsheet) return undefined;
-  const isConfirm = holdsFlag(words, liveFlags.confirm);
-  if (isConfirm && mode === "runnerStep") {
-    return { permissionDecision: "deny", why: liveFlagWhys.stepConfirm };
-  }
-  if (holdsFlag(words, liveFlags.force)) {
+  if (npmCommands.holdsFlag(words, liveFlags.force)) {
     return { permissionDecision: "ask", why: liveFlagWhys.force };
   }
-  if (!isConfirm) return undefined;
+  if (!npmCommands.holdsFlag(words, liveFlags.confirm)) return undefined;
   if (spreadsheet === "app") {
     return { permissionDecision: "ask", why: liveFlagWhys.appConfirm };
   }
   return { permissionDecision: "allow", why: liveFlagWhys.devConfirm };
-}
-
-function holdsFlag(words: string[], flag: string): boolean {
-  return words.some((word) => word === flag || word.startsWith(`${flag}=`));
 }

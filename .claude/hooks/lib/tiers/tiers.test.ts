@@ -953,16 +953,20 @@ describe("free reads and standing yeses in both modes", () => {
   });
 });
 
-describe("a runner step's live aliases", () => {
-  function targetedDecisionOf(command: string, spreadsheetTargets: string[]) {
-    return gateDecision({
-      command,
-      mode: "runnerStep",
-      dryRuns: [],
-      spreadsheetTargets,
-    });
-  }
+function targetedDecisionOf(
+  command: string,
+  spreadsheetTargets: string[],
+  dryRuns: string[] = [],
+) {
+  return gateDecision({
+    command,
+    mode: "runnerStep",
+    dryRuns,
+    spreadsheetTargets,
+  });
+}
 
+describe("a runner step's live aliases", () => {
   it("allows the aliases a spreadsheet target gives", () => {
     for (const command of [
       "npm run app:probe -- --sheet Units",
@@ -1037,12 +1041,7 @@ describe("a live alias's --confirm and --force", () => {
   const dryRanBoth = ["app:sync", "fixRents"];
 
   function runnerStepOf(command: string) {
-    return gateDecision({
-      command,
-      mode: "runnerStep",
-      dryRuns: dryRanBoth,
-      spreadsheetTargets: ["app", "dev"],
-    });
+    return targetedDecisionOf(command, ["app", "dev"], dryRanBoth);
   }
 
   it("asks for an app alias holding --confirm in an Interactive session", () => {
@@ -1098,12 +1097,7 @@ describe("a live alias's --confirm and --force", () => {
     const send = "npm run app:sync -- --send";
     expect(decisionOf(send, ["app:sync"])).toBeUndefined();
     expect(
-      gateDecision({
-        command: send,
-        mode: "runnerStep",
-        dryRuns: ["app:sync"],
-        spreadsheetTargets: ["app"],
-      })?.permissionDecision,
+      targetedDecisionOf(send, ["app"], ["app:sync"])?.permissionDecision,
     ).toBe("allow");
   });
 

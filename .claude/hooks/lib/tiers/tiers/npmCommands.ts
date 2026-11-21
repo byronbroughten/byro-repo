@@ -15,9 +15,15 @@ export interface ProgramRun {
 
 // An app chore's or sync's run: the name its dry run is recorded under and the command that dry-runs it.
 interface AppRun {
+  kind: "chore" | "sync";
   dryRun: string;
   dryRunCommand: string;
   isSend: boolean;
+}
+
+interface LiveAlias {
+  spreadsheet: string;
+  alias: string;
 }
 
 // A chore's name is an identifier, so no chore's dry run can be recorded under this one.
@@ -127,6 +133,7 @@ export const npmCommands = {
     const script = npmCommands.scriptOf(words);
     if (script?.name === "app:sync") {
       return {
+        kind: "sync",
         dryRun: syncDryRun,
         dryRunCommand: "npm run app:sync",
         isSend: isSendOf(script.args),
@@ -136,6 +143,7 @@ export const npmCommands = {
     const name = script.args.find((arg) => !arg.startsWith("-"));
     if (!name) return undefined;
     return {
+      kind: "chore",
       dryRun: name,
       dryRunCommand: `npm run app:chore ${name}`,
       isSend: isSendOf(script.args),
@@ -151,11 +159,22 @@ export const npmCommands = {
         why: `this session has no dry run of \`${run.dryRun}\` to preview the send; run \`${run.dryRunCommand}\` first`,
       };
     }
-    if (run.dryRun === syncDryRun) return undefined;
+    if (run.kind === "sync") return undefined;
     return {
       permissionDecision: "allow",
       why: `this session dry-ran \`${run.dryRun}\` before sending it`,
     };
+  },
+  // The spreadsheet and alias a live `app:*` or `dev:*` script names.
+  liveAliasOf(words: string[]): LiveAlias | undefined {
+    const name = npmCommands.scriptOf(words)?.name ?? "";
+    const [, spreadsheet, alias] = /^(app|dev):(.+)$/.exec(name) ?? [];
+    if (!spreadsheet || !alias) return undefined;
+    return { spreadsheet, alias };
+  },
+  // The raw words are searched, as scriptOf drops flags; one before npm's `--` counts too, being stricter.
+  holdsFlag(words: string[], flag: string): boolean {
+    return words.some((word) => word === flag || word.startsWith(`${flag}=`));
   },
   isNpm(words: string[]): boolean {
     return words[0] === "npm" || words[0] === "npm.cmd";
