@@ -1,4 +1,4 @@
-// Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's; a runner step may write only its ticket's targets, and Drive-read only those and its spec's sources. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
+// Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's or as a Sheets write to the app spreadsheet; a runner step may write only its ticket's targets, and Drive-read only those and its spec's sources. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
 import type { SheetsConfigEntry } from "../sheetsConfigs.ts";
 import {
   blockerInstead,
@@ -34,6 +34,8 @@ export interface DriveCall {
   mode: SessionMode;
   // Checked only in a runner step, which may write nothing else.
   targets: StepTarget[];
+  // Undefined when the app's sheets config names none.
+  appSpreadsheetId: string | undefined;
 }
 
 type FileCall = Omit<DriveCall, "input"> & { fileId: string | undefined };
@@ -248,10 +250,17 @@ async function writeDecision({
   ownersOf,
   mode,
   targets,
+  appSpreadsheetId,
 }: FileCall): Promise<Decision> {
   const tool = `\`${shortNameOf(toolName)}\``;
   if (fileId === undefined) {
     return gateOf("ask", `${tool} names no file to look its owner up by.`);
+  }
+  // Asked before the targets, so a step targeting the app is refused for the hold, not for its targets.
+  if (sheetsWrites.has(toolName) && fileId === appSpreadsheetId) {
+    return needsYes(
+      `${tool} writes to the app spreadsheet \`${fileId}\` around the framework's entered-data hold, and can overwrite entered data or tick an action-row checkbox`,
+    );
   }
   const writable = targets.filter(({ isReadOnly }) => !isReadOnly);
   if (mode === "runnerStep" && !isStepFile(writable, fileId)) {

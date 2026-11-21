@@ -36,7 +36,14 @@ async function decisionOf(
     targets: [],
   },
 ) {
-  return driveGateDecision({ toolName, input, ownersOf, mode, targets });
+  return driveGateDecision({
+    toolName,
+    input,
+    ownersOf,
+    mode,
+    targets,
+    appSpreadsheetId: "appSheet",
+  });
 }
 
 describe("driveGateDecision", () => {
@@ -192,18 +199,86 @@ describe("driveGateDecision", () => {
     ).toBe("ask");
   });
 
+  it("asks for a Sheets write to the app spreadsheet, even though the developer owns it, naming the framework's hold it skips", async () => {
+    const decision = await decisionOf(
+      "mcp__gworkspace__modify_sheet_values",
+      { spreadsheet_id: "appSheet" },
+      ownersFrom({ appSheet: [mine] }),
+    );
+    expect(decision).toEqual({
+      permissionDecision: "ask",
+      reason:
+        "Tier gate: `modify_sheet_values` writes to the app spreadsheet `appSheet` around the framework's entered-data hold, and can overwrite entered data or tick an action-row checkbox, so it needs a yes.",
+    });
+  });
+
+  it("decides a non-sharing update_drive_file on the app spreadsheet by owner, as it isn't a Sheets write", async () => {
+    const ownersOf = ownersFrom({ appSheet: [mine] });
+    const rename = await decisionOf(
+      "mcp__gworkspace__update_drive_file",
+      { file_id: "appSheet", name: "Renamed" },
+      ownersOf,
+    );
+    expect(rename?.permissionDecision).toBe("allow");
+  });
+
+  it("in a runner step, denies a Sheets write to the app spreadsheet even when the ticket targets it", async () => {
+    const decision = await decisionOf(
+      "mcp__gworkspace__append_table_rows",
+      { spreadsheet_id: "appSheet" },
+      ownersFrom({ appSheet: [mine] }),
+      {
+        mode: "runnerStep",
+        targets: [{ label: "app spreadsheet", id: "appSheet" }],
+      },
+    );
+    expect(decision?.permissionDecision).toBe("deny");
+    expect(decision?.reason).toContain("entered-data hold");
+    expect(decision?.reason).toContain("record a `denied-tool` blocker");
+  });
+
+  it("in a runner step, denies a Sheets write to the app spreadsheet its ticket doesn't target", async () => {
+    const decision = await decisionOf(
+      "mcp__gworkspace__modify_sheet_values",
+      { spreadsheet_id: "appSheet" },
+      ownersFrom({ appSheet: [mine] }),
+      { mode: "runnerStep", targets: [{ label: "doc", id: "doc1" }] },
+    );
+    expect(decision?.permissionDecision).toBe("deny");
+  });
+
+  it("decides a write to the dev spreadsheet by owner as before, in either mode", async () => {
+    const ownersOf = ownersFrom({ devSheet: [mine] });
+    const interactive = await decisionOf(
+      "mcp__gworkspace__modify_sheet_values",
+      { spreadsheet_id: "devSheet" },
+      ownersOf,
+    );
+    const step = await decisionOf(
+      "mcp__gworkspace__modify_sheet_values",
+      { spreadsheet_id: "devSheet" },
+      ownersOf,
+      {
+        mode: "runnerStep",
+        targets: [{ label: "dev spreadsheet", id: "devSheet" }],
+      },
+    );
+    expect(interactive?.permissionDecision).toBe("allow");
+    expect(step?.permissionDecision).toBe("allow");
+  });
+
   it("in a runner step, allows a write to a named target and denies one to an unnamed file, listing the targets", async () => {
-    const ownersOf = ownersFrom({ appSheet: [mine], otherSheet: [mine] });
+    const ownersOf = ownersFrom({ devSheet: [mine], otherSheet: [mine] });
     const runnerStep = {
       mode: "runnerStep" as const,
       targets: [
-        { label: "app spreadsheet", id: "appSheet" },
+        { label: "dev spreadsheet", id: "devSheet" },
         { label: "doc", id: "doc1" },
       ],
     };
     const named = await decisionOf(
       "mcp__gworkspace__modify_sheet_values",
-      { spreadsheet_id: "appSheet" },
+      { spreadsheet_id: "devSheet" },
       ownersOf,
       runnerStep,
     );
@@ -217,7 +292,7 @@ describe("driveGateDecision", () => {
     expect(unnamed).toEqual({
       permissionDecision: "deny",
       reason:
-        "Tier gate: `modify_sheet_values` writes to file `otherSheet`, which isn't among this ticket's targets (app spreadsheet `appSheet`, doc `doc1`), so record a `denied-tool` blocker for the developer instead.",
+        "Tier gate: `modify_sheet_values` writes to file `otherSheet`, which isn't among this ticket's targets (dev spreadsheet `devSheet`, doc `doc1`), so record a `denied-tool` blocker for the developer instead.",
     });
   });
 

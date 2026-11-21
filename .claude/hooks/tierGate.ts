@@ -43,7 +43,7 @@ await runFailOpen(async () => {
   } else if (webDecisionOf) {
     decision = webDecisionOf({ ...input.tool_input });
   } else {
-    const projectDir = projectDirOf(input);
+    const sheetsConfigs = readSheetsConfigs(projectDirOf(input));
     decision = await driveGateDecision({
       toolName: input.tool_name,
       // A spread copy fits the gate's Record of every argument.
@@ -53,10 +53,10 @@ await runFailOpen(async () => {
         ownerCacheOf(sessionStatePath(input.session_id, ownersSuffix)),
       ),
       mode: sessionModeOf(process.env),
-      targets: stepTargetsOf(
-        process.env[stepTargetsVariable],
-        readSheetsConfigs(projectDir),
-      ),
+      targets: stepTargetsOf(process.env[stepTargetsVariable], sheetsConfigs),
+      appSpreadsheetId: sheetsConfigs.find(
+        ({ scriptPrefix }) => scriptPrefix === "app",
+      )?.spreadsheetId,
     });
   }
   if (!decision) return;

@@ -67,6 +67,12 @@ const gworkspaceTools: Record<"sheets" | "docs", GworkspaceKindTools> = {
 // The two reads /research-piece's step 1 makes of a source: a short text's content, and a PDF's download.
 const driveReads = ["get_drive_file_content", "get_drive_file_download_url"];
 
+// The gate refuses every Sheets write to the app spreadsheet, as it skips the framework's entered-data hold, which the app's live aliases keep.
+const sheetsTools = {
+  app: gworkspaceToolsOf(gworkspaceTools.sheets.reads),
+  dev: kindToolsOf(gworkspaceTools.sheets),
+} satisfies Record<SpreadsheetName, string[]>;
+
 const gworkspaceWrites = new Set(
   gworkspaceToolsOf([
     ...gworkspaceTools.sheets.writes,
@@ -83,7 +89,7 @@ export function toolsOf(targets: Target[]): string[] {
       ...liveAliases[target.name].map(
         (alias) => `Bash(npm run ${target.name}:${alias}*)`,
       ),
-      ...kindToolsOf(gworkspaceTools.sheets),
+      ...sheetsTools[target.name],
     ];
   });
   return [...new Set(tools)];
