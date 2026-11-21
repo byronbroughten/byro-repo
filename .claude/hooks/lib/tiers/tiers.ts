@@ -108,15 +108,12 @@ export function gateDecision(call: ShellCall): Decision | undefined {
     ? sandboxedCalls.boxCommandsOf(call.command, entries)
     : undefined;
   const boxVerdicts = boxCommands && verdictsOf(boxCommands, call);
-  const keptVerdicts = boxVerdicts?.filter(sandboxedCalls.keepsItsRow);
-  if (keptVerdicts?.length === 0) {
+  if (boxVerdicts && !boxVerdicts.some(sandboxedCalls.keepsItsRow)) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
   }
   const rowsDecision = inlineSettingDecisionOf(
     call.command,
-    keptVerdicts && boxVerdicts
-      ? keptRowsDecisionOf(call, keptVerdicts, boxVerdicts.length)
-      : baseDecision(call),
+    boxVerdicts ? keptRowsDecisionOf(call, boxVerdicts) : baseDecision(call),
   );
   const decision =
     offDecisionOf(call.command, off) ?? rowsDecision ?? undecidedDecision(call);
@@ -137,13 +134,13 @@ function parseRefusalOf({ command, mode }: ShellCall): string | undefined {
 // A box-run call holding `gh`, `git push` or a live call whose row asks or refuses gets only those commands' rows; an allow names the box for the rest.
 function keptRowsDecisionOf(
   call: ShellCall,
-  keptVerdicts: CommandVerdict[],
-  commandCount: number,
+  boxVerdicts: CommandVerdict[],
 ): Decision | undefined {
+  const keptVerdicts = boxVerdicts.filter(sandboxedCalls.keepsItsRow);
   const decision = decisionAmong(call, keptVerdicts);
   if (
     decision?.permissionDecision !== "allow" ||
-    keptVerdicts.length === commandCount
+    keptVerdicts.length === boxVerdicts.length
   ) {
     return decision;
   }

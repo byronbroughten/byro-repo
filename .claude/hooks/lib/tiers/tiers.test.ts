@@ -1578,9 +1578,18 @@ describe("a live call in the sandbox", () => {
       "node packages/framework/scripts/sheets-framework.js sync",
       "node ./packages/framework/scripts/sheets-framework.js probe",
       "cd x && node /repo/packages/framework/scripts/sheets-framework.js sync",
+      "cd packages/framework && node scripts/sheets-framework.js sync",
+      "node ../framework/scripts/sync.ts",
     ]) {
       expect(boxDecisionOf(command)?.permissionDecision).toBe("ask");
     }
+  });
+
+  it("frees a node test run of a framework script's tests", () => {
+    expect(
+      boxDecisionOf("node --test packages/framework/scripts/chore.test.ts")
+        ?.permissionDecision,
+    ).toBe("allow");
   });
 
   it("frees every other live alias by the sandboxed-call row", () => {

@@ -167,10 +167,10 @@ export const npmCommands = {
   },
   // The spreadsheet and alias a live `app:*` or `dev:*` script names.
   liveAliasOf(words: string[]): LiveAlias | undefined {
-    const name = npmCommands.scriptOf(words)?.name ?? "";
-    const [, spreadsheet, alias] = /^(app|dev):(.+)$/.exec(name) ?? [];
-    if (!spreadsheet || !alias) return undefined;
-    return { spreadsheet, alias };
+    return liveAliasNamedBy(npmCommands.scriptOf(words)?.name ?? "");
+  },
+  isLiveAliasName(name: string): boolean {
+    return liveAliasNamedBy(name) !== undefined;
   },
   // The raw words are searched, as scriptOf drops flags; one before npm's `--` counts too, being stricter.
   holdsFlag(words: string[], flag: string): boolean {
@@ -192,6 +192,12 @@ export const npmCommands = {
     return ["npm", "run", ...words.slice(scriptAt)].join(" ");
   },
 };
+
+function liveAliasNamedBy(name: string): LiveAlias | undefined {
+  const [, spreadsheet, alias] = /^(app|dev):(.+)$/.exec(name) ?? [];
+  if (!spreadsheet || !alias) return undefined;
+  return { spreadsheet, alias };
+}
 
 // `npm test` and `npm t`, which need no `run`.
 function npmTestOf(words: string[]): string | undefined {

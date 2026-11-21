@@ -2,7 +2,7 @@
 // It reads words, not command position, so a reserved word, wrapper or `xargs` before `gh` can't hide it; a call it can't read gets the tier rows.
 import type { SimpleCommand } from "../ShellParser.ts";
 import type { CommandVerdict } from "../tiers.ts";
-import { timeoutWrappedOf } from "../timeoutWrapped.ts";
+import { timeoutUnwrappedOf } from "../timeoutWrapped.ts";
 import { excludedCommands } from "./excludedCommands.ts";
 import { gitWrites } from "./gitWrites.ts";
 import { interactiveScripts } from "./interactiveScripts.ts";
@@ -11,9 +11,6 @@ import { liveFlags, npmVerdicts } from "./npmVerdicts.ts";
 
 // Shell punctuation a quoted word may hold, and the brace expansion bash would run as `gh`, as in `{gh,x}`.
 const tokenBreaks = /[\s;&|()`{},]+/;
-const liveAliasToken = /^(app|dev):./;
-// The flags that can take a live alias out of its free row: a held send, a force and a send that may want a dry run.
-const liveRowFlags = [liveFlags.confirm, liveFlags.force, "--send"];
 
 const boxBounds =
   "the sandbox, which keeps writes in the workspaces, the git folders, temp and the gworkspace attachments folder and hides the credential files";
@@ -63,9 +60,9 @@ export const sandboxedCalls = {
   },
 };
 
-// A live call the rows read keeps an ask or refusal; one behind a wrapper they can't read, such as `sh -c`, keeps its row when it holds a live flag, as `gh` does.
+// A live call the rows read keeps an ask or refusal; one behind a wrapper they can't read, such as `sh -c`, isn't freed when it holds a live flag, as `gh` isn't.
 function keepsLiveRow({ words, verdict }: CommandVerdict): boolean {
-  const runWords = unwrappedOf(words);
+  const runWords = timeoutUnwrappedOf(words);
   if (
     npmCommands.liveAliasOf(runWords) ||
     npmVerdicts.namesNoTarget(runWords)
@@ -74,14 +71,9 @@ function keepsLiveRow({ words, verdict }: CommandVerdict): boolean {
   }
   const tokens = tokensOf(words);
   return (
-    tokens.some((token) => liveAliasToken.test(token)) &&
-    liveRowFlags.some((flag) => npmCommands.holdsFlag(tokens, flag))
+    tokens.some(npmCommands.isLiveAliasName) &&
+    Object.values(liveFlags).some((flag) => npmCommands.holdsFlag(tokens, flag))
   );
-}
-
-function unwrappedOf(words: string[]): string[] {
-  const wrapped = timeoutWrappedOf(words);
-  return wrapped ? unwrappedOf(wrapped) : words;
 }
 
 function tokensOf(words: string[]): string[] {
