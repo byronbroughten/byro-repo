@@ -6,7 +6,7 @@ coverage/
 .claude/skills/
 .claude/worktrees/
 
-# Written by `npm run gen:configs` in its own JSON-ish shape (quoted keys, no
+# Written by `npm run app:sync` and `npm run dev:sync` in their own JSON-ish shape (quoted keys, no
 # trailing commas). Formatting them makes every regeneration a spurious diff.
 packages/real-estate/src/generated/*.ts
 packages/framework/dev/generated/*.ts

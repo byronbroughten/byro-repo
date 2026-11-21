@@ -35,7 +35,7 @@ The app imports the framework only through its public entry. The precise words f
 
 ## Two spreadsheets
 
-Every command that touches a live spreadsheet names its target: `dev:*` for `Sheets Framework Dev`, `app:*` for the real-estate one, as `npm run dev:chore <name>` or `npm run app:gen:configs`. [`docs/targets-and-gates.md`](./docs/targets-and-gates.md) has the full table.
+Every command that touches a live spreadsheet names its target: `dev:*` for `Sheets Framework Dev`, `app:*` for the real-estate one, as `npm run dev:chore <name>` or `npm run app:sync`. [`docs/targets-and-gates.md`](./docs/targets-and-gates.md) has the full table.
 
 ## Words
 
