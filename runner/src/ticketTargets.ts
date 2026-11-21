@@ -3,12 +3,17 @@
 
 import { markdownSectionOf } from "./markdownSections.ts";
 
-const sectionHeading = "## Targets";
+export const targetsHeading = "## Targets";
 const bulletLine = /^- (.+)$/;
 const docTarget = /^doc ([A-Za-z0-9_-]+)$/;
 // The line shapes targetOf() reads, for a refusal to name.
 export const targetLineShapes =
   "`- app spreadsheet`, `- dev spreadsheet` or `- doc <id>`";
+
+// What's wrong with a line targetsOf() read as malformed, for each refusal that quotes it.
+export function targetLineFault(line: string): string {
+  return `\`${line}\` isn't ${targetLineShapes}`;
+}
 
 // A source is a Drive file the spec lists for its steps to read, never a ticket line, and never written.
 export type Target =
@@ -29,11 +34,11 @@ const spreadsheetTargets: Record<string, SpreadsheetName> = {
 
 // A body with no section names no targets.
 export function targetsOf(body: string): TargetsReading {
-  const section = markdownSectionOf(body, sectionHeading);
+  const section = markdownSectionOf(body, targetsHeading);
   if (section === undefined) return { status: "valid", targets: [] };
   const targets: Target[] = [];
   const lines = section
-    .slice(sectionHeading.length)
+    .slice(targetsHeading.length)
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== "");

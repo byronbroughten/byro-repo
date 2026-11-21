@@ -1,6 +1,6 @@
 # Tickets
 
-The one home for ticketing judgments: the ticket split test, work packages, sizing and grouping a ticket, the repos it touches, its `## Where` and its Model fit pair. What a spec holds is [`specs.md`](./specs.md)'s.
+The one home for ticketing judgments: the ticket split test, work packages, sizing and grouping a ticket, the repos it touches, its sections' formats, its `## Where` and its Model fit pair. What a spec holds is [`specs.md`](./specs.md)'s.
 
 ## The ticket split test
 
@@ -47,6 +47,10 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 - **A ticket may touch any repo**; the implement step promotes each extra one onto the ticket's branch.
 - **A ticket is always filed in its spec's repo.**
 - **A ticket filed in a public repo never describes work in a private one**: check each repo's visibility with `npm run repos`.
+
+## Section formats
+
+- **A section that lists items, such as `## Targets` or `## New dependencies`, takes one `- ` per item; a fixed-shape section, such as `## Model fit`'s pair line then its reason, takes none.** No section's format is optional.
 
 ## Where
 

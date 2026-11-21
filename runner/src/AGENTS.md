@@ -198,7 +198,7 @@ One row per file under `src/`, tests aside, each naming only the file's job; beh
 | `ticketDrafts/TicketDraftReader.ts` | | Reads one draft file's name and front matter into a ticket draft, refusing one that can't file. |
 | `TicketHalted.ts` | | The error raised once a ticket's Halts are posted. |
 | `TicketReadier.ts` | `TicketReadier` | `npm run issue:ready`'s core: puts one `ready-*` label on an issue in place of any triage label it holds, once its body passes the check `issue:file` shares, skipping it for a spec headed for tickets; and its GitHub port. |
-| `ticketReadiness.ts` | | The check `issue:file` and `issue:ready` share on an agent or interactive ticket's `## Where` and last `## Model fit`, and the `ready-*` labels. |
+| `ticketReadiness.ts` | | The check `issue:file` and `issue:ready` share on an agent or interactive ticket's `## Where`, any `## Targets` lines and last `## Model fit`, and the `ready-*` labels. |
 | `ticketNewDependencies.ts` | | Reads a ticket's `## New dependencies` section. |
 | `ticketTargets.ts` | | Reads a ticket's `## Targets` section, and holds the target kinds, a spec's source among them. |
 | `transcriptFacts.ts` | `transcriptFacts` | Re-assembles the `transcriptFacts/` pieces under one import path. |

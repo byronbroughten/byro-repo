@@ -54,7 +54,7 @@ Triage labels are separate: [`triage-labels.md`](./triage-labels.md).
   ```
 
 - **`title` and `kind` are required; `labels` and `blockers` are comma lists and may be left out.** `kind` is `agent`, `interactive` or `human`, giving `ready-for-agent`, `ready-for-interactive` or `ready-for-human`; `blockers` holds other drafts' numbers.
-- **Nothing files when any draft fails**: a triage label among the `labels`, a key or kind it doesn't know, a missing title or body, two drafts of one number, a blocker number with no draft, a blocker cycle, or an `agent` or `interactive` draft with no `## Where` or no sound last `## Model fit` ([`tickets.md`](./tickets.md)), each such draft named in one pass.
+- **Nothing files when any draft fails**: a triage label among the `labels`, a key or kind it doesn't know, a missing title or body, two drafts of one number, a blocker number with no draft, a blocker cycle, or an `agent` or `interactive` draft with no `## Where`, a malformed `## Targets` line or no sound last `## Model fit` ([`tickets.md`](./tickets.md)), each such draft named in one pass.
 
 ## When a skill says "publish to the issue tracker"
 
