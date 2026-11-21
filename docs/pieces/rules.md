@@ -25,7 +25,7 @@ The rules every piece spec follows, in whichever repo files it as a GitHub issue
 
 A Piece is done when all four hold:
 
-1. Every factual claim traces to a fact listed in the spec, the Images field's included, with nothing invented.
+1. Every factual claim traces to a fact listed in the spec, the Images field's included, with nothing invented; a claim that something is missing, unwritten or not done is a factual claim too.
 2. The Piece meets the spec's length limit.
 3. It follows [`writing-voice.md`](../writing-voice.md) and [`writing-craft.md`](../writing-craft.md), apart from the style overrides the spec lists.
 4. It copies no wording from the Reference or Supporting Material passages read for it, per [`writing-voice.md`](../writing-voice.md), apart from the developer's own text the spec names. `npm run overlap` lists the shared four-word runs; judge each one.

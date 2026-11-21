@@ -38,7 +38,9 @@ One line per rule. The examples and their sources are one file away. Open a reas
 - **When a sentence's opening words invite a reading that a later word overturns, reword it: swap the ambiguous word ("once" for "when"), add a word that signals the structure, or reorder.**
 - **Keep "that" after a verb such as "found" or "confirmed", and keep "which", "who" or "the", wherever dropping it lets the next noun read as the start of the wrong phrase.**
 - **Place a modifier so that the nearest phrase it could attach to is the one it modifies; when a closer phrase could take it, move it.**
+- **Keep the words of one idea together, such as a verb and its particle ("sets off the contingency", not "sets the contingency off"), unless joining them sounds stiff ("the Doc, the first tab of which defines…", not "the Doc, of which the first tab defines…").**
 - **Don't put a clause in the middle of another, between a subject and its verb or between "and" and what it joins; set it beside the clause or give it its own sentence.** A short aside in paired dashes is fine.
+- **Never nest a span inside another set off by the same mark, such as a semicolon list inside a semicolon series or a dash aside inside a dash aside; give each outer part its own sentence, or set the inner span off by another mark.**
 - **Make the items joined by "and", "or", "both… and" or "not only… but also" the same kind of phrase, each working alone with what precedes it; put "both", "either" or "not only" just before the first item.**
 - **Give parallel points the same sentence shape, in the same order (cause then effect, say), rather than varying it for variety's sake.**
 - **Unpack nouns stacked before a noun into a phrase with a preposition ("the gate on HELOC funding", not "the HELOC funding gate").**

@@ -32,10 +32,20 @@ Disclosed from [`docs/writing-craft.md`](../writing-craft.md), "Sentences". The 
 - Before: "Property Science will review the estimates for the candidates from the Planning phase." After: "Property Science will review the estimates it made in the Planning phase for each candidate." — invented; Pinker, Ch. 4, PDF pp. 131–133. _From Pinker; not yet seen in your writing._
 - Strunk and White's "keep related words together" misses this case: the right phrase and the wrong one can both sit next door.
 
+## Keep related words together
+
+- Agent: "fixing the trigger point that sets the contingency off" Developer: "fixing the trigger point that sets off the contingency" — personal#60 Agent draft, 2026-11-13
+- Strunk and White's "keep related words together"; the Heavy phrases last rule points the same way, since the particle is the lighter phrase.
+
 ## Don't nest a clause in the middle of another
 
 - Agent: "The return is measured once every unit other than the owner's is leased, from those units' lease rents and, for the owner's unit, the rent it is projected to earn if leased, as estimated in Planning." Developer: "The return is measured when every unit other than the owner's is leased, and the measurement is based on lease rents and the rent that the owner's unit is projected to earn if it were leased." — Assessment 1 Next Draft - AI against the edited Assessment 1 Next Draft, 2026-10-13
 - Pinker, Ch. 4, PDF pp. 118–121: center-embedding makes the reader hold the outer phrase open until it resumes; set the clauses side by side, then split them. The Voice sheet's "split a sentence whose modifiers nest" overlaps; #321's audit decides whether it moves.
+
+## Don't nest a mark inside itself
+
+- Agent: "Impact is rated against the buffer meant to absorb it: a low impact is covered by its own buffer, i.e., the $3,000 contingency reserve; the $2,000 line in Table 1 for holding costs and a leasing reserve; or the 26-day schedule reserve, and leaves the targets intact; a medium impact needs the management reserve or uses up the schedule reserve, but keeps the return at 12% or above; and a high impact drops the return below 12% or moves the finish date past May 31, 2027." Developer: "Impact is rated against the buffer meant to absorb it. A low impact is covered by its own buffer, whether the $3,000 contingency reserve, the $2,000 line in Table 1 for holding costs and a leasing reserve, or the 26-day schedule reserve, and leaves the targets intact. A medium impact needs the management reserve or uses up the schedule reserve, but keeps the return at 12% or above. A high impact drops the return below 12% or moves the finish date past May 31, 2027." — personal#60 Agent draft, 2026-11-13
+- No count was recorded; from an Agent draft.
 
 ## Parallel items
 
