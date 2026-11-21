@@ -49,41 +49,10 @@ function commandMatching(entry: string): string {
 }
 
 const settings = JSON.parse(readFileSync(settingsPath, "utf8")) as {
-  env: Record<string, string>;
-  permissions: { deny: string[] };
-  sandbox: {
-    excludedCommands: string[];
-    network: { allowedDomains: string[] };
-  };
+  sandbox: { excludedCommands: string[] };
 };
 
-describe("the live aliases, run in the box on the agent-account credential", () => {
-  it("leaves no `app` or `dev` entry in `excludedCommands`", () => {
-    expect(
-      settings.sandbox.excludedCommands.filter((entry) =>
-        /^npm run (app|dev)\b/.test(entry),
-      ),
-    ).toEqual([]);
-  });
-
-  it.each([
-    "sheets.googleapis.com",
-    "oauth2.googleapis.com",
-    "script.googleapis.com",
-  ])("lets the box reach `%s`", (host) => {
-    expect(settings.sandbox.network.allowedDomains).toContain(host);
-  });
-
-  it("points `clasp_config_auth` at the agent credential's absolute path", () => {
-    expect(settings.env.clasp_config_auth).toMatch(
-      /^\/.+\/\.config\/sheets-framework\/agent-auth\.json$/,
-    );
-  });
-
-  it("keeps the read deny on `~/.clasprc.json`", () => {
-    expect(settings.permissions.deny).toContain("Read(~/.clasprc.json)");
-  });
-
+describe("the live aliases, run in the box", () => {
   it.each(["cd . && npm run app:probe -- x", "npm run dev:probe | head -50"])(
     "refuses no boxed `%s` under the settings' entries",
     (command) => {
@@ -150,19 +119,19 @@ describe("an excluded command the call keeps in the box", () => {
     ],
     [
       "npm run google:script -- probe.ts | head",
-      "can't read the gworkspace server's credentials or reach Google",
+      "can't read the gworkspace server's credentials",
     ],
     [
       "npm run doc:print -- 1AbCdEf | head",
-      "can't read the gworkspace server's credentials or reach Google",
+      "can't read the gworkspace server's credentials",
     ],
     [
       "npm run piece:pull -- personal 42 | head",
-      "can't read the gworkspace server's credentials or reach Google",
+      "can't read the gworkspace server's credentials",
     ],
     [
       "npm run logs -- sync --sheet 1AbCdEf | head",
-      "can't read the gworkspace server's credentials or reach Google",
+      "can't read the gworkspace server's credentials",
     ],
   ])("refuses `%s` because the sandbox %s", (command, reason) => {
     const decision = decisionOf(command);

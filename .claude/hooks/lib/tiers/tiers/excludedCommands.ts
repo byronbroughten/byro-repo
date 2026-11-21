@@ -9,8 +9,7 @@ import { npmCommands } from "./npmCommands.ts";
 // Why a boxed entry is refused: what the box can't do, or for the research push, that the box would free its push.
 const boxReasons = {
   cant: {
-    agentToken:
-      "can't read the gworkspace server's credentials or reach Google",
+    agentToken: "can't read the gworkspace server's credentials",
     claude: "can't launch `claude`",
     ps: "can't run `ps`",
     pgrep: "can't run `pgrep`",
