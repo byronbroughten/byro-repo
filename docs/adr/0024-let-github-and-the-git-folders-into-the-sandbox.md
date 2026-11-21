@@ -4,7 +4,7 @@ status: partly superseded by ADR-0035
 
 # Let GitHub and the git folders into the sandbox
 
-A command that reached GitHub or wrote a git folder left the sandbox only when every command in its call matched an `excludedCommands` entry, so a `cd`, a pipe or an unlisted spelling such as `git -C <clone> commit` kept it in the box, where it failed with errors that never named the box. GitHub, the jev API and the git folders are now in the box and the commands that needed them come off `excludedCommands`, while the tier gate still decides each command from its text, superseding ADR 0023's rejection of GitHub on the allowlist and its denial of the git folders. Keeping them out closed little, since `npm test`, `npm run check` and `npm run runner*` already run code the gate can't read outside the box with full access.
+A command that reached GitHub or wrote a git folder left the sandbox only when every command in its call matched an `excludedCommands` entry, so a `cd`, a pipe or an unlisted spelling such as `git -C <clone> commit` kept it in the box, where it failed with errors not naming the box. GitHub, the jev API and the git folders are now in the box and the commands that needed them come off `excludedCommands`, while the tier gate still decides each from its text, superseding ADR 0023's rejection of GitHub on the allowlist and its denial of the git folders. Keeping them out closed little, since `npm test`, `npm run check` and `npm run runner*` already run code the gate can't read outside the box with full access.
 
 Source: ByronBroughten/byro-repo#537
 
