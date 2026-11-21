@@ -4,7 +4,8 @@
 import { markdownSectionOf } from "./markdownSections.ts";
 
 const sectionHeading = "## Targets";
-const docLine = /^- doc ([A-Za-z0-9_-]+)$/;
+const bulletLine = /^- (.+)$/;
+const docTarget = /^doc ([A-Za-z0-9_-]+)$/;
 // The line shapes targetOf() reads, for a refusal to name.
 export const targetLineShapes =
   "`- app spreadsheet`, `- dev spreadsheet` or `- doc <id>`";
@@ -21,9 +22,9 @@ export type TargetsReading =
   | { status: "valid"; targets: Target[] }
   | { status: "malformed"; line: string };
 
-const spreadsheetLines: Record<string, SpreadsheetName> = {
-  "- app spreadsheet": "app",
-  "- dev spreadsheet": "dev",
+const spreadsheetTargets: Record<string, SpreadsheetName> = {
+  "app spreadsheet": "app",
+  "dev spreadsheet": "dev",
 };
 
 // A body with no section names no targets.
@@ -45,9 +46,11 @@ export function targetsOf(body: string): TargetsReading {
 }
 
 function targetOf(line: string): Target | undefined {
-  const name = spreadsheetLines[line.toLowerCase()];
+  const item = bulletLine.exec(line)?.[1];
+  if (item === undefined) return undefined;
+  const name = spreadsheetTargets[item.toLowerCase()];
   if (name !== undefined) return { kind: "spreadsheet", name };
-  const id = docLine.exec(line)?.[1];
+  const id = docTarget.exec(item)?.[1];
   if (id !== undefined) return { kind: "doc", id };
   return undefined;
 }
