@@ -50,7 +50,7 @@ The one home for ticketing judgments: the ticket split test, work packages, sizi
 
 ## Section formats
 
-- **A section that lists items, such as `## Targets` or `## New dependencies`, takes one `- ` per item; a fixed-shape section, such as `## Model fit`'s pair line then its reason, takes none.** No section's format is optional: `npm run issue:file` and `npm run issue:ready` refuse a malformed `## Targets` line.
+- **A section that lists items, such as `## Targets` or `## New dependencies`, takes one `- ` per item; a fixed-shape section, such as `## Model fit`'s pair line then its reason, takes none.** No section's format is optional.
 
 ## Where
 

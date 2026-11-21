@@ -32,7 +32,13 @@ import {
   type ResearchRecord,
   type ResolveRecord,
 } from "../stepRecords.ts";
-import { type Target, targetLineShapes, targetsOf } from "../ticketTargets.ts";
+import {
+  type Target,
+  targetLineFault,
+  targetLineShapes,
+  targetsHeading,
+  targetsOf,
+} from "../ticketTargets.ts";
 import {
   type RecordedSession,
   type StepSession,
@@ -350,7 +356,7 @@ export const ticketLaunch = {
       return [`${issueRef.labelOf(issue)} (\`${reading.line}\`)`];
     });
     if (offenders.length === 0) return undefined;
-    return `Each ## Targets line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
+    return `Each ${targetsHeading} line must be ${targetLineShapes}; malformed in ${offenders.join(", ")}.`;
   },
 
   validTargetsOf(ticket: TrackedIssue, logPath: string): Target[] {
@@ -358,7 +364,7 @@ export const ticketLaunch = {
     if (reading.status === "valid") return reading.targets;
     throw new UnhandledStop(
       "targets",
-      `The ## Targets section changed after preflight: \`${reading.line}\` isn't ${targetLineShapes}.`,
+      `The ${targetsHeading} section changed after preflight: ${targetLineFault(reading.line)}.`,
       logPath,
     );
   },

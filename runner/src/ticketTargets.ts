@@ -10,6 +10,11 @@ const docTarget = /^doc ([A-Za-z0-9_-]+)$/;
 export const targetLineShapes =
   "`- app spreadsheet`, `- dev spreadsheet` or `- doc <id>`";
 
+// What's wrong with a line targetsOf() read as malformed, for each refusal that quotes it.
+export function targetLineFault(line: string): string {
+  return `\`${line}\` isn't ${targetLineShapes}`;
+}
+
 // A source is a Drive file the spec lists for its steps to read, never a ticket line, and never written.
 export type Target =
   | { kind: "spreadsheet"; name: SpreadsheetName }

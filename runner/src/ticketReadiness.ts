@@ -14,11 +14,7 @@ import {
   interactiveLabel,
   readyLabel,
 } from "./SpecRun/runState.ts";
-import {
-  targetLineShapes,
-  targetsHeading,
-  targetsOf,
-} from "./ticketTargets.ts";
+import { targetLineFault, targetsHeading, targetsOf } from "./ticketTargets.ts";
 
 const whereHeading = "## Where";
 
@@ -26,7 +22,7 @@ export const ticketReadiness = {
   // docs/agents/triage-labels.md's `ready-*` labels.
   readyLabels: [readyLabel, interactiveLabel, humanLabel] as readonly string[],
   // What both refusals cite.
-  rule: `docs/agents/tickets.md's ${whereHeading}, any ${targetsHeading} well formed and a last ${modelFitHeading}`,
+  rule: `docs/agents/tickets.md's ${whereHeading}, well-formed ${targetsHeading} lines if any, and a last ${modelFitHeading}`,
   // A `ready-for-human` ticket isn't checked.
   needsCheck(label: string): boolean {
     return label === readyLabel || label === interactiveLabel;
@@ -50,7 +46,7 @@ function targetsGapsOf(body: string): string[] {
   const reading = targetsOf(body);
   if (reading.status === "valid") return [];
   return [
-    `has a ${targetsHeading} line \`${reading.line}\` that isn't ${targetLineShapes}`,
+    `has a ${targetsHeading} section whose line ${targetLineFault(reading.line)}`,
   ];
 }
 
