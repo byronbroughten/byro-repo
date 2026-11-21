@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { type HookInput, projectDirOf } from "./hookIo.ts";
+import { type HookInput, isObject, projectDirOf } from "./hookIo.ts";
 import type { CallSandbox } from "./tiers/tiers.ts";
 
 export interface SandboxState {
@@ -172,10 +172,6 @@ function mergedOf(
     },
     { ...lower },
   );
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function objectOf(value: unknown): Record<string, unknown> {

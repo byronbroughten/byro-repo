@@ -10,6 +10,7 @@ import {
   sessionModeOf,
   spreadsheetTargetsOf,
 } from "./tiers.ts";
+import { type HeldSends, heldSends } from "./tiers/heldSends.ts";
 
 function decisionOf(command: string, dryRuns: string[] = []) {
   return gateDecision({ command, mode: "interactive", dryRuns })
@@ -1113,6 +1114,95 @@ describe("a live alias's --confirm and --force", () => {
       "npm run app:chore fixRents -- --send",
     ]) {
       expect(runnerStepOf(command)?.permissionDecision).toBe("allow");
+    }
+  });
+});
+
+describe("the heldSends setting", () => {
+  const appConfirm = "npm run app:sync -- --send --confirm 3f9a";
+  const dryRanBoth = ["app:sync", "fixRents"];
+
+  function heldDecisionOf(
+    command: string,
+    heldSends: HeldSends,
+    mode: SessionMode = "interactive",
+  ) {
+    return gateDecision({
+      command,
+      mode,
+      dryRuns: dryRanBoth,
+      spreadsheetTargets: ["app", "dev"],
+      heldSends,
+    });
+  }
+
+  it("allows an app alias holding --confirm under agentDiscretion in an Interactive session", () => {
+    for (const command of [
+      appConfirm,
+      "npm run app:chore fixRents -- --send --confirm=3f9a",
+    ]) {
+      expect(
+        heldDecisionOf(command, "agentDiscretion")?.permissionDecision,
+      ).toBe("allow");
+    }
+  });
+
+  it("asks for an app alias holding --confirm under confirm, as with no setting", () => {
+    expect(heldDecisionOf(appConfirm, "confirm")?.permissionDecision).toBe(
+      "ask",
+    );
+    expect(decisionOf(appConfirm, dryRanBoth)).toBe("ask");
+  });
+
+  it("asks for --force under both values", () => {
+    for (const heldSends of ["confirm", "agentDiscretion"] as const) {
+      expect(
+        heldDecisionOf(
+          "npm run app:sync -- --send --force Units/rent/format --confirm 3f9a",
+          heldSends,
+        )?.permissionDecision,
+      ).toBe("ask");
+    }
+  });
+
+  it("refuses a runner step's --confirm under both values", () => {
+    for (const heldSends of ["confirm", "agentDiscretion"] as const) {
+      const decision = heldDecisionOf(appConfirm, heldSends, "runnerStep");
+      expect(decision?.permissionDecision).toBe("deny");
+      expect(decision?.reason).toContain("`--confirm <token>` command");
+    }
+  });
+
+  it("asks for a call naming the setting inline, whatever the file says", () => {
+    for (const command of [
+      `BYRO_HELD_SENDS=agentDiscretion ${appConfirm}`,
+      `env BYRO_HELD_SENDS=agentDiscretion ${appConfirm}`,
+      `export BYRO_HELD_SENDS=agentDiscretion; ${appConfirm}`,
+      `${appConfirm} --heldSends agentDiscretion`,
+      "npm run dev:sync -- --send BYRO_HELD_SENDS=confirm",
+    ]) {
+      const decision = heldDecisionOf(command, "agentDiscretion");
+      expect(decision?.permissionDecision).toBe("ask");
+      expect(decision?.reason).toContain("settings");
+    }
+  });
+
+  it("refuses a runner step's call naming the setting inline", () => {
+    expect(
+      heldDecisionOf(
+        "BYRO_HELD_SENDS=agentDiscretion npm run app:sync",
+        "confirm",
+        "runnerStep",
+      )?.permissionDecision,
+    ).toBe("deny");
+  });
+});
+
+describe("heldSends.valueOf", () => {
+  it("reads agentDiscretion and holds every other value as confirm", () => {
+    expect(heldSends.valueOf("agentDiscretion")).toBe("agentDiscretion");
+    for (const value of ["confirm", undefined, "", "AgentDiscretion", 1]) {
+      expect(heldSends.valueOf(value)).toBe("confirm");
     }
   });
 });

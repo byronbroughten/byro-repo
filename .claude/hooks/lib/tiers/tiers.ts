@@ -4,6 +4,7 @@ import { type SandboxOff, sandboxOffWords } from "../sandboxState.ts";
 import { ShellParser, type SimpleCommand } from "./ShellParser.ts";
 import { excludedCommands } from "./tiers/excludedCommands.ts";
 import { gitWrites } from "./tiers/gitWrites.ts";
+import { type HeldSends, heldSends } from "./tiers/heldSends.ts";
 import { interactiveScripts } from "./tiers/interactiveScripts.ts";
 import { interactiveSession } from "./tiers/interactiveSession.ts";
 import { npmCommands } from "./tiers/npmCommands.ts";
@@ -45,6 +46,8 @@ export interface ShellCall {
   places?: ShellPlaces;
   // Absent, no call is refused for keeping an excluded command in the box, and none is freed for running in it.
   sandbox?: CallSandbox;
+  // The developer's setting, which tierGate.ts reads from settings; absent, it's `confirm`.
+  heldSends?: HeldSends;
 }
 
 // The session's sandbox as the gate reads it: `isOn` and `off` as `SandboxState` has them, and the `excludedCommands` entries that keep a command in the box, none when it's disabled.
@@ -59,7 +62,7 @@ const noSandbox: CallSandbox = { isOn: false, excludedCommands: [] };
 
 // What a simple command's verdict reads beyond its own words.
 export type CallContext = Pick<ShellCall, "mode" | "dryRuns" | "places"> &
-  Required<Pick<ShellCall, "spreadsheetTargets">>;
+  Required<Pick<ShellCall, "spreadsheetTargets" | "heldSends">>;
 
 // One entry of the targets JSON, unchecked until a reader narrows it.
 export interface TargetEntry {
@@ -111,7 +114,9 @@ export function gateDecision(call: ShellCall): Decision | undefined {
   ) {
     return gateOf("allow", sandboxedCalls.reasonOf(call.command));
   }
-  const rowsDecision = isBoxRun ? gitHubDecisionOf(call) : baseDecision(call);
+  const rowsDecision =
+    inlineSettingDecisionOf(call.command) ??
+    (isBoxRun ? gitHubDecisionOf(call) : baseDecision(call));
   const decision =
     offDecisionOf(call.command, off) ?? rowsDecision ?? undecidedDecision(call);
   return decision && decisionInMode(decision, call.mode);
@@ -146,6 +151,12 @@ function gitHubDecisionOf(call: ShellCall): Decision | undefined {
     ...decision,
     reason: `${decision.reason} ${sandboxedCalls.restReasonOf(call.command)}`,
   };
+}
+
+// Env assignments drop out of a command's words, so the whole call's text is searched; a call the box frees can't send, so it's left free.
+function inlineSettingDecisionOf(command: string): Decision | undefined {
+  if (!heldSends.isNamedIn(command)) return undefined;
+  return needsYes(`\`${command}\` ${heldSends.inlineWhy}`);
 }
 
 function offDecisionOf(
@@ -269,10 +280,17 @@ export function commandVerdictsOf({
   dryRuns,
   spreadsheetTargets = [],
   places,
+  heldSends: heldSendsValue = "confirm",
 }: ShellCall): CommandVerdict[] | undefined {
   const commands = ShellParser.init(command).parsedCommands;
   if (!commands) return undefined;
-  const context = { mode, dryRuns, spreadsheetTargets, places };
+  const context = {
+    mode,
+    dryRuns,
+    spreadsheetTargets,
+    places,
+    heldSends: heldSendsValue,
+  };
   return commands.map((simple) => ({
     words: simple.words,
     verdict: commandVerdictOf(simple, context),

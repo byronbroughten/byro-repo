@@ -1,8 +1,8 @@
 // PreToolUse on Bash, WebFetch, WebSearch, the gworkspace write and create tools and its two Drive file reads applies the tier gate; PostToolUse on Bash records each app chore and sync dry run that ran, for a later --send.
-// The hook reads the session's dry runs, targets and sandbox state, so the decision stays pure.
+// The hook reads the session's dry runs, targets, sandbox state and the developer's `heldSends` setting, so the decision stays pure.
 import { writeFileSync } from "node:fs";
 
-import { dryRuns, shellPlacesOf } from "./lib/gateLookups.ts";
+import { dryRuns, heldSendsSetting, shellPlacesOf } from "./lib/gateLookups.ts";
 import {
   type HookInput,
   projectDirOf,
@@ -83,6 +83,7 @@ async function bashDecision(input: HookInput): Promise<Decision | undefined> {
     spreadsheetTargets: spreadsheetTargetsOf(process.env[stepTargetsVariable]),
     places: shellPlacesOf(input),
     sandbox: callSandboxOf(sessionSandboxStateOf(input)),
+    heldSends: heldSendsSetting.read(projectDirOf(input)),
   });
 }
 
