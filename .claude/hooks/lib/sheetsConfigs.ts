@@ -25,7 +25,8 @@ export const sheetsConfigFiles: SheetsConfigFile[] = [
 
 export function sheetsConfigOf(
   sheetsConfigs: SheetsConfigEntry[],
-  scriptPrefix: string | undefined,
+  // Unknown, as a step's targets are read unchecked from the environment.
+  scriptPrefix: unknown,
 ): SheetsConfigEntry | undefined {
   return sheetsConfigs.find((config) => config.scriptPrefix === scriptPrefix);
 }
