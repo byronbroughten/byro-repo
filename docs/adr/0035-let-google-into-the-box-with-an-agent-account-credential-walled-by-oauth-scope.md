@@ -1,8 +1,14 @@
 # Let Google into the box with an agent-account credential walled by OAuth scope
 
-The live aliases, `npm run app*` and `npm run dev*`, ran outside the box, so the repo code each one runs (a chore an agent wrote, `sync`'s operators, rollup) had every host, every write and the developer's `clasp` token, `cloud-platform` included, in reach; the Read deny on `~/.clasprc.json` doesn't stop a chore's own code. They now run in the box on a credential of the agent account, `byronbroughtenai@gmail.com`, with only the `spreadsheets`, `script.projects` and `script.deployments` scopes, which settings' `clasp_config_auth` names, and the box reaches only `sheets.googleapis.com`, `oauth2.googleapis.com` and `script.googleapis.com`, the hosts the verification found clasp and the Node-host transport need. This supersedes ADR 0024's consequence that Google stays outside the box; what the tier gate still asks or refuses there is in [the tier list](../targets-and-gates.md#which-tier-an-action-is-in).
+Outside the box, the code a live alias runs, such as a chore an agent wrote, had every host and the developer's `clasp` token in reach. So `npm run app*` and `npm run dev*` now run in the box on an agent-account credential with only the `spreadsheets`, `script.projects` and `script.deployments` scopes, named by settings' `clasp_config_auth`, and the box reaches only the three Google hosts they need. This supersedes ADR 0024's consequence that Google stays outside the box.
 
 Source: byronbroughten/sheets-framework#201, byronbroughten/sheets-framework#207, byronbroughten/byro-repo#564, byronbroughten/byro-repo#886, byronbroughten/byro-repo#887
+
+## What runs where
+
+- **The credential** is the agent account's, `byronbroughtenai@gmail.com`, at `~/.config/sheets-framework/agent-auth.json`; the developer's `~/.clasprc.json` stays read-denied, a deny that, outside the box, never stopped a chore's own code.
+- **The hosts** are `sheets.googleapis.com`, `oauth2.googleapis.com` and `script.googleapis.com`, the ones the verification found clasp and the Node-host transport need.
+- **What the tier gate still asks or refuses in the box** is in [the tier list](../targets-and-gates.md#which-tier-an-action-is-in).
 
 ## Why the agent account and these scopes
 
