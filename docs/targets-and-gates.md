@@ -26,8 +26,13 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 | `probe`, `chore <name>` (dry run), `configs:diff` on either target | free: reads |
 | `app:chore <name> -- --send` | 2, once this session has dry-run `<name>`; with no dry run it's refused, naming the dry-run command |
 | `dev:chore <name> -- --send` | 2 |
-| `app:gen:configs`, `dev:gen:configs` | 2, under [the conditions below](#gen-configs-standing-permission) |
-| `app:build`, `app:deploy`, `dev:build`, `dev:push`, `dev:run`, `dev:deploy` | 2: Apps Script keeps each pushed version, and a deployment rolls back |
+| `app:sync`, `dev:sync`, `dev:sync -- --send` | 2, under [the obligations below](#syncs-workflow-obligations): the framework holds whatever would lose entered data until `--confirm` covers it ([what counts as held](../packages/framework/docs/how-it-runs/sync.md#syncs-entered-data-gate-and---confirm)) |
+| `app:sync -- --send` | 2, once this session has run a bare `app:sync`, its dry run; with none it's refused, naming `npm run app:sync` |
+| `app:sync` or `app:chore` holding `--confirm <token>` | 3: it sends the held deletions and overwrites of entered data. [The agent's rule](#the-agents-rule-for-a-held-send) comes first, whatever the gate allows |
+| `dev:sync` or `dev:chore` holding `--confirm <token>` | 2: the dev spreadsheet holds no business data. [The agent's rule](#the-agents-rule-for-a-held-send) still comes first |
+| A live alias holding `--force`, on either target | 3: a force overwrites a person's edit |
+| A runner step's live alias holding `--confirm`, on either target | refused: the step records a `denied-tool` blocker quoting the held list the dry run printed and the ready `--confirm <token>` command, for the developer to run |
+| `app:build`, `app:deploy`, `dev:build`, `dev:push`, `dev:deploy` | 2: Apps Script keeps each pushed version, and a deployment rolls back |
 | gworkspace Sheets or Docs write, or a non-sharing `update_drive_file`, on a file one of the developer's two Google accounts owns | 2 |
 | Creating, copying, importing or exporting a spreadsheet, Doc, Drive file or folder | 2 |
 | gworkspace write on a file someone else owns, or whose owner can't be looked up | 3 |
@@ -98,22 +103,29 @@ Reads need no yes in any tier. A Bash read is free as a sandboxed call and asks 
 The threat model is accidents, with tampering made visible. Both clasp credentials cover the whole Google account, so OAuth can't isolate the two spreadsheets; the aliases and hooks do.
 
 - **Bare `npx sheets-framework …`, `node packages/framework/scripts/sheets-framework.js …`, a package-level `npm run chore …` and `npm run … -w …` match no allow rule, so they ask.**
-- **`dev:build`, `dev:push`, `dev:deploy` and `dev:run` run the framework package's `build`, `push`, `deploy` and `run` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs/dev-project.md)); `app:build` and `app:deploy` run the app's.
+- **`dev:build`, `dev:push` and `dev:deploy` run the framework package's `build`, `push` and `deploy` scripts** against the dev project named in its `.clasp.json` ([the dev project](../packages/framework/docs/how-it-runs/dev-project.md)); `app:build` and `app:deploy` run the app's.
 - **Both targets' Node-host credential comes from GCP project `real-estate-manager-sheets`**, whose consent screen is published to production ([why, and the assumption it rests on](../packages/framework/docs/how-it-runs/auth.md)).
 - **Never read `~/.clasprc.json` or the Docs module's `~/.clasprc-docs.json` by hand, or print either one's token.** Settings deny the read of both too, to the Read tool and to sandboxed Bash ([the Bash sandbox](./claude-code-guardrails.md#the-bash-sandbox)).
 - **The dev spreadsheet is not a rehearsal copy of the app one.** Sheet configs key every sheet by its GID, and the dev sheet carries its own fixture sheets, not a copy of the business ones.
 - **The agent verifies a chore's preview before sending it** (the rule: [`src/chores/AGENTS.md`](../packages/framework/src/chores/AGENTS.md)), comparing the rendered requests against what the chore was meant to do and calling out anything wrong or larger than intended. That is a workflow obligation, not a code feature.
 
-## gen-configs' standing permission
+## sync's workflow obligations
 
-`npm run app:gen:configs` **writes** to the live spreadsheet ([what it writes](../packages/framework/docs/how-it-runs/sync.md#what-sync-writes)). It has **standing permission** under four conditions, all of which must hold. `dev:gen:configs` needs only the last two, since the dev spreadsheet holds no business data:
+`npm run app:sync` and `dev:sync` **write** to the live spreadsheet ([what it writes](../packages/framework/docs/how-it-runs/sync.md#what-sync-writes)); a bare one is the dry run, and `-- --send` sends. The framework holds every send that would lose entered data, and every other held item, until `--confirm <token>` covers it ([what counts as held](../packages/framework/docs/how-it-runs/sync.md#syncs-entered-data-gate-and---confirm)). A sync on either target keeps these obligations, which are the agent's to keep, not the gate's:
 
-- no uncommitted changes in the framework's `src/01_SpreadsheetSchema/` or the app's `src/generated/`;
-- no uncommitted changes in the framework's `src/05_Operators/`, because the command now executes local, possibly unreviewed operator code against the live spreadsheet;
-- the agent reports what changed and the untyped-column count it returned;
+- no uncommitted changes in the framework's `src/01_SpreadsheetSchema/` or the target's generated folder: the app's `src/generated/`, or the framework's `dev/generated/` for `dev:sync`;
+- the agent reports the plan, the held list (empty, or covered by a `--confirm`) and every ID the run filled;
 - it is never a blind fix for a type error whose cause has not been identified. An identified identity or incidental retarget goes through [retarget-after-gen-configs](../.claude/skills/retarget-after-gen-configs/SKILL.md); an unidentified one still means no patch.
 
-**A guard ships in the same commit as the write it guards, or earlier** ([`packages/framework/src/AGENTS.md`](../packages/framework/src/AGENTS.md)). A standing-permission `gen:configs` run can land between any two commits, so a write merged ahead of its refusal or fail-closed check writes unguarded.
+**A guard ships in the same commit as the write it guards, or earlier** ([`packages/framework/src/AGENTS.md`](../packages/framework/src/AGENTS.md)). A `sync` run can land between any two commits, so a write merged ahead of its refusal or fail-closed check writes unguarded.
+
+## The agent's rule for a held send
+
+**The rule is the same whatever the gate allows: dry-run, paste the held block the framework prints, add one line per item saying why its plan meant to do that, then run `--confirm`.**
+
+- **Send only if every held item traces to something the developer agreed in this session**; if any doesn't, stop after the block and discuss it, without running `--confirm`.
+- **After a send, the block stays in the reply.**
+- **Never run `--confirm` without the block first.**
 
 ## The `gworkspace` MCP tools
 

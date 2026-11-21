@@ -290,12 +290,12 @@ function plainTextRefusalOf(
   return gateOf("deny", `${cause}, so ${fix}.`);
 }
 
-// The chore names a command dry-runs, for the session's dry-run record.
-export function dryRunChoresOf(command: string): string[] {
+// The app chores and sync a command dry-runs, for the session's dry-run record.
+export function dryRunsOf(command: string): string[] {
   return (ShellParser.init(command).parsedCommands ?? []).flatMap(
     ({ words }) => {
-      const chore = npmCommands.appChoreOf(words);
-      return chore && !chore.isSend ? [chore.name] : [];
+      const run = npmCommands.appRunOf(words);
+      return run && !run.isSend ? [run.dryRun] : [];
     },
   );
 }
@@ -335,7 +335,7 @@ const classifiers: Classifier[] = [
   interactiveSession.ghVerdictOf,
   interactiveSession.decideVerdictOf,
   interactiveScripts.scriptVerdictOf,
-  npmVerdicts.choreSendVerdictOf,
+  npmVerdicts.liveSendVerdictOf,
   readCommands.labelListVerdictOf,
   readCommands.processListVerdictOf,
   openCommands.openVerdictOf,

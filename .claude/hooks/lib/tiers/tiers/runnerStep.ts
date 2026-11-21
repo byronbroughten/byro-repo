@@ -3,6 +3,7 @@ import type { SimpleCommand } from "../ShellParser.ts";
 import type { CallContext, Verdict } from "../tiers.ts";
 import { ghIssue } from "./ghIssue.ts";
 import { npmCommands } from "./npmCommands.ts";
+import { npmVerdicts } from "./npmVerdicts.ts";
 
 const targetAliases = [
   "chore",
@@ -46,9 +47,11 @@ export const runnerStep = {
   },
   // A runner step runs a live alias only against a spreadsheet its ticket targets.
   liveAliasVerdictOf(
-    { words }: SimpleCommand,
-    { mode, dryRuns, spreadsheetTargets }: CallContext,
+    simple: SimpleCommand,
+    context: CallContext,
   ): Verdict | undefined {
+    const { words } = simple;
+    const { mode, spreadsheetTargets } = context;
     if (mode !== "runnerStep") return undefined;
     const name = npmCommands.scriptOf(words)?.name ?? "";
     const [, spreadsheet = "", alias = ""] = /^(\w+):(.+)$/.exec(name) ?? [];
@@ -72,7 +75,7 @@ export const runnerStep = {
         why: `isn't an alias the \`${spreadsheet}\` spreadsheet target gives a step`,
       };
     }
-    const sendVerdict = npmCommands.choreSendVerdictOf(words, dryRuns);
+    const sendVerdict = npmVerdicts.liveSendVerdictOf(simple, context);
     if (sendVerdict) return sendVerdict;
     return {
       permissionDecision: "allow",
