@@ -1,5 +1,5 @@
 // Decides the gate for a gworkspace call by tier: a write is free on a file the developer owns, and asks on anyone else's or as a Sheets write to the app spreadsheet; a runner step may write only its ticket's targets, and Drive-read only those and its spec's sources. Pure; tierGate.ts does the I/O, driveOwners.ts the real lookup.
-import type { SheetsConfigEntry } from "../sheetsConfigs.ts";
+import { type SheetsConfigEntry, sheetsConfigOf } from "../sheetsConfigs.ts";
 import {
   blockerInstead,
   type Decision,
@@ -144,9 +144,7 @@ export function stepTargetsOf(
     if (target?.kind === "source" && typeof target.id === "string") {
       return [{ label: "source", id: target.id, isReadOnly: true }];
     }
-    const config = sheetsConfigs.find(
-      ({ scriptPrefix }) => scriptPrefix === target?.name,
-    );
+    const config = sheetsConfigOf(sheetsConfigs, target?.name);
     if (target?.kind !== "spreadsheet" || config === undefined) return [];
     return [
       { label: `${config.scriptPrefix} spreadsheet`, id: config.spreadsheetId },

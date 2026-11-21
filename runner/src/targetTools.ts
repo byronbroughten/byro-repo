@@ -95,7 +95,7 @@ export function toolsOf(targets: Target[]): string[] {
   return [...new Set(tools)];
 }
 
-// A denied Sheets or Docs write is the one denial adding a target can lift.
+// A denied Sheets or Docs write is the one denial adding a target can lift, an app-spreadsheet Sheets write aside; a tool name doesn't say which file it wrote.
 export function isTargetWrite(toolName: string): boolean {
   return gworkspaceWrites.has(toolName);
 }

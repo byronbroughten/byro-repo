@@ -119,7 +119,9 @@ export function blockerHaltOf(
 ): HaltDraft {
   const options = [recommendation];
   if (kind === "denied-tool" && deniedTools.some(isTargetWrite)) {
-    options.push("Add it to the ticket's `## Targets`, then resume");
+    options.push(
+      "Add it to the ticket's `## Targets`, then resume; no target lifts a Sheets write to the app spreadsheet",
+    );
   }
   return { kind, question: detail, options, scope: downstream };
 }

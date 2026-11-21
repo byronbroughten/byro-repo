@@ -23,6 +23,13 @@ export const sheetsConfigFiles: SheetsConfigFile[] = [
   },
 ];
 
+export function sheetsConfigOf(
+  sheetsConfigs: SheetsConfigEntry[],
+  scriptPrefix: string | undefined,
+): SheetsConfigEntry | undefined {
+  return sheetsConfigs.find((config) => config.scriptPrefix === scriptPrefix);
+}
+
 // Project-relative generatedDir per package; a config that can't be read is skipped.
 export function readSheetsConfigs(projectDir: string): SheetsConfigEntry[] {
   return sheetsConfigFiles.flatMap(({ path, scriptPrefix }) => {

@@ -13,7 +13,7 @@ import {
   writeHookOutput,
 } from "./lib/hookIo.ts";
 import { callSandboxOf, sessionSandboxStateOf } from "./lib/sandboxState.ts";
-import { readSheetsConfigs } from "./lib/sheetsConfigs.ts";
+import { readSheetsConfigs, sheetsConfigOf } from "./lib/sheetsConfigs.ts";
 import { driveOwnersOf } from "./lib/tiers/driveOwners.ts";
 import {
   cachedOwnerLookup,
@@ -54,9 +54,7 @@ await runFailOpen(async () => {
       ),
       mode: sessionModeOf(process.env),
       targets: stepTargetsOf(process.env[stepTargetsVariable], sheetsConfigs),
-      appSpreadsheetId: sheetsConfigs.find(
-        ({ scriptPrefix }) => scriptPrefix === "app",
-      )?.spreadsheetId,
+      appSpreadsheetId: sheetsConfigOf(sheetsConfigs, "app")?.spreadsheetId,
     });
   }
   if (!decision) return;
